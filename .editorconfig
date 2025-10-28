@@ -1,0 +1,72 @@
+# EditorConfig is awesome: https://editorconfig.org
+root = true
+
+# Base defaults for text files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+# JavaScript/TypeScript/JSON/Vue
+[*.{js,cjs,mjs,ts,cts,mts,jsx,tsx,vue}]
+indent_style = space
+indent_size = 2
+
+# JSON with comments (VSCode settings, etc.)
+[*.{json,jsonc}]
+indent_style = space
+indent_size = 2
+
+# YAML (including GitHub Actions)
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[.github/workflows/*.yml]
+indent_style = space
+indent_size = 2
+
+# Rust (Tauri backend)
+[*.rs]
+indent_style = space
+indent_size = 4
+
+# TOML (Cargo.toml, tauri.conf.json is actually JSON but leave TOML here)
+[*.toml]
+indent_style = space
+indent_size = 2
+
+# Shell scripts
+[*.{sh,bash}]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+
+# Markdown: preserve trailing spaces (for hard line breaks)
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+
+# Makefiles must use tabs
+[Makefile]
+indent_style = tab
+
+# Ignore common binary assets
+[*.{png,jpg,jpeg,gif,ico,webp,mp4,mov,avi,mkv,mp3,flac,wav}]
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+# Lockfiles (let toolchains decide exact formatting)
+[*.{lock,tsbuildinfo}]
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+# Env files
+[*.env]
+indent_style = space
+indent_size = 2
