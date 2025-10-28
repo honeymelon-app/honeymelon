@@ -25,7 +25,9 @@ function isTauriRuntime(): boolean {
   );
 }
 
-export async function loadCapabilities(): Promise<CapabilitySnapshot> {
+let capabilityPromise: Promise<CapabilitySnapshot> | undefined;
+
+async function fetchCapabilities(): Promise<CapabilitySnapshot> {
   if (!isTauriRuntime()) {
     console.warn(
       "[capability] Returning empty capabilities; Tauri runtime not detected.",
@@ -36,15 +38,22 @@ export async function loadCapabilities(): Promise<CapabilitySnapshot> {
   try {
     const raw = await invoke<RawCapabilitySnapshot>("load_capabilities");
     return {
-      videoEncoders: new Set(raw.videoEncoders),
-      audioEncoders: new Set(raw.audioEncoders),
-      formats: new Set(raw.formats),
-      filters: new Set(raw.filters),
+      videoEncoders: new Set(raw.videoEncoders ?? []),
+      audioEncoders: new Set(raw.audioEncoders ?? []),
+      formats: new Set(raw.formats ?? []),
+      filters: new Set(raw.filters ?? []),
     };
   } catch (error) {
     console.error("[capability] Failed to read capabilities:", error);
     return EMPTY_CAPABILITIES;
   }
+}
+
+export function loadCapabilities(): Promise<CapabilitySnapshot> {
+  if (!capabilityPromise) {
+    capabilityPromise = fetchCapabilities();
+  }
+  return capabilityPromise;
 }
 
 export function presetIsAvailable(

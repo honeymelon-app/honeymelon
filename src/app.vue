@@ -45,15 +45,41 @@ watch(
 );
 
 const isDragOver = ref(false);
-const queuedItems = ref<string[]>([]);
+const queuedItems = ref<{ path: string; name: string }[]>([]);
 const fileInput = ref<HTMLInputElement>();
+const queuedPathSet = computed(() => new Set(queuedItems.value.map((item) => item.path)));
 
-function enqueueFileNames(fileList: FileList | File[]) {
-  const names = Array.from(fileList).map((file) => file.name || "Untitled");
-  queuedItems.value = [...queuedItems.value, ...names];
+async function appendDiscoveredEntries(fileList: FileList | File[]) {
+  try {
+    const { discoverDroppedEntries } = await import("@/lib/file-discovery");
+    const entries = await discoverDroppedEntries(fileList);
+    if (!entries.length) {
+      return;
+    }
+
+    const seen = new Set(queuedPathSet.value);
+    const additions = entries.filter((entry) => {
+      if (!entry.path) {
+        return false;
+      }
+      if (seen.has(entry.path)) {
+        return false;
+      }
+      seen.add(entry.path);
+      return true;
+    });
+
+    if (!additions.length) {
+      return;
+    }
+
+    queuedItems.value = [...queuedItems.value, ...additions];
+  } catch (error) {
+    console.error("[queue] Failed to expand dropped files", error);
+  }
 }
 
-function handleDrop(event: DragEvent) {
+async function handleDrop(event: DragEvent) {
   event.preventDefault();
   isDragOver.value = false;
 
@@ -61,7 +87,7 @@ function handleDrop(event: DragEvent) {
   if (!files?.length) {
     return;
   }
-  enqueueFileNames(files);
+  await appendDiscoveredEntries(files);
 }
 
 function handleDragOver(event: DragEvent) {
@@ -77,10 +103,10 @@ function browseForFiles() {
   fileInput.value?.click();
 }
 
-function handleFileInput(event: Event) {
+async function handleFileInput(event: Event) {
   const target = event.target as HTMLInputElement | null;
   if (target?.files) {
-    enqueueFileNames(target.files);
+    await appendDiscoveredEntries(target.files);
     target.value = "";
   }
 }
@@ -155,10 +181,10 @@ onMounted(async () => {
               >
                 <li
                   v-for="(item, index) in queuedItems"
-                  :key="`${item}-${index}`"
+                  :key="item.path || `${index}`"
                   class="rounded-md border border-border bg-card px-3 py-2 text-left"
                 >
-                  {{ item }}
+                  {{ item.name }}
                 </li>
               </ul>
               <p v-else class="text-sm text-muted-foreground">

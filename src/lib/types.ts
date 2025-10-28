@@ -99,3 +99,55 @@ export interface PresetAvailability {
   available: boolean;
   reason?: string;
 }
+
+export interface JobProgress {
+  processedSeconds?: number;
+  ratio?: number;
+  fps?: number;
+  speed?: number;
+  etaSeconds?: number;
+}
+
+export type JobState =
+  | {
+      status: "queued";
+      enqueuedAt: number;
+    }
+  | {
+      status: "probing";
+      enqueuedAt: number;
+      startedAt: number;
+    }
+  | {
+      status: "planning";
+      enqueuedAt: number;
+      startedAt: number;
+      probeSummary: ProbeSummary;
+    }
+  | {
+      status: "running";
+      enqueuedAt: number;
+      startedAt: number;
+      progress: JobProgress;
+    }
+  | {
+      status: "completed";
+      enqueuedAt: number;
+      startedAt: number;
+      finishedAt: number;
+      outputPath: string;
+    }
+  | {
+      status: "failed";
+      enqueuedAt: number;
+      startedAt: number;
+      finishedAt: number;
+      error: string;
+      code?: string;
+    }
+  | {
+      status: "cancelled";
+      enqueuedAt: number;
+      startedAt: number;
+      finishedAt: number;
+    };
