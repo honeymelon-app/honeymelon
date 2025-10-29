@@ -1,4 +1,4 @@
-# Honeymelon 🍈
+# 🍈 Honeymelon
 
 A tiny, Mac-only media converter that “just works.”
 Tauri + Vue 3 + TypeScript + shadcn-vue • FFmpeg out-of-process • Apple Silicon (arm64) only

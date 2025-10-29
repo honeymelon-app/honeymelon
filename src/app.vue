@@ -122,16 +122,7 @@ onMounted(async () => {
 
 <template>
   <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10">
-      <header class="flex flex-col gap-2">
-        <h1 class="text-3xl font-semibold tracking-tight">
-          Honeymelon
-        </h1>
-        <p class="text-muted-foreground">
-          Drop media, pick a preset, and let the remux-first workflow do the rest.
-        </p>
-      </header>
-
+    <div class="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
       <main class="grid gap-6 lg:grid-cols-[3fr_2fr]">
         <Card
           class="relative flex flex-col overflow-hidden border-dashed transition-colors"

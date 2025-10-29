@@ -1,25 +1,111 @@
-# Logs
-logs
-*.log
+# --- OS / Editor cruft ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# --- Logs ---
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
+*.log
 
-node_modules
-dist
-dist-ssr
-*.local
+# --- Env files (keep examples) ---
+.env
+.env.*.local
+!.env.example
+!.env.*.example
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-notes.md
+# --- Node / Frontend ---
+node_modules/
+dist/
+build/
+.cache/
+.temp/
+.tmp/
+.tmp-*
+.nyc_output/
+coverage/
+
+# Framework-specific outputs
+.out/
+.out_static/
+.next/
+.nuxt/
+.svelte-kit/
+.angular/
+.public/
+public/build/
+.storybook-out/
+storybook-static/
+.vite/
+.vite-ssg/
+.parcel-cache/
+.eslintcache
+.turbo/
+.vercel/
+.netlify/
+wrangler.toml.local
+
+# Package manager caches
+.pnpm-store/
+.pnpm-debug.log*
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn/*.log
+.bun-cache/
+bun.lockb
+
+# --- Rust / Tauri ---
+# If your Rust workspace is at repo root:
+target/
+
+# Typical Tauri layout: src-tauri/ holds the Rust app
+src-tauri/target/
+src-tauri/**/target/
+
+# Tauri bundler outputs (platform artifacts)
+src-tauri/target/**/bundle/
+src-tauri/target/release/bundle/
+src-tauri/target/debug/bundle/
+
+# Common packaged artifacts (in case they ever land outside bundle/)
+*.app
+*.dmg
+*.msi
+*.exe
+*.deb
+*.rpm
+*.AppImage
+*.snap
+
+# Tauri runtime/dev artifacts
+src-tauri/.cargo-ok
+src-tauri/.fingerprint/
+src-tauri/.rustc_info.json
+
+# Generated or transient files sometimes created by plugins/tools
+src-tauri/.tauri-build/
+src-tauri/tauri.conf.json.backup
+
+# --- Misc tooling ---
+*.pid
+*.seed
+*.tgz
+*.tsbuildinfo
+*.map
+
+# --- Keep lockfiles (recommended for apps) ---
+# (Intentionally NOT ignored)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+# Cargo.lock
