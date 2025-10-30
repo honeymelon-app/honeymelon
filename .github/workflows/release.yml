@@ -9,8 +9,67 @@ permissions:
   contents: write  # Required for creating releases and uploading assets
 
 jobs:
+  # Pre-release validation
+  pre-release-checks:
+    name: Pre-Release Validation
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: aarch64-apple-darwin
+
+      - name: Install Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check TypeScript types
+        run: npm run build --if-present
+
+      - name: Run ESLint
+        run: npm run lint:js || true
+
+      - name: Check Prettier formatting
+        run: npm run format:check:js || true
+
+      - name: Check Rust formatting
+        run: cd src-tauri && cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run Rust tests
+        run: cd src-tauri && cargo test --all-features --lib
+
+      - name: Run frontend tests (if configured)
+        run: |
+          if grep -q '"vitest"' package.json || [ -f "vitest.config.ts" ] || [ -f "vitest.config.js" ]; then
+            npm run test 2>&1 || echo "Vitest tests not configured"
+          else
+            echo "Vitest not configured, skipping"
+          fi
+        continue-on-error: true
+
+  # Main release build
   create-release:
+    name: Create Release
     runs-on: macos-14  # macOS 14 on Apple Silicon (M1)
+    needs: pre-release-checks
 
     steps:
       - name: Checkout repository
@@ -35,8 +94,36 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install FFmpeg (for capability detection)
+      - name: Install FFmpeg (for capability detection and bundling)
         run: brew install ffmpeg
+
+      - name: Create FFmpeg resources directory
+        run: |
+          mkdir -p src-tauri/resources/bin
+          echo "Created resources directory for FFmpeg bundling"
+
+      - name: Copy FFmpeg binaries for bundling
+        run: |
+          # Copy system ffmpeg and ffprobe to resources for bundling
+          FFMPEG_PATH=$(which ffmpeg)
+          FFPROBE_PATH=$(which ffprobe)
+
+          if [ -f "$FFMPEG_PATH" ]; then
+            cp "$FFMPEG_PATH" src-tauri/resources/bin/ffmpeg
+            echo "Copied ffmpeg to resources: $FFMPEG_PATH"
+          else
+            echo "Warning: ffmpeg not found in system PATH"
+          fi
+
+          if [ -f "$FFPROBE_PATH" ]; then
+            cp "$FFPROBE_PATH" src-tauri/resources/bin/ffprobe
+            echo "Copied ffprobe to resources: $FFPROBE_PATH"
+          else
+            echo "Warning: ffprobe not found in system PATH"
+          fi
+
+          # Verify bundled binaries
+          ls -lh src-tauri/resources/bin/ || echo "No binaries in resources"
 
       - name: Build application
         run: npm run tauri:build
@@ -94,15 +181,27 @@ jobs:
             - macOS 13.0 (Ventura) or later
             - Apple Silicon (M1, M2, M3, or later)
 
+            ### What's Included
+
+            - Bundled FFmpeg and FFprobe binaries (no external dependencies required)
+            - Remux-first conversion workflow for maximum quality
+            - Support for H.264, HEVC, VP9, AV1, and more
+            - Local processing - all conversions happen on your machine
+
             ### Changes
 
             See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
 
-            ### Notes
+            ### First Launch
 
             - First launch may show a security warning - Control-click and select "Open"
-            - FFmpeg is bundled with the application
-            - All conversions are performed locally on your machine
+            - FFmpeg is bundled with the application (no installation required)
+            - All conversions are performed locally on your machine without sending data elsewhere
+
+            ### Additional Notes
+
+            - For full changelog history and previous releases, visit the [releases page](https://github.com/${{ github.repository }}/releases)
+            - Report issues: https://github.com/${{ github.repository }}/issues
 
             ---
 

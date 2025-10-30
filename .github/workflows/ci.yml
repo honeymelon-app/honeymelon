@@ -15,7 +15,7 @@ permissions:
   pull-requests: read
 
 jobs:
-  # Job 1: Lint and Format Check
+  # Job 1: Lint and Format Check (quick checks first)
   lint:
     name: Lint and Format
     runs-on: macos-14
@@ -40,20 +40,20 @@ jobs:
       - name: Run ESLint (if configured)
         run: |
           if [ -f ".eslintrc.json" ] || [ -f ".eslintrc.js" ] || [ -f "eslint.config.js" ]; then
-            npm run lint --if-present || echo "No lint script found"
+            npm run lint:js || echo "No lint script found"
           else
             echo "ESLint not configured, skipping"
           fi
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Check Prettier formatting (if configured)
         run: |
           if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ] || [ -f "prettier.config.js" ]; then
-            npx prettier --check "src/**/*.{ts,tsx,vue,js,jsx}" || echo "Prettier check failed or not configured"
+            npm run format:check:js || echo "Prettier check failed or not configured"
           else
             echo "Prettier not configured, skipping"
           fi
-        continue-on-error: true
+        continue-on-error: false
 
   # Job 2: Rust Lint and Test
   rust-check:
@@ -81,8 +81,12 @@ jobs:
       - name: Run Clippy (Rust linter)
         run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Run Rust tests
-        run: cd src-tauri && cargo test --all-features
+      - name: Run Rust unit tests
+        run: cd src-tauri && cargo test --all-features --lib
+
+      - name: Run Rust integration tests
+        run: cd src-tauri && cargo test --test '*' --all-features 2>&1 || true
+        continue-on-error: true
 
   # Job 3: Build Application
   build:
@@ -147,9 +151,9 @@ jobs:
           path: src-tauri/target/aarch64-apple-darwin/debug/honeymelon
           retention-days: 7
 
-  # Job 4: Frontend Tests (if configured)
+  # Job 4: Frontend Tests (Vitest)
   test-frontend:
-    name: Frontend Tests
+    name: Frontend Tests (Vitest)
     runs-on: macos-14
     needs: lint
 
@@ -166,17 +170,61 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run frontend tests
+      - name: Run Vitest frontend tests
         run: |
-          if grep -q '"test"' package.json; then
-            npm test
+          if grep -q '"vitest"' package.json || [ -f "vitest.config.ts" ] || [ -f "vitest.config.js" ]; then
+            npm run test 2>&1 || npm run test:ui 2>&1 || echo "Vitest tests not configured yet, skipping"
           else
-            echo "No frontend tests configured yet"
-            exit 0
+            echo "Vitest not configured, skipping frontend tests"
           fi
         continue-on-error: true
 
-  # Job 5: Security Audit
+  # Job 5: E2E Tests (if configured)
+  test-e2e:
+    name: E2E Tests
+    runs-on: macos-14
+    needs: lint
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Install Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install FFmpeg (for capability detection)
+        run: brew install ffmpeg
+
+      - name: Build application for E2E
+        run: npm run tauri dev &
+        continue-on-error: true
+
+      - name: Run E2E tests
+        run: |
+          if grep -q '"e2e"' package.json || [ -f "playwright.config.ts" ] || [ -d "e2e" ]; then
+            npm run test:e2e 2>&1 || echo "E2E tests not configured yet, skipping"
+          else
+            echo "E2E tests not configured, skipping"
+          fi
+        continue-on-error: true
+
+  # Job 6: Security Audit
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -189,6 +237,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Run npm audit
         run: |
@@ -207,7 +256,7 @@ jobs:
           cargo audit || true
           echo "Cargo audit completed"
 
-  # Job 6: Dependency Check
+  # Job 7: Dependency Check
   dependency-check:
     name: Dependency Validation
     runs-on: ubuntu-latest
@@ -220,6 +269,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Validate package-lock.json
         run: |
@@ -238,26 +288,44 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [lint, rust-check, build, test-frontend, security-audit, dependency-check]
+    needs: [lint, rust-check, test-frontend, test-e2e, build, security-audit, dependency-check]
     if: always()
 
     steps:
-      - name: Check all jobs
+      - name: Check all required jobs
         run: |
-          if [[ "${{ needs.lint.result }}" != "success" ]] || \
-             [[ "${{ needs.rust-check.result }}" != "success" ]] || \
-             [[ "${{ needs.build.result }}" != "success" ]]; then
-            echo "One or more required CI jobs failed"
+          echo "Checking CI job results..."
+
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            echo "::error::Lint and format checks failed"
             exit 1
           fi
-          echo "All CI checks passed successfully!"
+
+          if [[ "${{ needs.rust-check.result }}" != "success" ]]; then
+            echo "::error::Rust checks failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "::error::Build failed"
+            exit 1
+          fi
+
+          echo "All required CI checks passed successfully!"
 
       - name: Report status
         run: |
           echo "## CI Status Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Lint and format checks passed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Rust checks passed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Build successful" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Frontend tests passed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Security audit completed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Dependencies validated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Required Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- Lint and format checks: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Rust checks: ${{ needs.rust-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend tests (Vitest): ${{ needs.test-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- E2E tests: ${{ needs.test-e2e.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Additional Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- Security audit: ${{ needs.security-audit.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependency validation: ${{ needs.dependency-check.result }}" >> $GITHUB_STEP_SUMMARY

@@ -306,9 +306,9 @@ pub fn run() {
                     "toggle_devtools" => {
                         if let Some(window) = app.get_webview_window("main") {
                             if window.is_devtools_open() {
-                                let _ = window.close_devtools();
+                                window.close_devtools();
                             } else {
-                                let _ = window.open_devtools();
+                                window.open_devtools();
                             }
                         }
                     },

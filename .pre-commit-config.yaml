@@ -1,0 +1,52 @@
+# Pre-commit hooks configuration for Honeymelon
+# See https://pre-commit.com for more information
+#
+# This configuration uses husky + lint-staged instead of the Python pre-commit framework
+# to better integrate with the Node.js/npm ecosystem.
+#
+# To install: npm run prepare
+#
+# The hooks are defined in .lintstagedrc.json and executed via husky
+
+# Hook definitions:
+# - ESLint: Lints JavaScript/TypeScript/Vue files
+# - Prettier: Formats all supported file types
+# - TypeScript: Type-checks TypeScript files
+# - Rust fmt: Formats Rust code
+# - Rust clippy: Lints Rust code
+
+# Note: This file documents the hooks but doesn't execute them directly.
+# See .husky/pre-commit and .lintstagedrc.json for actual implementation.
+
+hooks:
+  - id: eslint
+    name: ESLint (JavaScript/TypeScript/Vue)
+    description: Lint and auto-fix JS/TS/Vue files
+    files: \.(js|ts|vue|mjs|cjs)$
+    command: eslint --fix
+
+  - id: prettier
+    name: Prettier (Formatting)
+    description: Auto-format code files
+    files: \.(js|ts|vue|json|css|scss|md|mjs|cjs)$
+    command: prettier --write
+
+  - id: typescript-check
+    name: TypeScript Type Check
+    description: Verify TypeScript type correctness
+    files: \.(ts|vue)$
+    command: vue-tsc --noEmit
+    stages: [manual]  # Run manually with 'npm run type-check'
+
+  - id: rust-fmt
+    name: Rust Format
+    description: Format Rust code
+    files: \.rs$
+    command: cd src-tauri && cargo fmt --all
+
+  - id: rust-clippy
+    name: Rust Clippy
+    description: Lint Rust code
+    files: \.rs$
+    command: cd src-tauri && cargo clippy --all-targets --all-features
+    stages: [manual]  # Run manually with 'npm run lint:rust'

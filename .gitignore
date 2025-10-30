@@ -53,6 +53,11 @@ storybook-static/
 .netlify/
 wrangler.toml.local
 
+# Test outputs
+test-results/
+playwright-report/
+playwright/.cache/
+
 # Package manager caches
 .pnpm-store/
 .pnpm-debug.log*

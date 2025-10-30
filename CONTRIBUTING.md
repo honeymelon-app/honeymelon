@@ -45,16 +45,26 @@ This project adheres to a Code of Conduct that all contributors are expected to 
 ### Installation
 
 1. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
-2. **Run in development mode**:
+2. **Set up pre-commit hooks** (recommended):
+
+   ```bash
+   npm run prepare
+   ```
+
+   This installs git hooks that automatically lint and format your code before each commit.
+
+3. **Run in development mode**:
+
    ```bash
    npm run tauri:dev
    ```
 
-3. **Build for production**:
+4. **Build for production**:
    ```bash
    npm run tauri:build
    ```
@@ -101,6 +111,7 @@ We welcome code contributions! Here are some areas where you can help:
 ## Pull Request Process
 
 1. **Create a branch** for your work:
+
    ```bash
    git checkout -b feature/your-feature-name
    # or
@@ -110,6 +121,7 @@ We welcome code contributions! Here are some areas where you can help:
 2. **Make your changes** following our [Coding Standards](#coding-standards)
 
 3. **Test your changes** thoroughly:
+
    ```bash
    npm run tauri:dev
    npm run build
@@ -118,6 +130,7 @@ We welcome code contributions! Here are some areas where you can help:
 4. **Commit your changes** following our [Commit Guidelines](#commit-guidelines)
 
 5. **Push to your fork**:
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -220,23 +233,110 @@ Fixes #89
 
 ## Testing
 
+### Automated Testing
+
+We use both unit tests and E2E tests:
+
+#### Unit Tests
+
+Unit tests are written using [Vitest](https://vitest.dev/) and test individual functions and components.
+
+```bash
+# Run unit tests once
+npm run test:unit
+
+# Run unit tests in watch mode
+npm run test:unit:watch
+
+# Run unit tests with UI
+npm run test:unit:ui
+
+# Run unit tests with coverage
+npm run test:unit:coverage
+```
+
+When adding unit tests:
+
+- Write tests for utility functions in `src/lib/`
+- Test complex business logic (planning, probing, etc.)
+- Mock external dependencies (FFmpeg, Tauri commands)
+- Keep tests fast and deterministic
+
+#### E2E Tests
+
+E2E tests are written using [Playwright](https://playwright.dev/) and test the complete application workflow.
+
+```bash
+# Run E2E tests
+npm run test:e2e
+
+# Run E2E tests with UI
+npm run test:e2e:ui
+
+# Debug E2E tests
+npm run test:e2e:debug
+```
+
+See [e2e/README.md](e2e/README.md) for more details on writing E2E tests.
+
+#### Running All Tests
+
+```bash
+npm test
+```
+
+This runs both unit and E2E tests.
+
 ### Manual Testing
 
-Before submitting a PR, please test:
+Before submitting a PR, please also test manually:
 
 1. **Basic functionality**: Drag and drop files, select presets, convert
 2. **Edge cases**: Large files, special characters in filenames, various formats
 3. **UI responsiveness**: Different window sizes, user interactions
 4. **Error handling**: Invalid files, canceled operations
 
-### Automated Testing
+### Pre-commit Hooks
 
-When adding tests:
+We use [Husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged) to automatically check your code before commits.
 
-- Write **unit tests** for utility functions
-- Write **integration tests** for complex workflows
-- Ensure tests are **deterministic** and **fast**
-- Mock external dependencies (FFmpeg, file system)
+The pre-commit hook runs:
+
+- **ESLint** on JavaScript/TypeScript/Vue files (with auto-fix)
+- **Prettier** on all supported file types (with auto-format)
+- **Rust fmt** on Rust files
+
+To set up pre-commit hooks:
+
+```bash
+npm run prepare
+```
+
+After setup, the hooks will run automatically on every `git commit`. If there are issues, the commit will be blocked until they're fixed.
+
+To bypass hooks (not recommended):
+
+```bash
+git commit --no-verify
+```
+
+#### Manual Linting and Formatting
+
+You can also run these checks manually:
+
+```bash
+# Lint and fix all code
+npm run lint:fix
+
+# Format all code
+npm run format
+
+# Check formatting without changes
+npm run format:check
+
+# Type-check TypeScript
+npm run type-check
+```
 
 ## Documentation
 

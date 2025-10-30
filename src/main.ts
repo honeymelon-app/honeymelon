@@ -10,7 +10,6 @@ const app = createApp(App);
 // Production performance optimizations
 if (import.meta.env.PROD) {
   app.config.performance = false;
-  app.config.devtools = false;
 }
 
 // Global error handler for uncaught Vue errors

@@ -45,29 +45,19 @@
       "capabilities": [
         {
           "identifier": "draggable-window",
-          "windows": [
-            "main"
-          ],
-          "permissions": [
-            "core:window:allow-start-dragging"
-          ]
+          "windows": ["main"],
+          "permissions": ["core:window:allow-start-dragging"]
         }
       ],
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$APPDATA/**",
-          "$RESOURCE/**"
-        ]
+        "scope": ["$APPDATA/**", "$RESOURCE/**"]
       }
     }
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "dmg",
-      "app"
-    ],
+    "targets": ["dmg", "app"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -75,6 +65,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": ["resources/bin/ffmpeg", "resources/bin/ffprobe"],
     "category": "public.app-category.productivity",
     "copyright": "Copyright © 2025 Honeymelon",
     "shortDescription": "Media converter with remux-first FFmpeg workflow",

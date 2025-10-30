@@ -259,6 +259,27 @@ mod tests {
     }
 
     #[test]
+    fn parses_frame_rate_rational() {
+        assert_eq!(parse_frame_rate("30000/1001").unwrap(), 30000.0 / 1001.0);
+        assert_eq!(parse_frame_rate("60/1").unwrap(), 60.0);
+        assert_eq!(parse_frame_rate("25/1").unwrap(), 25.0);
+    }
+
+    #[test]
+    fn parses_frame_rate_decimal() {
+        assert_eq!(parse_frame_rate("23.976").unwrap(), 23.976);
+        assert_eq!(parse_frame_rate("59.94").unwrap(), 59.94);
+    }
+
+    #[test]
+    fn parses_frame_rate_invalid() {
+        assert_eq!(parse_frame_rate(""), None);
+        assert_eq!(parse_frame_rate("invalid"), None);
+        assert_eq!(parse_frame_rate("10/0"), None);
+        assert_eq!(parse_frame_rate("abc/def"), None);
+    }
+
+    #[test]
     fn detects_subtitle_types() {
         let streams = vec![
             FfprobeStream {
@@ -275,5 +296,269 @@ mod tests {
         let (text, image) = subtitle_presence(&streams);
         assert!(text);
         assert!(image);
+    }
+
+    #[test]
+    fn detects_text_subtitle_types() {
+        let streams = vec![
+            FfprobeStream {
+                codec_type: Some("subtitle".into()),
+                codec_name: Some("srt".into()),
+                ..Default::default()
+            },
+            FfprobeStream {
+                codec_type: Some("subtitle".into()),
+                codec_name: Some("ass".into()),
+                ..Default::default()
+            },
+            FfprobeStream {
+                codec_type: Some("subtitle".into()),
+                codec_name: Some("subrip".into()),
+                ..Default::default()
+            },
+        ];
+        let (text, image) = subtitle_presence(&streams);
+        assert!(text);
+        assert!(!image);
+    }
+
+    #[test]
+    fn detects_image_subtitle_types() {
+        let streams = vec![
+            FfprobeStream {
+                codec_type: Some("subtitle".into()),
+                codec_name: Some("pgs".into()),
+                ..Default::default()
+            },
+            FfprobeStream {
+                codec_type: Some("subtitle".into()),
+                codec_name: Some("dvd_subtitle".into()),
+                ..Default::default()
+            },
+            FfprobeStream {
+                codec_type: Some("subtitle".into()),
+                codec_name: Some("dvdsub".into()),
+                ..Default::default()
+            },
+        ];
+        let (text, image) = subtitle_presence(&streams);
+        assert!(!text);
+        assert!(image);
+    }
+
+    #[test]
+    fn test_is_image_subtitle() {
+        assert!(is_image_subtitle("pgs"));
+        assert!(is_image_subtitle("hdmv_pgs_subtitle"));
+        assert!(is_image_subtitle("dvd_subtitle"));
+        assert!(is_image_subtitle("dvdsub"));
+        assert!(is_image_subtitle("xsub"));
+        assert!(is_image_subtitle("webp"));
+
+        assert!(!is_image_subtitle("srt"));
+        assert!(!is_image_subtitle("ass"));
+        assert!(!is_image_subtitle("subrip"));
+    }
+
+    #[test]
+    fn test_subtitle_presence_no_subtitles() {
+        let streams = vec![
+            FfprobeStream {
+                codec_type: Some("video".into()),
+                codec_name: Some("h264".into()),
+                ..Default::default()
+            },
+            FfprobeStream {
+                codec_type: Some("audio".into()),
+                codec_name: Some("aac".into()),
+                ..Default::default()
+            },
+        ];
+        let (text, image) = subtitle_presence(&streams);
+        assert!(!text);
+        assert!(!image);
+    }
+
+    #[test]
+    fn test_summarize_video_stream() {
+        let data = FfprobeOutput {
+            format: FfprobeFormat {
+                duration: Some("120.5".to_string()),
+            },
+            streams: vec![FfprobeStream {
+                codec_type: Some("video".into()),
+                codec_name: Some("H264".into()),
+                width: Some(1920),
+                height: Some(1080),
+                avg_frame_rate: Some("30/1".into()),
+                color_primaries: Some("bt709".into()),
+                color_transfer: Some("bt709".into()),
+                color_space: Some("bt709".into()),
+                ..Default::default()
+            }],
+        };
+
+        let summary = summarize(&data);
+        assert_eq!(summary.duration_sec, 120.5);
+        assert_eq!(summary.width, Some(1920));
+        assert_eq!(summary.height, Some(1080));
+        assert_eq!(summary.fps, Some(30.0));
+        assert_eq!(summary.vcodec, Some("h264".to_string()));
+        assert_eq!(summary.acodec, None);
+
+        let color = summary.color.unwrap();
+        assert_eq!(color.primaries, Some("bt709".to_string()));
+        assert_eq!(color.trc, Some("bt709".to_string()));
+        assert_eq!(color.space, Some("bt709".to_string()));
+    }
+
+    #[test]
+    fn test_summarize_audio_stream() {
+        let data = FfprobeOutput {
+            format: FfprobeFormat {
+                duration: Some("60.0".to_string()),
+            },
+            streams: vec![FfprobeStream {
+                codec_type: Some("audio".into()),
+                codec_name: Some("AAC".into()),
+                channels: Some(2),
+                ..Default::default()
+            }],
+        };
+
+        let summary = summarize(&data);
+        assert_eq!(summary.duration_sec, 60.0);
+        assert_eq!(summary.acodec, Some("aac".to_string()));
+        assert_eq!(summary.channels, Some(2));
+        assert_eq!(summary.vcodec, None);
+        assert_eq!(summary.width, None);
+        assert_eq!(summary.height, None);
+    }
+
+    #[test]
+    fn test_summarize_multi_stream() {
+        let data = FfprobeOutput {
+            format: FfprobeFormat {
+                duration: Some("180.25".to_string()),
+            },
+            streams: vec![
+                FfprobeStream {
+                    codec_type: Some("video".into()),
+                    codec_name: Some("hevc".into()),
+                    width: Some(3840),
+                    height: Some(2160),
+                    avg_frame_rate: Some("24000/1001".into()),
+                    ..Default::default()
+                },
+                FfprobeStream {
+                    codec_type: Some("audio".into()),
+                    codec_name: Some("opus".into()),
+                    channels: Some(6),
+                    ..Default::default()
+                },
+                FfprobeStream {
+                    codec_type: Some("subtitle".into()),
+                    codec_name: Some("srt".into()),
+                    ..Default::default()
+                },
+            ],
+        };
+
+        let summary = summarize(&data);
+        assert_eq!(summary.duration_sec, 180.25);
+        assert_eq!(summary.vcodec, Some("hevc".to_string()));
+        assert_eq!(summary.acodec, Some("opus".to_string()));
+        assert_eq!(summary.width, Some(3840));
+        assert_eq!(summary.height, Some(2160));
+        assert_eq!(summary.fps.unwrap().round(), 24.0);
+        assert_eq!(summary.channels, Some(6));
+        assert!(summary.has_text_subs);
+        assert!(!summary.has_image_subs);
+    }
+
+    #[test]
+    fn test_summarize_invalid_duration() {
+        let data = FfprobeOutput {
+            format: FfprobeFormat {
+                duration: Some("invalid".to_string()),
+            },
+            streams: vec![],
+        };
+
+        let summary = summarize(&data);
+        assert_eq!(summary.duration_sec, 0.0);
+    }
+
+    #[test]
+    fn test_summarize_missing_duration() {
+        let data = FfprobeOutput {
+            format: FfprobeFormat { duration: None },
+            streams: vec![],
+        };
+
+        let summary = summarize(&data);
+        assert_eq!(summary.duration_sec, 0.0);
+    }
+
+    #[test]
+    fn test_summarize_r_frame_rate_fallback() {
+        let data = FfprobeOutput {
+            format: FfprobeFormat {
+                duration: Some("10.0".to_string()),
+            },
+            streams: vec![FfprobeStream {
+                codec_type: Some("video".into()),
+                codec_name: Some("vp9".into()),
+                avg_frame_rate: None,
+                r_frame_rate: Some("60/1".into()),
+                ..Default::default()
+            }],
+        };
+
+        let summary = summarize(&data);
+        assert_eq!(summary.fps, Some(60.0));
+    }
+
+    #[test]
+    fn test_summarize_partial_color_metadata() {
+        let data = FfprobeOutput {
+            format: FfprobeFormat {
+                duration: Some("10.0".to_string()),
+            },
+            streams: vec![FfprobeStream {
+                codec_type: Some("video".into()),
+                codec_name: Some("h264".into()),
+                color_primaries: Some("bt709".into()),
+                color_transfer: None,
+                color_space: None,
+                ..Default::default()
+            }],
+        };
+
+        let summary = summarize(&data);
+        let color = summary.color.unwrap();
+        assert_eq!(color.primaries, Some("bt709".to_string()));
+        assert_eq!(color.trc, None);
+        assert_eq!(color.space, None);
+    }
+
+    #[test]
+    fn test_summarize_no_color_metadata() {
+        let data = FfprobeOutput {
+            format: FfprobeFormat {
+                duration: Some("10.0".to_string()),
+            },
+            streams: vec![FfprobeStream {
+                codec_type: Some("video".into()),
+                codec_name: Some("h264".into()),
+                color_primaries: None,
+                color_transfer: None,
+                color_space: None,
+                ..Default::default()
+            }],
+        };
+
+        let summary = summarize(&data);
+        assert!(summary.color.is_none());
     }
 }

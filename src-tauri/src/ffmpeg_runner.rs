@@ -364,12 +364,9 @@ impl FfmpegRunner {
     }
 
     fn resolve_ffmpeg_path(&self, app: &AppHandle) -> Option<OsString> {
-        for candidate in candidate_ffmpeg_paths(app) {
-            if Path::new(&candidate).exists() {
-                return Some(candidate);
-            }
-        }
-        None
+        candidate_ffmpeg_paths(app)
+            .into_iter()
+            .find(|candidate| Path::new(&candidate).exists())
     }
 
     pub fn set_max_concurrency(&self, limit: usize) {
@@ -449,9 +446,181 @@ fn parse_timecode(value: &str) -> Option<f64> {
         return value.parse::<f64>().ok();
     }
 
-    let hours: f64 = parts.get(0)?.parse().ok()?;
+    let hours: f64 = parts.first()?.parse().ok()?;
     let minutes: f64 = parts.get(1)?.parse().ok()?;
     let seconds: f64 = parts.get(2)?.parse().ok()?;
 
     Some(hours * 3600.0 + minutes * 60.0 + seconds)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_timecode_hms() {
+        assert_eq!(parse_timecode("00:00:10.5"), Some(10.5));
+        assert_eq!(parse_timecode("00:01:00"), Some(60.0));
+        assert_eq!(parse_timecode("01:00:00"), Some(3600.0));
+        assert_eq!(parse_timecode("01:23:45.67"), Some(5025.67));
+    }
+
+    #[test]
+    fn test_parse_timecode_seconds() {
+        assert_eq!(parse_timecode("123.45"), Some(123.45));
+        assert_eq!(parse_timecode("0"), Some(0.0));
+    }
+
+    #[test]
+    fn test_parse_timecode_invalid() {
+        assert_eq!(parse_timecode(""), None);
+        assert_eq!(parse_timecode("invalid"), None);
+        assert_eq!(parse_timecode("12:34"), None);
+    }
+
+    #[test]
+    fn test_parse_progress_line_full() {
+        let line =
+            "frame=123 fps=45 q=28.0 size=1024kB time=00:00:05.12 bitrate=1638.4kbits/s speed=1.5x";
+        let result = parse_progress_line(line).unwrap();
+        assert_eq!(result.processed_seconds, Some(5.12));
+        assert_eq!(result.fps, Some(45.0));
+        assert_eq!(result.speed, Some(1.5));
+    }
+
+    #[test]
+    fn test_parse_progress_line_partial() {
+        let line = "time=00:01:30 speed=2.0x";
+        let result = parse_progress_line(line).unwrap();
+        assert_eq!(result.processed_seconds, Some(90.0));
+        assert_eq!(result.fps, None);
+        assert_eq!(result.speed, Some(2.0));
+    }
+
+    #[test]
+    fn test_parse_progress_line_no_data() {
+        assert!(parse_progress_line("").is_none());
+        assert!(parse_progress_line("random log message").is_none());
+    }
+
+    #[test]
+    fn test_parse_progress_line_fps_only() {
+        let line = "fps=30.5";
+        let result = parse_progress_line(line).unwrap();
+        assert_eq!(result.fps, Some(30.5));
+        assert_eq!(result.processed_seconds, None);
+        assert_eq!(result.speed, None);
+    }
+
+    #[test]
+    fn test_parse_progress_line_speed_variations() {
+        let line1 = "speed=1.23x";
+        let result1 = parse_progress_line(line1).unwrap();
+        assert_eq!(result1.speed, Some(1.23));
+
+        let line2 = "speed=0.5x";
+        let result2 = parse_progress_line(line2).unwrap();
+        assert_eq!(result2.speed, Some(0.5));
+    }
+
+    #[test]
+    fn test_running_process_log_management() {
+        let child = std::process::Command::new("echo")
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap();
+
+        let process = RunningProcess::new(child);
+
+        // Test pushing logs
+        process.push_log("log line 1");
+        process.push_log("log line 2");
+
+        // Test draining logs
+        let logs = process.drain_logs();
+        assert_eq!(logs.len(), 2);
+        assert_eq!(logs[0], "log line 1");
+        assert_eq!(logs[1], "log line 2");
+
+        // After draining, logs should be empty
+        let logs2 = process.drain_logs();
+        assert_eq!(logs2.len(), 0);
+    }
+
+    #[test]
+    fn test_running_process_log_limit() {
+        let child = std::process::Command::new("echo")
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap();
+
+        let process = RunningProcess::new(child);
+
+        // Push more than 500 logs
+        for i in 0..600 {
+            process.push_log(&format!("log {}", i));
+        }
+
+        let logs = process.drain_logs();
+        // Should be capped at 500
+        assert_eq!(logs.len(), 500);
+        // First 100 should have been dropped
+        assert_eq!(logs[0], "log 100");
+        assert_eq!(logs[499], "log 599");
+    }
+
+    #[test]
+    fn test_running_process_cancellation() {
+        let child = std::process::Command::new("echo")
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap();
+
+        let process = RunningProcess::new(child);
+
+        assert!(!process.is_cancelled());
+        process.mark_cancelled();
+        assert!(process.is_cancelled());
+    }
+
+    #[test]
+    fn test_ffmpeg_runner_concurrency_management() {
+        let runner = FfmpegRunner::new();
+
+        // Default concurrency should be 2
+        assert_eq!(runner.max_concurrency.load(Ordering::SeqCst), 2);
+
+        // Set to 5
+        runner.set_max_concurrency(5);
+        assert_eq!(runner.max_concurrency.load(Ordering::SeqCst), 5);
+
+        // Set to 0 should become 1 (minimum)
+        runner.set_max_concurrency(0);
+        assert_eq!(runner.max_concurrency.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn test_ffmpeg_runner_active_count() {
+        let runner = FfmpegRunner::new();
+
+        // Should start with 0 active jobs
+        assert_eq!(runner.active_count().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_extract_signal_unix() {
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::ExitStatusExt;
+            let status = ExitStatus::from_raw(0);
+            assert_eq!(extract_signal(&status), None);
+        }
+
+        #[cfg(not(unix))]
+        {
+            // On non-Unix, just ensure function doesn't panic
+            let output = std::process::Command::new("echo").output().unwrap();
+            assert_eq!(extract_signal(&output.status), None);
+        }
+    }
 }

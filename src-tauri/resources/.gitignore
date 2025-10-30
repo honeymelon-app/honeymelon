@@ -1,0 +1,7 @@
+# FFmpeg binaries - downloaded by scripts/download-ffmpeg.sh
+# These are large files and should not be committed to git
+bin/ffmpeg
+bin/ffprobe
+
+# Keep the directory structure
+!bin/.gitkeep
