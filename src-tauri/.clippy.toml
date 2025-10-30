@@ -1,0 +1,20 @@
+# Clippy configuration for Honeymelon Rust code
+# This configures the Rust linter (clippy)
+
+# Warn on missing documentation for public items
+# missing-docs-in-crate-items = "warn"
+
+# Cognitive complexity threshold
+cognitive-complexity-threshold = 30
+
+# Allow certain clippy lints that may be too strict
+# (These are personal preferences - adjust as needed)
+
+# Single character names are sometimes OK in closures
+single-char-binding-names-threshold = 4
+
+# Allow TODO comments (we track them separately)
+# allow-dbg-in-tests = true
+
+# Performance tuning
+vec-box-size-threshold = 4096

@@ -92,6 +92,18 @@ export interface JobProgress {
   etaSeconds?: number;
 }
 
+export class JobError extends Error {
+  code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = 'JobError';
+    this.code = code;
+    // Restore prototype chain
+    Object.setPrototypeOf(this, JobError.prototype);
+  }
+}
+
 export type JobState =
   | {
       status: 'queued';

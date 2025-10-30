@@ -148,7 +148,7 @@ function handlePresetChange(newPresetId: unknown) {
 
 <template>
   <div
-    class="group relative rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/50"
+    class="group relative rounded-lg border border-border/50 bg-card p-4 transition-all hover:border-border"
   >
     <div class="flex items-start gap-4">
       <!-- Status Icon -->
@@ -225,7 +225,7 @@ function handlePresetChange(newPresetId: unknown) {
         </div>
 
         <!-- Status Message -->
-        <div class="flex items-center gap-2 text-xs">
+        <div class="flex items-start gap-2 text-xs">
           <Badge
             :variant="
               state.status === 'completed'

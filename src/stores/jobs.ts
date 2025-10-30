@@ -114,25 +114,31 @@ export const useJobsStore = defineStore('jobs', () => {
     return jobs.value.find((job) => job.id === id);
   }
 
-  function updateJob(id: JobId, updater: (job: JobRecord) => void) {
-    const record = getJob(id);
-    if (!record) {
+  // eslint-disable-next-line no-unused-vars
+  function updateJob(id: JobId, updater: (job: JobRecord) => JobRecord) {
+    const index = jobs.value.findIndex((j) => j.id === id);
+    if (index === -1) {
       return;
     }
-    updater(record);
-    record.updatedAt = now();
+    const record = jobs.value[index];
+    const updated = updater({ ...record });
+    updated.updatedAt = now();
+    jobs.value = [...jobs.value.slice(0, index), updated, ...jobs.value.slice(index + 1)];
   }
 
   function markProbing(id: JobId) {
     updateJob(id, (job) => {
       if (job.state.status !== 'queued') {
-        return;
+        return job;
       }
       const startedAt = now();
-      job.state = {
-        status: 'probing',
-        enqueuedAt: job.state.enqueuedAt,
-        startedAt,
+      return {
+        ...job,
+        state: {
+          status: 'probing',
+          enqueuedAt: job.state.enqueuedAt,
+          startedAt,
+        },
       };
     });
   }
@@ -141,12 +147,15 @@ export const useJobsStore = defineStore('jobs', () => {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = job.state.status === 'probing' ? job.state.startedAt : now();
-      job.summary = summary;
-      job.state = {
-        status: 'planning',
-        enqueuedAt,
-        startedAt,
-        probeSummary: summary,
+      return {
+        ...job,
+        summary,
+        state: {
+          status: 'planning',
+          enqueuedAt,
+          startedAt,
+          probeSummary: summary,
+        },
       };
     });
   }
@@ -155,64 +164,76 @@ export const useJobsStore = defineStore('jobs', () => {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = job.state.status === 'planning' ? job.state.startedAt : now();
-      job.decision = decision;
-      job.exclusive = job.exclusive ?? false;
-      job.logs = [];
-      job.state = {
-        status: 'running',
-        enqueuedAt,
-        startedAt,
-        progress: {},
+      return {
+        ...job,
+        decision,
+        exclusive: job.exclusive ?? false,
+        logs: [],
+        state: {
+          status: 'running',
+          enqueuedAt,
+          startedAt,
+          progress: {},
+        },
       };
     });
   }
 
   function setExclusive(id: JobId, exclusive: boolean) {
-    updateJob(id, (job) => {
-      job.exclusive = exclusive;
-    });
+    updateJob(id, (job) => ({
+      ...job,
+      exclusive,
+    }));
   }
 
   function setOutputPath(id: JobId, outputPath: string) {
-    updateJob(id, (job) => {
-      job.outputPath = outputPath;
-    });
+    updateJob(id, (job) => ({
+      ...job,
+      outputPath,
+    }));
   }
 
   function clearLogs(id: JobId) {
-    updateJob(id, (job) => {
-      job.logs = [];
-    });
+    updateJob(id, (job) => ({
+      ...job,
+      logs: [],
+    }));
   }
 
   function appendLog(id: JobId, line: string) {
     updateJob(id, (job) => {
-      if (!job.logs) {
-        job.logs = [];
+      const logs = job.logs ?? [];
+      const newLogs = [...logs, line];
+      if (newLogs.length > 500) {
+        newLogs.splice(0, newLogs.length - 500);
       }
-      job.logs.push(line);
-      if (job.logs.length > 500) {
-        job.logs.splice(0, job.logs.length - 500);
-      }
+      return {
+        ...job,
+        logs: newLogs,
+      };
     });
   }
 
   function setLogs(id: JobId, lines: string[]) {
-    updateJob(id, (job) => {
-      job.logs = [...lines];
-    });
+    updateJob(id, (job) => ({
+      ...job,
+      logs: [...lines],
+    }));
   }
 
   function updateProgress(id: JobId, progress: JobProgress) {
     updateJob(id, (job) => {
       if (job.state.status !== 'running') {
-        return;
+        return job;
       }
-      job.state = {
-        ...job.state,
-        progress: {
-          ...job.state.progress,
-          ...progress,
+      return {
+        ...job,
+        state: {
+          ...job.state,
+          progress: {
+            ...job.state.progress,
+            ...progress,
+          },
         },
       };
     });
@@ -222,15 +243,18 @@ export const useJobsStore = defineStore('jobs', () => {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = job.state.status === 'running' ? job.state.startedAt : now();
-      job.state = {
-        status: 'completed',
-        enqueuedAt,
-        startedAt,
-        finishedAt: now(),
+      return {
+        ...job,
         outputPath,
+        exclusive: false,
+        state: {
+          status: 'completed',
+          enqueuedAt,
+          startedAt,
+          finishedAt: now(),
+          outputPath,
+        },
       };
-      job.outputPath = outputPath;
-      job.exclusive = false;
     });
   }
 
@@ -238,15 +262,18 @@ export const useJobsStore = defineStore('jobs', () => {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = 'startedAt' in job.state ? job.state.startedAt : now();
-      job.state = {
-        status: 'failed',
-        enqueuedAt,
-        startedAt,
-        finishedAt: now(),
-        error,
-        code,
+      return {
+        ...job,
+        exclusive: false,
+        state: {
+          status: 'failed',
+          enqueuedAt,
+          startedAt,
+          finishedAt: now(),
+          error,
+          code,
+        },
       };
-      job.exclusive = false;
     });
   }
 
@@ -254,26 +281,37 @@ export const useJobsStore = defineStore('jobs', () => {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = 'startedAt' in job.state ? job.state.startedAt : now();
-      job.state = {
-        status: 'cancelled',
-        enqueuedAt,
-        startedAt,
-        finishedAt: now(),
+      return {
+        ...job,
+        exclusive: false,
+        logs: [],
+        state: {
+          status: 'cancelled',
+          enqueuedAt,
+          startedAt,
+          finishedAt: now(),
+        },
       };
-      job.exclusive = false;
-      job.logs = [];
     });
   }
 
   function requeue(id: JobId) {
-    updateJob(id, (job) => {
-      job.state = {
+    updateJob(id, (job) => ({
+      ...job,
+      exclusive: false,
+      logs: [],
+      state: {
         status: 'queued',
         enqueuedAt: now(),
-      };
-      job.exclusive = false;
-      job.logs = [];
-    });
+      },
+    }));
+  }
+
+  function updateJobPreset(id: JobId, presetId: string) {
+    updateJob(id, (job) => ({
+      ...job,
+      presetId,
+    }));
   }
 
   function clearCompleted() {
@@ -321,6 +359,7 @@ export const useJobsStore = defineStore('jobs', () => {
     markFailed,
     cancelJob,
     requeue,
+    updateJobPreset,
     clearCompleted,
     startNext,
     peekNext,

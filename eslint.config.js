@@ -4,10 +4,9 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 import vue from 'eslint-plugin-vue';
 import vueParser from 'vue-eslint-parser';
 import prettierPlugin from 'eslint-plugin-prettier';
-import prettierConfig from 'eslint-config-prettier';
 
 export default [
-  // Replace .eslintignore
+  // Global ignores
   {
     ignores: [
       '**/node_modules/**',
@@ -22,10 +21,10 @@ export default [
     ],
   },
 
-  // Base JS recommended (flat-safe)
+  // Base JavaScript recommended config
   js.configs.recommended,
 
-  // TypeScript files (non–type-aware: no project needed; fast & stable)
+  // TypeScript files
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -34,22 +33,65 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
       },
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        fetch: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
+        Headers: 'readonly',
+        FormData: 'readonly',
+        Blob: 'readonly',
+        File: 'readonly',
+        FileList: 'readonly',
+        FileReader: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        Event: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        crypto: 'readonly',
+        prompt: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+      },
     },
-    plugins: { '@typescript-eslint': tsPlugin, prettier: prettierPlugin },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+      prettier: prettierPlugin,
+    },
     rules: {
-      // TS “recommended-ish” core (explicitly set — no presets, no extends)
+      // Prettier integration
+      'prettier/prettier': 'error',
+
+      // TypeScript rules
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
       ],
       '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
 
-      // Style
-      'prettier/prettier': 'error',
+      // Enforce semicolons
       semi: ['error', 'always'],
+
+      // Enforce single quotes
       quotes: ['error', 'single', { avoidEscape: true }],
+
+      // Code quality
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'warn',
       'prefer-const': 'error',
@@ -57,7 +99,7 @@ export default [
     },
   },
 
-  // Vue SFCs
+  // Vue files
   {
     files: ['**/*.vue'],
     languageOptions: {
@@ -68,10 +110,48 @@ export default [
         sourceType: 'module',
         extraFileExtensions: ['.vue'],
       },
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        fetch: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
+        Headers: 'readonly',
+        FormData: 'readonly',
+        Blob: 'readonly',
+        File: 'readonly',
+        FileList: 'readonly',
+        FileReader: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        Event: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        crypto: 'readonly',
+        prompt: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+      },
     },
-    plugins: { vue, '@typescript-eslint': tsPlugin, prettier: prettierPlugin },
+    plugins: {
+      vue,
+      '@typescript-eslint': tsPlugin,
+      prettier: prettierPlugin,
+    },
     rules: {
-      // A pragmatic Vue rule set (no presets, no extends)
+      // Prettier integration
+      'prettier/prettier': 'error',
+
+      // Vue rules
       'vue/html-indent': ['error', 2],
       'vue/multi-word-component-names': 'off',
       'vue/no-v-html': 'warn',
@@ -80,4 +160,47 @@ export default [
       'vue/component-name-in-template-casing': ['error', 'PascalCase'],
       'vue/block-order': ['error', { order: ['script', 'template', 'style'] }],
 
-      //
+      // TypeScript in Vue
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
+
+      // Enforce semicolons
+      semi: ['error', 'always'],
+
+      // Enforce single quotes
+      quotes: ['error', 'single', { avoidEscape: true }],
+
+      // Code quality
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-debugger': 'warn',
+      'prefer-const': 'error',
+      'no-var': 'error',
+    },
+  },
+
+  // Plain JavaScript files
+  {
+    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+    },
+    plugins: {
+      prettier: prettierPlugin,
+    },
+    rules: {
+      'prettier/prettier': 'error',
+      semi: ['error', 'always'],
+      quotes: ['error', 'single', { avoidEscape: true }],
+      'no-console': 'off',
+      'prefer-const': 'error',
+      'no-var': 'error',
+    },
+  },
+];

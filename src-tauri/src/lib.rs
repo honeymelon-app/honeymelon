@@ -5,7 +5,7 @@ mod ffmpeg_runner;
 mod fs_utils;
 
 use error::AppError;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 const MEDIA_DIALOG_EXTENSIONS: &[&str] = &[
     "mp4", "m4v", "mov", "mkv", "webm", "avi", "mpg", "mpeg", "ts", "m2ts", "mxf", "hevc", "h265",
@@ -129,7 +129,7 @@ async fn pick_media_files() -> Result<Vec<String>, AppError> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+    use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -145,21 +145,111 @@ pub fn run() {
             show_preferences
         ])
         .setup(|app| {
-            // Build the application menu
+            // Build native macOS menu structure
+
+            // App menu (Honeymelon)
             let about_item = MenuItemBuilder::with_id("about", "About Honeymelon").build(app)?;
             let preferences_item = MenuItemBuilder::with_id("preferences", "Preferences...")
-                .accelerator("Cmd+,")
+                .accelerator("CmdOrCtrl+,")
                 .build(app)?;
+            let hide_item = MenuItemBuilder::with_id("hide", "Hide Honeymelon")
+                .accelerator("CmdOrCtrl+H")
+                .build(app)?;
+            let hide_others_item = MenuItemBuilder::with_id("hide_others", "Hide Others")
+                .accelerator("CmdOrCtrl+Alt+H")
+                .build(app)?;
+            let show_all_item = MenuItemBuilder::with_id("show_all", "Show All").build(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "Quit Honeymelon")
-                .accelerator("Cmd+Q")
+                .accelerator("CmdOrCtrl+Q")
                 .build(app)?;
 
-            let menu = MenuBuilder::new(app)
+            let app_menu = SubmenuBuilder::new(app, "Honeymelon")
                 .item(&about_item)
                 .separator()
                 .item(&preferences_item)
                 .separator()
+                .item(&hide_item)
+                .item(&hide_others_item)
+                .item(&show_all_item)
+                .separator()
                 .item(&quit_item)
+                .build()?;
+
+            // File menu
+            let open_item = MenuItemBuilder::with_id("open", "Open Media Files...")
+                .accelerator("CmdOrCtrl+O")
+                .build(app)?;
+            let close_window_item = MenuItemBuilder::with_id("close", "Close Window")
+                .accelerator("CmdOrCtrl+W")
+                .build(app)?;
+
+            let file_menu = SubmenuBuilder::new(app, "File")
+                .item(&open_item)
+                .separator()
+                .item(&close_window_item)
+                .build()?;
+
+            // Edit menu
+            let undo_item = MenuItemBuilder::with_id("undo", "Undo")
+                .accelerator("CmdOrCtrl+Z")
+                .build(app)?;
+            let redo_item = MenuItemBuilder::with_id("redo", "Redo")
+                .accelerator("CmdOrCtrl+Shift+Z")
+                .build(app)?;
+            let cut_item = MenuItemBuilder::with_id("cut", "Cut")
+                .accelerator("CmdOrCtrl+X")
+                .build(app)?;
+            let copy_item = MenuItemBuilder::with_id("copy", "Copy")
+                .accelerator("CmdOrCtrl+C")
+                .build(app)?;
+            let paste_item = MenuItemBuilder::with_id("paste", "Paste")
+                .accelerator("CmdOrCtrl+V")
+                .build(app)?;
+            let select_all_item = MenuItemBuilder::with_id("select_all", "Select All")
+                .accelerator("CmdOrCtrl+A")
+                .build(app)?;
+
+            let edit_menu = SubmenuBuilder::new(app, "Edit")
+                .item(&undo_item)
+                .item(&redo_item)
+                .separator()
+                .item(&cut_item)
+                .item(&copy_item)
+                .item(&paste_item)
+                .separator()
+                .item(&select_all_item)
+                .build()?;
+
+            // View menu
+            let toggle_devtools_item = MenuItemBuilder::with_id("toggle_devtools", "Toggle Developer Tools")
+                .accelerator("CmdOrCtrl+Alt+I")
+                .build(app)?;
+
+            let view_menu = SubmenuBuilder::new(app, "View")
+                .item(&toggle_devtools_item)
+                .build()?;
+
+            // Window menu
+            let minimize_item = MenuItemBuilder::with_id("minimize", "Minimize")
+                .accelerator("CmdOrCtrl+M")
+                .build(app)?;
+            let zoom_item = MenuItemBuilder::with_id("zoom", "Zoom").build(app)?;
+            let bring_all_to_front_item = MenuItemBuilder::with_id("bring_all_front", "Bring All to Front").build(app)?;
+
+            let window_menu = SubmenuBuilder::new(app, "Window")
+                .item(&minimize_item)
+                .item(&zoom_item)
+                .separator()
+                .item(&bring_all_to_front_item)
+                .build()?;
+
+            // Build complete menu bar
+            let menu = MenuBuilder::new(app)
+                .item(&app_menu)
+                .item(&file_menu)
+                .item(&edit_menu)
+                .item(&view_menu)
+                .item(&window_menu)
                 .build()?;
 
             app.set_menu(menu)?;
@@ -182,7 +272,50 @@ pub fn run() {
                     "quit" => {
                         app.exit(0);
                     }
-                    _ => {}
+                    "open" => {
+                        // Open file dialog - emit event to frontend
+                        let _ = app.emit("menu:open", ());
+                    }
+                    "close" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.close();
+                        }
+                    }
+                    "hide" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.hide();
+                        }
+                    }
+                    "minimize" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.minimize();
+                        }
+                    }
+                    "zoom" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let is_maximized = window.is_maximized().unwrap_or(false);
+                            if is_maximized {
+                                let _ = window.unmaximize();
+                            } else {
+                                let _ = window.maximize();
+                            }
+                        }
+                    }
+                    "toggle_devtools" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            if window.is_devtools_open() {
+                                let _ = window.close_devtools();
+                            } else {
+                                let _ = window.open_devtools();
+                            }
+                        }
+                    }
+                    _ => {
+                        // For standard edit commands, emit events that the webview can handle
+                        if matches!(event.id.as_ref(), "cut" | "copy" | "paste" | "select_all" | "undo" | "redo") {
+                            let _ = app.emit(&format!("menu:{}", event.id.as_ref()), ());
+                        }
+                    }
                 }
             });
 

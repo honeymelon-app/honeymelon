@@ -1,15 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import JobQueueItem from '@/components/JobQueueItem.vue';
 import AboutDialog from '@/components/AboutDialog.vue';
 import PreferencesDialog from '@/components/PreferencesDialog.vue';
@@ -19,7 +13,7 @@ import { useJobsStore } from '@/stores/jobs';
 import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
 import type { CapabilitySnapshot } from '@/lib/types';
 import { Upload, XCircle } from 'lucide-vue-next';
-import { listen } from '@tauri-apps/api/event';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { DragDropEvent } from '@tauri-apps/api/window';
 
 // Simple routing for About and Preferences windows
@@ -29,6 +23,11 @@ const capabilities = ref<CapabilitySnapshot>();
 const defaultPresetId = ref(DEFAULT_PRESET_ID);
 const isDragOver = ref(false);
 const fileInput = ref<HTMLInputElement>();
+
+// Store unlisten functions for cleanup
+const unlistenDrop = ref<UnlistenFn | null>(null);
+const unlistenEnter = ref<UnlistenFn | null>(null);
+const unlistenLeave = ref<UnlistenFn | null>(null);
 
 const jobsStore = useJobsStore();
 const { jobs } = storeToRefs(jobsStore);
@@ -104,11 +103,20 @@ async function addFiles(fileList: FileList) {
     const paths = entries.map((entry) => entry.path).filter(Boolean) as string[];
     console.log('[app] Paths to enqueue:', paths);
 
+    // Validate preset availability
+    const availablePresetIds = presetOptions.value.map((p) => p.id);
+    if (!availablePresetIds.includes(defaultPresetId.value)) {
+      console.error('[app] Default preset not available:', defaultPresetId.value);
+      return;
+    }
+
     const jobIds = jobsStore.enqueueMany(paths, defaultPresetId.value);
     console.log('[app] Enqueued job IDs:', jobIds);
     console.log('[app] Total jobs in store:', jobsStore.jobs.length);
 
-    void orchestrator.startNextAvailable();
+    orchestrator.startNextAvailable().catch((error) => {
+      console.error('[app] Failed to start job:', error);
+    });
   } catch (error) {
     console.error('[app] Failed to add files:', error);
   }
@@ -123,15 +131,29 @@ async function addFilesFromPaths(paths: string[]) {
       return;
     }
 
+    // Validate paths before processing
+    const validPaths = paths.filter((path) => {
+      if (!path || typeof path !== 'string' || path.trim().length === 0) {
+        console.warn('[app] Invalid path:', path);
+        return false;
+      }
+      return true;
+    });
+
+    if (!validPaths.length) {
+      console.warn('[app] No valid paths provided');
+      return;
+    }
+
     // Filter for media files
     const { invoke } = await import('@tauri-apps/api/core');
     let expanded: string[] = [];
     try {
-      expanded = await invoke<string[]>('expand_media_paths', { paths });
+      expanded = await invoke<string[]>('expand_media_paths', { paths: validPaths });
       console.log('[app] Expanded paths:', expanded);
     } catch (error) {
       console.warn('[app] Failed to expand paths, using original:', error);
-      expanded = paths;
+      expanded = validPaths;
     }
 
     if (!expanded.length) {
@@ -139,11 +161,20 @@ async function addFilesFromPaths(paths: string[]) {
       return;
     }
 
+    // Validate preset availability
+    const availablePresetIds = presetOptions.value.map((p) => p.id);
+    if (!availablePresetIds.includes(defaultPresetId.value)) {
+      console.error('[app] Default preset not available:', defaultPresetId.value);
+      return;
+    }
+
     const jobIds = jobsStore.enqueueMany(expanded, defaultPresetId.value);
     console.log('[app] Enqueued job IDs:', jobIds);
     console.log('[app] Total jobs in store:', jobsStore.jobs.length);
 
-    void orchestrator.startNextAvailable();
+    orchestrator.startNextAvailable().catch((error) => {
+      console.error('[app] Failed to start job:', error);
+    });
   } catch (error) {
     console.error('[app] Failed to add files from paths:', error);
   }
@@ -151,7 +182,9 @@ async function addFilesFromPaths(paths: string[]) {
 
 function cancelAll() {
   activeJobs.value.forEach((job) => {
-    void orchestrator.cancel(job.id);
+    orchestrator.cancel(job.id).catch((error) => {
+      console.error('[app] Failed to cancel job:', job.id, error);
+    });
   });
 }
 
@@ -160,13 +193,23 @@ function clearCompleted() {
 }
 
 function handleCancelJob(jobId: string) {
-  void orchestrator.cancel(jobId);
+  orchestrator.cancel(jobId).catch((error) => {
+    console.error('[app] Failed to cancel job:', jobId, error);
+  });
 }
 
 function handleUpdatePreset(jobId: string, presetId: string) {
+  // Validate preset availability
+  const availablePresetIds = presetOptions.value.map((p) => p.id);
+  if (!availablePresetIds.includes(presetId)) {
+    console.warn('[app] Preset not available:', presetId);
+    return;
+  }
+
   const job = jobsStore.getJob(jobId);
   if (job && job.state.status === 'queued') {
-    job.presetId = presetId;
+    // Update preset immutably through the store
+    jobsStore.updateJobPreset(jobId, presetId);
   }
 }
 
@@ -177,8 +220,33 @@ onMounted(async () => {
     currentRoute.value = window.location.hash.slice(1) || '/';
   });
 
-  // Listen for Tauri file drop events
-  await listen<DragDropEvent>('tauri://drag-drop', async (event) => {
+  // Prevent accidental window close when jobs are running
+  if (isTauriRuntime()) {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window');
+    const currentWindow = getCurrentWindow();
+    await currentWindow.onCloseRequested(async (event) => {
+      if (hasActiveJobs.value) {
+        const confirmed = window.confirm(
+          `You have ${activeJobs.value.length} job(s) currently running. Are you sure you want to quit? This will cancel all active jobs.`,
+        );
+        if (!confirmed) {
+          event.preventDefault();
+        }
+      }
+    });
+  }
+
+  // Listen for menu:open event from native menu
+  if (isTauriRuntime()) {
+    await listen('menu:open', () => {
+      browseForFiles().catch((error) => {
+        console.error('[app] Failed to open file picker from menu:', error);
+      });
+    });
+  }
+
+  // Listen for Tauri file drop events and store unlisten functions
+  unlistenDrop.value = await listen<DragDropEvent>('tauri://drag-drop', async (event) => {
     console.log('[app] Tauri drag-drop event:', event);
     const payload = event.payload;
     if (payload?.type === 'drop' && Array.isArray(payload.paths) && payload.paths.length > 0) {
@@ -188,17 +256,24 @@ onMounted(async () => {
     }
   });
 
-  await listen<DragDropEvent>('tauri://drag-enter', (event) => {
+  unlistenEnter.value = await listen<DragDropEvent>('tauri://drag-enter', (event) => {
     if (event.payload?.type === 'enter' || event.payload?.type === 'over') {
       isDragOver.value = true;
     }
   });
 
-  await listen<DragDropEvent>('tauri://drag-leave', (event) => {
+  unlistenLeave.value = await listen<DragDropEvent>('tauri://drag-leave', (event) => {
     if (event.payload?.type === 'leave') {
       isDragOver.value = false;
     }
   });
+});
+
+onUnmounted(() => {
+  // Clean up event listeners
+  unlistenDrop.value?.();
+  unlistenEnter.value?.();
+  unlistenLeave.value?.();
 });
 </script>
 
@@ -287,18 +362,20 @@ onMounted(async () => {
           </div>
         </div>
         <div class="space-y-3">
-          <JobQueueItem
-            v-for="job in activeJobs"
-            :key="job.id"
-            :job-id="job.id"
-            :path="job.path"
-            :state="job.state"
-            :preset-id="job.presetId"
-            :available-presets="presetOptions"
-            :duration="job.summary?.durationSec"
-            @cancel="handleCancelJob"
-            @update-preset="handleUpdatePreset"
-          />
+          <ScrollArea class="h-[650px] w-full rounded-md border p-4">
+            <JobQueueItem
+              v-for="job in activeJobs"
+              :key="job.id"
+              :job-id="job.id"
+              :path="job.path"
+              :state="job.state"
+              :preset-id="job.presetId"
+              :available-presets="presetOptions"
+              :duration="job.summary?.durationSec"
+              @cancel="handleCancelJob"
+              @update-preset="handleUpdatePreset"
+            />
+          </ScrollArea>
         </div>
       </section>
 
@@ -313,19 +390,22 @@ onMounted(async () => {
           </div>
           <Button variant="ghost" size="sm" @click="clearCompleted"> Clear All </Button>
         </div>
-        <div class="space-y-3">
-          <JobQueueItem
-            v-for="job in completedJobs"
-            :key="job.id"
-            :job-id="job.id"
-            :path="job.path"
-            :state="job.state"
-            :preset-id="job.presetId"
-            :available-presets="presetOptions"
-            :duration="job.summary?.durationSec"
-            @cancel="handleCancelJob"
-            @update-preset="handleUpdatePreset"
-          />
+        <div class="">
+          <ScrollArea class="h-[650px] w-full rounded-md border p-4">
+            <JobQueueItem
+              v-for="job in completedJobs"
+              class="mb-4"
+              :key="job.id"
+              :job-id="job.id"
+              :path="job.path"
+              :state="job.state"
+              :preset-id="job.presetId"
+              :available-presets="presetOptions"
+              :duration="job.summary?.durationSec"
+              @cancel="handleCancelJob"
+              @update-preset="handleUpdatePreset"
+            />
+          </ScrollArea>
         </div>
       </section>
 

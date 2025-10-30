@@ -1,12 +1,12 @@
-import { ref, watch } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 
-import { listen } from '@tauri-apps/api/event';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import { availablePresets, loadCapabilities } from '@/lib/capability';
 import { planJob, resolvePreset } from '@/lib/ffmpeg-plan';
 import { probeMedia } from '@/lib/ffmpeg-probe';
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
-import type { CapabilitySnapshot, ProbeSummary, Tier } from '@/lib/types';
+import { JobError, type CapabilitySnapshot, type ProbeSummary, type Tier } from '@/lib/types';
 import { joinPath, pathBasename, pathDirname, stripExtension } from '@/lib/utils';
 import { useJobsStore } from '@/stores/jobs';
 import { usePrefsStore } from '@/stores/prefs';
@@ -69,6 +69,10 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   const simulatedJobs = new Map<string, number>();
   const simulate = options.simulate ?? !isTauriRuntime();
 
+  // Store unlisten functions for cleanup
+  const unlistenProgress = ref<UnlistenFn | null>(null);
+  const unlistenCompletion = ref<UnlistenFn | null>(null);
+
   if (typeof options.concurrency === 'number') {
     prefs.setPreferredConcurrency(options.concurrency);
   }
@@ -103,7 +107,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     });
 
   if (!simulate) {
-    void listen<ProgressEventPayload>(PROGRESS_EVENT, (event) => {
+    listen<ProgressEventPayload>(PROGRESS_EVENT, (event) => {
       const payload = event.payload;
       if (!payload?.job_id) {
         return;
@@ -116,9 +120,15 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       if (payload.raw) {
         jobs.appendLog(payload.job_id, payload.raw);
       }
-    });
+    })
+      .then((unlisten) => {
+        unlistenProgress.value = unlisten;
+      })
+      .catch((error) => {
+        console.error('[orchestrator] Failed to setup progress listener:', error);
+      });
 
-    void listen<CompletionEventPayload>(COMPLETION_EVENT, (event) => {
+    listen<CompletionEventPayload>(COMPLETION_EVENT, (event) => {
       const payload = event.payload;
       if (!payload?.job_id) {
         return;
@@ -130,7 +140,9 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
 
       if (payload.cancelled) {
         jobs.cancelJob(payload.job_id);
-        void startNextAvailable();
+        startNextAvailable().catch((error) => {
+          console.error('[orchestrator] Failed to start next job after cancellation:', error);
+        });
         return;
       }
 
@@ -146,9 +158,30 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         jobs.markFailed(payload.job_id, errorMessage, payload.code ?? undefined);
       }
 
-      void startNextAvailable();
-    });
+      startNextAvailable().catch((error) => {
+        console.error('[orchestrator] Failed to start next job after completion:', error);
+      });
+    })
+      .then((unlisten) => {
+        unlistenCompletion.value = unlisten;
+      })
+      .catch((error) => {
+        console.error('[orchestrator] Failed to setup completion listener:', error);
+      });
   }
+
+  // Clean up event listeners and timers on unmount
+  onUnmounted(() => {
+    // Clean up Tauri event listeners
+    unlistenProgress.value?.();
+    unlistenCompletion.value?.();
+
+    // Clean up any running simulation timers
+    simulatedJobs.forEach((timer) => {
+      window.clearInterval(timer);
+    });
+    simulatedJobs.clear();
+  });
 
   async function startNextAvailable() {
     if (hasExclusiveActive.value) {
@@ -190,7 +223,9 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       const started = await run(job.id, decision, exclusive);
       if (!started) {
         jobs.requeue(job.id);
-        void startNextAvailable();
+        startNextAvailable().catch((error) => {
+          console.error('[orchestrator] Failed to start next job after requeue:', error);
+        });
       }
     } catch (error) {
       const details = parseErrorDetails(error);
@@ -224,7 +259,9 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       const started = await run(jobId, decision, exclusive);
       if (!started) {
         jobs.requeue(jobId);
-        void startNextAvailable();
+        startNextAvailable().catch((error) => {
+          console.error('[orchestrator] Failed to start next job after requeue:', error);
+        });
       }
     } catch (error) {
       const details = parseErrorDetails(error);
@@ -302,11 +339,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         return false;
       }
 
-      const err = new Error(details.message);
-      if (details.code) {
-        (err as any).code = details.code;
-      }
-      throw err;
+      throw new JobError(details.message, details.code);
     }
   }
 
@@ -443,7 +476,9 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         simulatedJobs.delete(jobId);
       }
       jobs.cancelJob(jobId);
-      void startNextAvailable();
+      startNextAvailable().catch((error) => {
+        console.error('[orchestrator] Failed to start next job after cancellation:', error);
+      });
       return;
     }
 

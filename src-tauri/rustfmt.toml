@@ -1,0 +1,57 @@
+# Rust formatting configuration for Honeymelon
+# This file configures rustfmt to match our code style
+
+# Edition
+edition = "2021"
+
+# Indentation
+tab_spaces = 4
+hard_tabs = false
+
+# Line width
+max_width = 100
+
+# Imports
+imports_granularity = "Crate"
+reorder_imports = true
+group_imports = "StdExternalCrate"
+
+# Formatting style
+fn_single_line = false
+where_single_line = false
+force_explicit_abi = true
+format_code_in_doc_comments = true
+format_macro_matchers = true
+format_macro_bodies = true
+normalize_comments = true
+normalize_doc_attributes = true
+wrap_comments = true
+comment_width = 80
+
+# Trailing items
+trailing_comma = "Vertical"
+trailing_semicolon = true
+match_block_trailing_comma = true
+
+# Use field init shorthand
+use_field_init_shorthand = true
+
+# Use try shorthand
+use_try_shorthand = true
+
+# Spacing
+space_after_colon = true
+space_before_colon = false
+spaces_around_ranges = false
+
+# Newlines
+newline_style = "Unix"
+blank_lines_upper_bound = 2
+blank_lines_lower_bound = 0
+
+# Function arguments
+fn_args_layout = "Tall"
+overflow_delimited_expr = true
+
+# Chains
+chain_width = 60
