@@ -1,15 +1,33 @@
 <!DOCTYPE html>
-<html class="theme-blue light" data-theme="light">
+<html lang="en" class="theme-blue light" data-theme="light">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- Desktop App Optimizations -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- App Identity -->
+    <title>Honeymelon</title>
+    <meta name="application-name" content="Honeymelon" />
+    <meta name="description" content="macOS media converter with remux-first FFmpeg workflow" />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Honeymelon 🍈</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' https: data:; media-src 'none'; child-src 'self'; object-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: sentry-ipc:; font-src 'self' https:;">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Prevent page caching for desktop app -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   </head>
-  <body class="font-sans antialiased leading-normal overflow-hidden h-[750px] w-full bg-background text-foreground" scroll-region="">
-    <div id="app" class="overflow-hidden flex flex-col w-full h-full"></div>
+  <body class="font-sans antialiased leading-normal overflow-hidden w-screen h-screen bg-background text-foreground select-none">
+    <div id="app" class="w-full h-full flex flex-col overflow-hidden"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

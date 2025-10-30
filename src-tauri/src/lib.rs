@@ -221,9 +221,10 @@ pub fn run() {
                 .build()?;
 
             // View menu
-            let toggle_devtools_item = MenuItemBuilder::with_id("toggle_devtools", "Toggle Developer Tools")
-                .accelerator("CmdOrCtrl+Alt+I")
-                .build(app)?;
+            let toggle_devtools_item =
+                MenuItemBuilder::with_id("toggle_devtools", "Toggle Developer Tools")
+                    .accelerator("CmdOrCtrl+Alt+I")
+                    .build(app)?;
 
             let view_menu = SubmenuBuilder::new(app, "View")
                 .item(&toggle_devtools_item)
@@ -234,7 +235,8 @@ pub fn run() {
                 .accelerator("CmdOrCtrl+M")
                 .build(app)?;
             let zoom_item = MenuItemBuilder::with_id("zoom", "Zoom").build(app)?;
-            let bring_all_to_front_item = MenuItemBuilder::with_id("bring_all_front", "Bring All to Front").build(app)?;
+            let bring_all_to_front_item =
+                MenuItemBuilder::with_id("bring_all_front", "Bring All to Front").build(app)?;
 
             let window_menu = SubmenuBuilder::new(app, "Window")
                 .item(&minimize_item)
@@ -262,35 +264,35 @@ pub fn run() {
                         tauri::async_runtime::spawn(async move {
                             let _ = show_about(app_clone).await;
                         });
-                    }
+                    },
                     "preferences" => {
                         let app_clone = app.clone();
                         tauri::async_runtime::spawn(async move {
                             let _ = show_preferences(app_clone).await;
                         });
-                    }
+                    },
                     "quit" => {
                         app.exit(0);
-                    }
+                    },
                     "open" => {
                         // Open file dialog - emit event to frontend
                         let _ = app.emit("menu:open", ());
-                    }
+                    },
                     "close" => {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.close();
                         }
-                    }
+                    },
                     "hide" => {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.hide();
                         }
-                    }
+                    },
                     "minimize" => {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.minimize();
                         }
-                    }
+                    },
                     "zoom" => {
                         if let Some(window) = app.get_webview_window("main") {
                             let is_maximized = window.is_maximized().unwrap_or(false);
@@ -300,7 +302,7 @@ pub fn run() {
                                 let _ = window.maximize();
                             }
                         }
-                    }
+                    },
                     "toggle_devtools" => {
                         if let Some(window) = app.get_webview_window("main") {
                             if window.is_devtools_open() {
@@ -309,13 +311,16 @@ pub fn run() {
                                 let _ = window.open_devtools();
                             }
                         }
-                    }
+                    },
                     _ => {
                         // For standard edit commands, emit events that the webview can handle
-                        if matches!(event.id.as_ref(), "cut" | "copy" | "paste" | "select_all" | "undo" | "redo") {
+                        if matches!(
+                            event.id.as_ref(),
+                            "cut" | "copy" | "paste" | "select_all" | "undo" | "redo"
+                        ) {
                             let _ = app.emit(&format!("menu:{}", event.id.as_ref()), ());
                         }
-                    }
+                    },
                 }
             });
 

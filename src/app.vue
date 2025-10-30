@@ -14,7 +14,6 @@ import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
 import type { CapabilitySnapshot } from '@/lib/types';
 import { Upload, XCircle } from 'lucide-vue-next';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { DragDropEvent } from '@tauri-apps/api/window';
 
 // Simple routing for About and Preferences windows
 const currentRoute = ref(window.location.hash.slice(1) || '/');
@@ -246,26 +245,25 @@ onMounted(async () => {
   }
 
   // Listen for Tauri file drop events and store unlisten functions
-  unlistenDrop.value = await listen<DragDropEvent>('tauri://drag-drop', async (event) => {
+  // In Tauri v2, the drag-drop event payload is just the array of paths
+  unlistenDrop.value = await listen<string[]>('tauri://drag-drop', async (event) => {
     console.log('[app] Tauri drag-drop event:', event);
-    const payload = event.payload;
-    if (payload?.type === 'drop' && Array.isArray(payload.paths) && payload.paths.length > 0) {
-      console.log('[app] Files from Tauri drop:', payload.paths);
+    const paths = event.payload;
+    if (Array.isArray(paths) && paths.length > 0) {
+      console.log('[app] Files from Tauri drop:', paths);
       isDragOver.value = false;
-      await addFilesFromPaths(payload.paths);
+      await addFilesFromPaths(paths);
     }
   });
 
-  unlistenEnter.value = await listen<DragDropEvent>('tauri://drag-enter', (event) => {
-    if (event.payload?.type === 'enter' || event.payload?.type === 'over') {
-      isDragOver.value = true;
-    }
+  unlistenEnter.value = await listen('tauri://drag-enter', () => {
+    console.log('[app] Drag enter');
+    isDragOver.value = true;
   });
 
-  unlistenLeave.value = await listen<DragDropEvent>('tauri://drag-leave', (event) => {
-    if (event.payload?.type === 'leave') {
-      isDragOver.value = false;
-    }
+  unlistenLeave.value = await listen('tauri://drag-leave', () => {
+    console.log('[app] Drag leave');
+    isDragOver.value = false;
   });
 });
 
@@ -285,145 +283,150 @@ onUnmounted(() => {
   <PreferencesDialog v-else-if="currentRoute === '/preferences'" />
 
   <!-- Main App -->
-  <div v-else class="flex min-h-screen flex-col bg-background text-foreground">
+  <div v-else class="flex h-screen flex-col bg-background text-foreground">
     <!-- Drag Region for macOS window controls -->
     <div
       data-tauri-drag-region
-      class="fixed left-0 right-0 top-0 h-10 select-none"
+      class="fixed left-0 right-0 top-0 z-50 h-10 select-none will-change-auto"
       style="
         background: transparent;
         pointer-events: auto;
         -webkit-user-select: none;
         -webkit-app-region: drag;
+        backface-visibility: hidden;
+        transform: translateZ(0);
       "
     />
 
-    <!-- Main Content -->
-    <main class="flex flex-1 flex-col gap-6 p-6 pt-10" style="-webkit-app-region: no-drag">
-      <!-- Drop Zone (only show when no active jobs) -->
-      <div
-        v-if="!hasActiveJobs"
-        class="relative flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all"
-        :class="[
-          isDragOver ? 'border-primary bg-primary/5 shadow-lg' : 'border-border bg-muted/20',
-        ]"
-      >
-        <div class="flex flex-col items-center gap-4 text-center">
-          <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Upload
-              :class="['h-8 w-8 text-primary transition-transform', isDragOver && 'scale-110']"
-            />
+    <!-- Main Content with ScrollArea -->
+    <ScrollArea class="flex-1 w-full overflow-auto" style="-webkit-app-region: no-drag">
+      <main class="flex flex-col gap-6 p-6 pt-16">
+        <!-- Drop Zone (only show when no active jobs) -->
+        <div
+          v-if="!hasActiveJobs"
+          class="relative flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all"
+          :class="[
+            isDragOver ? 'border-primary bg-primary/5 shadow-lg' : 'border-border bg-muted/20',
+          ]"
+        >
+          <div class="flex flex-col items-center gap-4 text-center">
+            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <Upload
+                :class="['h-8 w-8 text-primary transition-transform', isDragOver && 'scale-110']"
+              />
+            </div>
+            <div class="space-y-2">
+              <h2 class="text-xl font-semibold">Drop your media files here</h2>
+              <p class="text-sm text-muted-foreground">or click to browse your computer</p>
+            </div>
+            <Button size="lg" @click="browseForFiles"> Choose Files </Button>
           </div>
-          <div class="space-y-2">
-            <h2 class="text-xl font-semibold">Drop your media files here</h2>
-            <p class="text-sm text-muted-foreground">or click to browse your computer</p>
-          </div>
-          <Button size="lg" @click="browseForFiles"> Choose Files </Button>
+          <input
+            ref="fileInput"
+            class="hidden"
+            multiple
+            type="file"
+            accept="video/*,audio/*"
+            @change="handleFileInput"
+          />
         </div>
-        <input
-          ref="fileInput"
-          class="hidden"
-          multiple
-          type="file"
-          accept="video/*,audio/*"
-          @change="handleFileInput"
-        />
-      </div>
 
-      <!-- Compact Drop Zone (when jobs exist) -->
-      <div
-        v-else
-        class="relative flex items-center justify-center rounded-lg border-2 border-dashed py-4 transition-all"
-        :class="[isDragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/10']"
-      >
-        <div class="flex items-center gap-3">
-          <Upload :class="['h-5 w-5 text-muted-foreground']" />
-          <span class="text-sm text-muted-foreground"> Drop more files here or </span>
-          <Button variant="outline" size="sm" @click="browseForFiles"> Browse </Button>
-        </div>
-        <input
-          ref="fileInput"
-          class="hidden"
-          multiple
-          type="file"
-          accept="video/*,audio/*"
-          @change="handleFileInput"
-        />
-      </div>
-
-      <!-- Active Queue -->
-      <section v-if="hasActiveJobs" class="space-y-4">
-        <div class="flex items-center justify-between">
+        <!-- Compact Drop Zone (when jobs exist) -->
+        <div
+          v-else
+          class="relative flex items-center justify-center rounded-lg border-2 border-dashed py-4 transition-all"
+          :class="[isDragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/10']"
+        >
           <div class="flex items-center gap-3">
-            <h2 class="text-lg font-semibold">Converting</h2>
-            <Badge variant="secondary">
-              {{ activeJobs.length }} file{{ activeJobs.length !== 1 ? 's' : '' }}
-            </Badge>
+            <Upload :class="['h-5 w-5 text-muted-foreground']" />
+            <span class="text-sm text-muted-foreground"> Drop more files here or </span>
+            <Button variant="outline" size="sm" @click="browseForFiles"> Browse </Button>
+          </div>
+          <input
+            ref="fileInput"
+            class="hidden"
+            multiple
+            type="file"
+            accept="video/*,audio/*"
+            @change="handleFileInput"
+          />
+        </div>
+
+        <!-- Active Queue -->
+        <section v-if="hasActiveJobs" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <h2 class="text-lg font-semibold">Converting</h2>
+              <Badge variant="secondary">
+                {{ activeJobs.length }} file{{ activeJobs.length !== 1 ? 's' : '' }}
+              </Badge>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="w-full space-y-3 rounded-md border p-4">
+              <JobQueueItem
+                v-for="job in activeJobs"
+                :key="job.id"
+                :job-id="job.id"
+                :path="job.path"
+                :state="job.state"
+                :preset-id="job.presetId"
+                :available-presets="presetOptions"
+                :duration="job.summary?.durationSec"
+                @cancel="handleCancelJob"
+                @update-preset="handleUpdatePreset"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- Completed Jobs -->
+        <section v-if="hasCompletedJobs" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <h2 class="text-lg font-semibold">Completed</h2>
+              <Badge variant="outline">
+                {{ completedJobs.length }}
+              </Badge>
+            </div>
+            <Button variant="ghost" size="sm" @click="clearCompleted"> Clear All </Button>
+          </div>
+          <div class="">
+            <div class="w-full space-y-3 rounded-md border p-4">
+              <JobQueueItem
+                v-for="job in completedJobs"
+                class="mb-4"
+                :key="job.id"
+                :job-id="job.id"
+                :path="job.path"
+                :state="job.state"
+                :preset-id="job.presetId"
+                :available-presets="presetOptions"
+                :duration="job.summary?.durationSec"
+                @cancel="handleCancelJob"
+                @update-preset="handleUpdatePreset"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- Empty State -->
+        <div
+          v-if="!hasActiveJobs && !hasCompletedJobs && jobs.length === 0"
+          class="flex flex-1 items-center justify-center py-12"
+        >
+          <div class="text-center text-muted-foreground">
+            <p class="text-sm">No files in queue</p>
           </div>
         </div>
-        <div class="space-y-3">
-          <ScrollArea class="h-[650px] w-full rounded-md border p-4">
-            <JobQueueItem
-              v-for="job in activeJobs"
-              :key="job.id"
-              :job-id="job.id"
-              :path="job.path"
-              :state="job.state"
-              :preset-id="job.presetId"
-              :available-presets="presetOptions"
-              :duration="job.summary?.durationSec"
-              @cancel="handleCancelJob"
-              @update-preset="handleUpdatePreset"
-            />
-          </ScrollArea>
-        </div>
-      </section>
-
-      <!-- Completed Jobs -->
-      <section v-if="hasCompletedJobs" class="space-y-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <h2 class="text-lg font-semibold">Completed</h2>
-            <Badge variant="outline">
-              {{ completedJobs.length }}
-            </Badge>
-          </div>
-          <Button variant="ghost" size="sm" @click="clearCompleted"> Clear All </Button>
-        </div>
-        <div class="">
-          <ScrollArea class="h-[650px] w-full rounded-md border p-4">
-            <JobQueueItem
-              v-for="job in completedJobs"
-              class="mb-4"
-              :key="job.id"
-              :job-id="job.id"
-              :path="job.path"
-              :state="job.state"
-              :preset-id="job.presetId"
-              :available-presets="presetOptions"
-              :duration="job.summary?.durationSec"
-              @cancel="handleCancelJob"
-              @update-preset="handleUpdatePreset"
-            />
-          </ScrollArea>
-        </div>
-      </section>
-
-      <!-- Empty State -->
-      <div
-        v-if="!hasActiveJobs && !hasCompletedJobs && jobs.length === 0"
-        class="flex flex-1 items-center justify-center py-12"
-      >
-        <div class="text-center text-muted-foreground">
-          <p class="text-sm">No files in queue</p>
-        </div>
-      </div>
-    </main>
+      </main>
+    </ScrollArea>
 
     <!-- Footer Actions -->
     <footer
       v-if="hasActiveJobs"
       class="border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      style="-webkit-app-region: no-drag"
     >
       <div class="container mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
         <div class="flex items-center gap-4 text-sm text-muted-foreground">

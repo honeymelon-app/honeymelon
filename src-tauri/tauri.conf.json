@@ -10,33 +10,56 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "windows": [
       {
         "title": "Honeymelon",
-        "width": 600,
+        "label": "main",
+        "width": 700,
         "height": 700,
+        "minWidth": 700,
+        "minHeight": 700,
         "resizable": false,
+        "maximizable": false,
+        "minimizable": true,
+        "closable": true,
         "fullscreen": false,
         "decorations": true,
+        "alwaysOnTop": false,
+        "contentProtected": false,
+        "skipTaskbar": false,
         "center": true,
+        "focus": true,
+        "transparent": false,
+        "visible": true,
         "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "hiddenTitle": true,
+        "acceptFirstMouse": true,
+        "tabbingIdentifier": null
       }
     ],
     "security": {
       "csp": null,
+      "dangerousDisableAssetCspModification": false,
+      "freezePrototype": true,
       "capabilities": [
         {
           "identifier": "draggable-window",
           "windows": [
-            "*"
+            "main"
           ],
           "permissions": [
             "core:window:allow-start-dragging"
           ]
         }
-      ]
+      ],
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$APPDATA/**",
+          "$RESOURCE/**"
+        ]
+      }
     }
   },
   "bundle": {
@@ -52,12 +75,30 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "category": "public.app-category.productivity",
+    "copyright": "Copyright © 2025 Honeymelon",
+    "shortDescription": "Media converter with remux-first FFmpeg workflow",
+    "longDescription": "Professional media converter for macOS with intelligent remux-first FFmpeg workflow. Supports H.264, HEVC, VP9, AV1, and more.",
     "macOS": {
       "minimumSystemVersion": "13.0",
       "frameworks": [],
       "exceptionDomain": "",
       "signingIdentity": null,
-      "entitlements": null
+      "entitlements": null,
+      "dmg": {
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        },
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        }
+      }
     }
   }
 }

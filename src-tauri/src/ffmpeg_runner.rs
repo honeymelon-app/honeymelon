@@ -1,7 +1,4 @@
-use crate::{
-    error::AppError,
-    ffmpeg_capabilities::candidate_ffmpeg_paths,
-};
+use crate::{error::AppError, ffmpeg_capabilities::candidate_ffmpeg_paths};
 
 use once_cell::sync::Lazy;
 use serde::Serialize;
@@ -146,9 +143,12 @@ impl FfmpegRunner {
             ));
         }
 
-        let ffmpeg_path = self
-            .resolve_ffmpeg_path(&app)
-            .ok_or_else(|| AppError::new("job_ffmpeg_not_found", "Unable to locate ffmpeg executable."))?;
+        let ffmpeg_path = self.resolve_ffmpeg_path(&app).ok_or_else(|| {
+            AppError::new(
+                "job_ffmpeg_not_found",
+                "Unable to locate ffmpeg executable.",
+            )
+        })?;
 
         let output = PathBuf::from(&output_path);
         if let Some(parent) = output.parent() {
@@ -173,7 +173,9 @@ impl FfmpegRunner {
         let temp_path = output.with_file_name(temp_file_name);
         let temp_arg = temp_path
             .to_str()
-            .ok_or_else(|| AppError::new("job_output_invalid", "Output path contains invalid UTF-8"))?
+            .ok_or_else(|| {
+                AppError::new("job_output_invalid", "Output path contains invalid UTF-8")
+            })?
             .to_string();
 
         let mut command = Command::new(ffmpeg_path);
@@ -191,10 +193,7 @@ impl FfmpegRunner {
         let process = Arc::new(RunningProcess::new(child));
 
         {
-            let mut guard = self
-                .processes
-                .lock()
-                .expect("process mutex poisoned");
+            let mut guard = self.processes.lock().expect("process mutex poisoned");
             guard.insert(job_id.clone(), Arc::clone(&process));
         }
 
@@ -245,7 +244,7 @@ impl FfmpegRunner {
                     );
                     message_override = Some(detail);
                     (false, None, None)
-                }
+                },
             };
 
             let mut message = message_override;
@@ -316,9 +315,12 @@ impl FfmpegRunner {
         process.mark_cancelled();
         let mut child_guard = process.child.lock().expect("child mutex poisoned");
         if let Some(child) = child_guard.as_mut() {
-            child
-                .kill()
-                .map_err(|err| AppError::new("job_cancel_failed", format!("Failed to cancel job {job_id}: {err}")))?;
+            child.kill().map_err(|err| {
+                AppError::new(
+                    "job_cancel_failed",
+                    format!("Failed to cancel job {job_id}: {err}"),
+                )
+            })?;
             return Ok(true);
         }
 
@@ -371,8 +373,7 @@ impl FfmpegRunner {
     }
 
     pub fn set_max_concurrency(&self, limit: usize) {
-        self.max_concurrency
-            .store(limit.max(1), Ordering::SeqCst);
+        self.max_concurrency.store(limit.max(1), Ordering::SeqCst);
     }
 }
 

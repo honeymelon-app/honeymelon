@@ -70,7 +70,7 @@ fn run_ffmpeg(app: &AppHandle, args: &[&str]) -> Result<String, AppError> {
         match command.output() {
             Ok(output) if output.status.success() => {
                 return Ok(String::from_utf8_lossy(&output.stdout).to_string());
-            }
+            },
             Ok(output) => {
                 last_err = Some(format!(
                     "ffmpeg exited with status {} (stderr: {})",
@@ -81,10 +81,10 @@ fn run_ffmpeg(app: &AppHandle, args: &[&str]) -> Result<String, AppError> {
                         .unwrap_or_else(|| "unknown".into()),
                     String::from_utf8_lossy(&output.stderr).trim()
                 ));
-            }
+            },
             Err(error) => {
                 last_err = Some(error.to_string());
-            }
+            },
         }
     }
 
@@ -127,11 +127,11 @@ fn parse_encoders(output: &str) -> (Vec<String>, Vec<String>) {
         match flags.chars().next() {
             Some('V') => {
                 video.insert(name.to_string());
-            }
+            },
             Some('A') => {
                 audio.insert(name.to_string());
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 

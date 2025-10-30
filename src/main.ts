@@ -7,6 +7,12 @@ import App from './app.vue';
 
 const app = createApp(App);
 
+// Production performance optimizations
+if (import.meta.env.PROD) {
+  app.config.performance = false;
+  app.config.devtools = false;
+}
+
 // Global error handler for uncaught Vue errors
 app.config.errorHandler = (err, instance, info) => {
   console.error('[Global Error Handler]', err);
@@ -39,3 +45,25 @@ window.addEventListener('unhandledrejection', (event) => {
 window.addEventListener('error', (event) => {
   console.error('[Uncaught Error]', event.error || event.message);
 });
+
+// Disable right-click context menu in production
+if (import.meta.env.PROD) {
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+}
+
+// Prevent text selection drag in production for better desktop feel
+if (import.meta.env.PROD) {
+  document.addEventListener('selectstart', (e) => {
+    const target = e.target as HTMLElement;
+    // Allow selection in input fields and content editable
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return;
+    }
+    // Prevent selection for UI elements
+    if (target.closest('[data-no-select]') || target.closest('button')) {
+      e.preventDefault();
+    }
+  });
+}

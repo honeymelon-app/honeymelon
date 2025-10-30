@@ -8,10 +8,45 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-  plugins: [vue(), tailwindcss(), tsconfigPaths()],
+  plugins: [
+    vue({
+      template: {
+        compilerOptions: {
+          // Optimize for production
+          hoistStatic: true,
+          cacheHandlers: true,
+        },
+      },
+    }),
+    tailwindcss(),
+    tsconfigPaths(),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+
+  // Build optimizations
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    cssMinify: true,
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'pinia'],
+          'ui-components': [
+            '@/components/ui/button',
+            '@/components/ui/badge',
+            '@/components/ui/card',
+            '@/components/ui/progress',
+            '@/components/ui/scroll-area',
+          ],
+        },
+      },
     },
   },
 
@@ -35,5 +70,17 @@ export default defineConfig(async () => ({
       // 3. tell vite to ignore watching `src-tauri`
       ignored: ['**/src-tauri/**'],
     },
+  },
+
+  // Performance optimizations
+  optimizeDeps: {
+    include: ['vue', 'pinia', 'lucide-vue-next'],
+    exclude: ['@tauri-apps/api', '@tauri-apps/plugin-opener'],
+  },
+
+  // Esbuild optimizations
+  esbuild: {
+    legalComments: 'none',
+    treeShaking: true,
   },
 }));

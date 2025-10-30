@@ -99,7 +99,7 @@ fn run_ffprobe(app: &AppHandle, path: &str) -> Result<String, AppError> {
         match command.output() {
             Ok(output) if output.status.success() => {
                 return Ok(String::from_utf8_lossy(&output.stdout).to_string());
-            }
+            },
             Ok(output) => {
                 last_err = Some(format!(
                     "ffprobe exited with status {} (stderr: {})",
@@ -110,10 +110,10 @@ fn run_ffprobe(app: &AppHandle, path: &str) -> Result<String, AppError> {
                         .unwrap_or_else(|| "unknown".into()),
                     String::from_utf8_lossy(&output.stderr).trim()
                 ));
-            }
+            },
             Err(error) => {
                 last_err = Some(error.to_string());
-            }
+            },
         }
     }
 
@@ -158,7 +158,12 @@ fn summarize(data: &FfprobeOutput) -> ProbeSummary {
     let subtitle_stats = subtitle_presence(&data.streams);
 
     let fps = video_stream
-        .and_then(|stream| stream.avg_frame_rate.as_deref().or(stream.r_frame_rate.as_deref()))
+        .and_then(|stream| {
+            stream
+                .avg_frame_rate
+                .as_deref()
+                .or(stream.r_frame_rate.as_deref())
+        })
         .and_then(parse_frame_rate);
 
     let color = video_stream.and_then(|stream| {
@@ -203,7 +208,11 @@ fn subtitle_presence(streams: &[FfprobeStream]) -> (bool, bool) {
             continue;
         }
 
-        let codec = stream.codec_name.as_deref().unwrap_or_default().to_lowercase();
+        let codec = stream
+            .codec_name
+            .as_deref()
+            .unwrap_or_default()
+            .to_lowercase();
         if is_image_subtitle(&codec) {
             has_image = true;
         } else {
@@ -217,12 +226,7 @@ fn subtitle_presence(streams: &[FfprobeStream]) -> (bool, bool) {
 fn is_image_subtitle(codec: &str) -> bool {
     matches!(
         codec,
-        "pgs"
-            | "hdmv_pgs_subtitle"
-            | "dvd_subtitle"
-            | "dvdsub"
-            | "xsub"
-            | "webp"
+        "pgs" | "hdmv_pgs_subtitle" | "dvd_subtitle" | "dvdsub" | "xsub" | "webp"
     )
 }
 
