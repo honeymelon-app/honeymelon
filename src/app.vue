@@ -67,21 +67,11 @@ function isTauriRuntime(): boolean {
 async function browseForFiles() {
   if (isTauriRuntime()) {
     try {
-      const { open } = await import('@tauri-apps/api/dialog');
-      const selection = await open({
-        multiple: true,
-        filters: [
-          {
-            name: 'Media',
-            extensions: MEDIA_EXTENSIONS,
-          },
-        ],
-      });
+      const { invoke } = await import('@tauri-apps/api/core');
+      const selection = await invoke<string[]>('pick_media_files');
 
-      if (Array.isArray(selection)) {
+      if (Array.isArray(selection) && selection.length > 0) {
         await addFilesFromPaths(selection);
-      } else if (typeof selection === 'string' && selection.length > 0) {
-        await addFilesFromPaths([selection]);
       }
     } catch (error) {
       console.error('[app] Failed to open media picker:', error);
