@@ -1,16 +1,13 @@
 import js from '@eslint/js';
-import typescript from '@typescript-eslint/eslint-plugin';
-import typescriptParser from '@typescript-eslint/parser';
-import vuePlugin from 'eslint-plugin-vue';
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import vue from 'eslint-plugin-vue';
 import vueParser from 'vue-eslint-parser';
-import prettier from 'eslint-plugin-prettier';
+import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
 
 export default [
-  // Base JavaScript rules
-  js.configs.recommended,
-
-  // Global ignores
+  // Replace .eslintignore
   {
     ignores: [
       '**/node_modules/**',
@@ -25,49 +22,34 @@ export default [
     ],
   },
 
-  // TypeScript files
+  // Base JS recommended (flat-safe)
+  js.configs.recommended,
+
+  // TypeScript files (non–type-aware: no project needed; fast & stable)
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
-      parser: typescriptParser,
+      parser: tsParser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.json',
       },
     },
-    plugins: {
-      '@typescript-eslint': typescript,
-      prettier: prettier,
-    },
+    plugins: { '@typescript-eslint': tsPlugin, prettier: prettierPlugin },
     rules: {
-      ...typescript.configs['recommended'].rules,
-      ...prettierConfig.rules,
-
-      // Prettier integration
-      'prettier/prettier': 'error',
-
-      // TypeScript specific rules
+      // TS “recommended-ish” core (explicitly set — no presets, no extends)
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-        },
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      '@typescript-eslint/ban-ts-comment': 'warn',
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
 
-      // Enforce semicolons
+      // Style
+      'prettier/prettier': 'error',
       semi: ['error', 'always'],
-      '@typescript-eslint/semi': ['error', 'always'],
-
-      // Enforce single quotes
       quotes: ['error', 'single', { avoidEscape: true }],
-      '@typescript-eslint/quotes': ['error', 'single', { avoidEscape: true }],
-
-      // General code quality
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'warn',
       'prefer-const': 'error',
@@ -75,89 +57,27 @@ export default [
     },
   },
 
-  // Vue files
+  // Vue SFCs
   {
     files: ['**/*.vue'],
     languageOptions: {
       parser: vueParser,
       parserOptions: {
+        parser: tsParser,
         ecmaVersion: 'latest',
         sourceType: 'module',
-        parser: typescriptParser,
         extraFileExtensions: ['.vue'],
-        project: './tsconfig.json',
       },
     },
-    plugins: {
-      vue: vuePlugin,
-      '@typescript-eslint': typescript,
-      prettier: prettier,
-    },
+    plugins: { vue, '@typescript-eslint': tsPlugin, prettier: prettierPlugin },
     rules: {
-      ...vuePlugin.configs['vue3-recommended'].rules,
-      ...typescript.configs['recommended'].rules,
-      ...prettierConfig.rules,
-
-      // Prettier integration
-      'prettier/prettier': 'error',
-
-      // Vue specific rules
+      // A pragmatic Vue rule set (no presets, no extends)
+      'vue/html-indent': ['error', 2],
       'vue/multi-word-component-names': 'off',
       'vue/no-v-html': 'warn',
       'vue/require-default-prop': 'off',
       'vue/require-explicit-emits': 'error',
       'vue/component-name-in-template-casing': ['error', 'PascalCase'],
-      'vue/block-order': [
-        'error',
-        {
-          order: ['script', 'template', 'style'],
-        },
-      ],
+      'vue/block-order': ['error', { order: ['script', 'template', 'style'] }],
 
-      // TypeScript in Vue
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-        },
-      ],
-
-      // Enforce semicolons
-      semi: ['error', 'always'],
-      '@typescript-eslint/semi': ['error', 'always'],
-
-      // Enforce single quotes
-      quotes: ['error', 'single', { avoidEscape: true }],
-      '@typescript-eslint/quotes': ['error', 'single', { avoidEscape: true }],
-
-      // General code quality
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
-      'no-debugger': 'warn',
-      'prefer-const': 'error',
-      'no-var': 'error',
-    },
-  },
-
-  // JavaScript files (for config files)
-  {
-    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
-    languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-    },
-    plugins: {
-      prettier: prettier,
-    },
-    rules: {
-      ...prettierConfig.rules,
-      'prettier/prettier': 'error',
-      semi: ['error', 'always'],
-      quotes: ['error', 'single', { avoidEscape: true }],
-      'no-console': 'off',
-      'prefer-const': 'error',
-      'no-var': 'error',
-    },
-  },
-];
+      //

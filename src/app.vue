@@ -14,14 +14,13 @@ import JobQueueItem from '@/components/JobQueueItem.vue';
 import AboutDialog from '@/components/AboutDialog.vue';
 import PreferencesDialog from '@/components/PreferencesDialog.vue';
 import { availablePresets, loadCapabilities } from '@/lib/capability';
-import { DEFAULT_PRESET_ID, PRESETS } from '@/lib/presets';
+import { DEFAULT_PRESET_ID } from '@/lib/presets';
 import { useJobsStore } from '@/stores/jobs';
 import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
 import type { CapabilitySnapshot } from '@/lib/types';
 import { Upload, XCircle } from 'lucide-vue-next';
 import { listen } from '@tauri-apps/api/event';
 import type { DragDropEvent } from '@tauri-apps/api/window';
-import { MEDIA_EXTENSIONS } from '@/lib/file-discovery';
 
 // Simple routing for About and Preferences windows
 const currentRoute = ref(window.location.hash.slice(1) || '/');

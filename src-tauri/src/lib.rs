@@ -7,6 +7,12 @@ mod fs_utils;
 use error::AppError;
 use tauri::Manager;
 
+const MEDIA_DIALOG_EXTENSIONS: &[&str] = &[
+    "mp4", "m4v", "mov", "mkv", "webm", "avi", "mpg", "mpeg", "ts", "m2ts", "mxf", "hevc", "h265",
+    "h264", "flv", "ogv", "wmv", "gif", "mp3", "aac", "m4a", "flac", "wav", "aiff", "aif", "ogg",
+    "opus", "wma", "alac",
+];
+
 #[tauri::command]
 async fn load_capabilities(
     app: tauri::AppHandle,
@@ -98,6 +104,29 @@ async fn show_preferences(app: tauri::AppHandle) -> Result<(), AppError> {
     Ok(())
 }
 
+#[tauri::command]
+async fn pick_media_files() -> Result<Vec<String>, AppError> {
+    let selection = tauri::async_runtime::spawn_blocking(|| {
+        rfd::FileDialog::new()
+            .set_title("Choose media files")
+            .add_filter("Media", MEDIA_DIALOG_EXTENSIONS)
+            .pick_files()
+    })
+    .await
+    .map_err(|err| AppError::new("dialog_thread_join", err.to_string()))?;
+
+    let Some(paths) = selection else {
+        return Ok(Vec::new());
+    };
+
+    let files = paths
+        .into_iter()
+        .filter_map(|path| path.to_str().map(|value| value.to_string()))
+        .collect();
+
+    Ok(files)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     use tauri::menu::{MenuBuilder, MenuItemBuilder};
@@ -111,6 +140,7 @@ pub fn run() {
             cancel_job,
             set_max_concurrency,
             expand_media_paths,
+            pick_media_files,
             show_about,
             show_preferences
         ])
