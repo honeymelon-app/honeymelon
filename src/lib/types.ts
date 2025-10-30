@@ -1,37 +1,21 @@
-export type Container =
-  | "mp4"
-  | "webm"
-  | "mov"
-  | "mkv"
-  | "gif"
-  | "m4a"
-  | "mp3"
-  | "flac"
-  | "wav";
+export type Container = 'mp4' | 'webm' | 'mov' | 'mkv' | 'gif' | 'm4a' | 'mp3' | 'flac' | 'wav';
 
-export type VCodec =
-  | "copy"
-  | "h264"
-  | "hevc"
-  | "vp9"
-  | "av1"
-  | "prores"
-  | "none";
+export type VCodec = 'copy' | 'h264' | 'hevc' | 'vp9' | 'av1' | 'prores' | 'none';
 
 export type ACodec =
-  | "copy"
-  | "aac"
-  | "alac"
-  | "mp3"
-  | "opus"
-  | "vorbis"
-  | "flac"
-  | "pcm_s16le"
-  | "none";
+  | 'copy'
+  | 'aac'
+  | 'alac'
+  | 'mp3'
+  | 'opus'
+  | 'vorbis'
+  | 'flac'
+  | 'pcm_s16le'
+  | 'none';
 
-export type Tier = "fast" | "balanced" | "high";
+export type Tier = 'fast' | 'balanced' | 'high';
 
-export type SubMode = "keep" | "convert" | "burn" | "drop";
+export type SubMode = 'keep' | 'convert' | 'burn' | 'drop';
 
 export interface TierDefaults {
   video?: {
@@ -54,13 +38,13 @@ export interface Preset {
   description?: string;
   video: {
     codec: VCodec;
-    tiers?: Partial<Record<Tier, TierDefaults["video"]>>;
+    tiers?: Partial<Record<Tier, TierDefaults['video']>>;
     copyColorMetadata?: boolean;
   };
   audio: {
     codec: ACodec;
     bitrateK?: number;
-    tiers?: Partial<Record<Tier, TierDefaults["audio"]>>;
+    tiers?: Partial<Record<Tier, TierDefaults['audio']>>;
     stereoOnly?: boolean;
   };
   subs?: {
@@ -110,35 +94,35 @@ export interface JobProgress {
 
 export type JobState =
   | {
-      status: "queued";
+      status: 'queued';
       enqueuedAt: number;
     }
   | {
-      status: "probing";
+      status: 'probing';
       enqueuedAt: number;
       startedAt: number;
     }
   | {
-      status: "planning";
+      status: 'planning';
       enqueuedAt: number;
       startedAt: number;
       probeSummary: ProbeSummary;
     }
   | {
-      status: "running";
+      status: 'running';
       enqueuedAt: number;
       startedAt: number;
       progress: JobProgress;
     }
   | {
-      status: "completed";
+      status: 'completed';
       enqueuedAt: number;
       startedAt: number;
       finishedAt: number;
       outputPath: string;
     }
   | {
-      status: "failed";
+      status: 'failed';
       enqueuedAt: number;
       startedAt: number;
       finishedAt: number;
@@ -146,7 +130,7 @@ export type JobState =
       code?: string;
     }
   | {
-      status: "cancelled";
+      status: 'cancelled';
       enqueuedAt: number;
       startedAt: number;
       finishedAt: number;

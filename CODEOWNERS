@@ -1,0 +1,56 @@
+# CODEOWNERS for Honeymelon
+
+#
+
+# This file defines individuals or teams responsible for code in the repository
+
+# Code owners are automatically requested for review when someone opens a pull request
+
+# that modifies code they own
+
+#
+
+# Learn more: <https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners>
+
+# Default owners for everything in the repo
+
+# This will be the fallback for all files unless a more specific rule applies
+
+* @Thavarshan
+
+# Frontend code (Vue/TypeScript)
+
+/src/**/*.vue @Thavarshan
+/src/**/*.ts @Thavarshan
+/src/components/**@Thavarshan
+/src/stores/** @Thavarshan
+/src/lib/** @Thavarshan
+
+# Backend code (Rust/Tauri)
+
+/src-tauri/**@Thavarshan
+/src-tauri/src/** @Thavarshan
+
+# Configuration files
+
+/src-tauri/tauri.conf.json @Thavarshan
+/package.json @Thavarshan
+/tsconfig.json @Thavarshan
+/vite.config.ts @Thavarshan
+/tailwind.config.js @Thavarshan
+
+# Build and deployment
+
+/.github/** @Thavarshan
+/BUILD.md @Thavarshan
+
+# Documentation
+
+/README.md @Thavarshan
+/CONTRIBUTING.md @Thavarshan
+/CODE_OF_CONDUCT.md @Thavarshan
+/CLAUDE.md @Thavarshan
+
+# License and legal
+
+/LICENSE @Thavarshan

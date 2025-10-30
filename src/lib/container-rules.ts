@@ -1,12 +1,12 @@
-import type { Container } from "./types";
+import type { Container } from './types';
 
 export interface ContainerRule {
   label: string;
-  video: "any" | string[];
-  audio: "any" | string[];
+  video: 'any' | string[];
+  audio: 'any' | string[];
   subtitles?: {
-    text?: "any" | string[];
-    image?: "any" | string[];
+    text?: 'any' | string[];
+    image?: 'any' | string[];
     notes?: string;
   };
   requiresFaststart?: boolean;
@@ -15,75 +15,75 @@ export interface ContainerRule {
 
 export const CONTAINER_RULES: Record<Container, ContainerRule> = {
   mp4: {
-    label: "MP4",
-    video: ["h264", "hevc", "av1"],
-    audio: ["aac", "alac", "mp3"],
+    label: 'MP4',
+    video: ['h264', 'hevc', 'av1'],
+    audio: ['aac', 'alac', 'mp3'],
     subtitles: {
-      text: ["mov_text"],
+      text: ['mov_text'],
       image: [],
-      notes: "Non mov_text subtitles must be burned in.",
+      notes: 'Non mov_text subtitles must be burned in.',
     },
     requiresFaststart: true,
   },
   webm: {
-    label: "WebM",
-    video: ["vp8", "vp9", "av1"],
-    audio: ["opus", "vorbis"],
+    label: 'WebM',
+    video: ['vp8', 'vp9', 'av1'],
+    audio: ['opus', 'vorbis'],
     subtitles: {
       text: [],
       image: [],
-      notes: "Subtitles require burn-in in v1.",
+      notes: 'Subtitles require burn-in in v1.',
     },
   },
   mov: {
-    label: "QuickTime MOV",
-    video: ["h264", "prores"],
-    audio: ["aac", "pcm_s16le"],
+    label: 'QuickTime MOV',
+    video: ['h264', 'prores'],
+    audio: ['aac', 'pcm_s16le'],
     subtitles: {
       text: [],
       image: [],
-      notes: "Subtitles must be burned in for v1.",
+      notes: 'Subtitles must be burned in for v1.',
     },
     requiresFaststart: true,
   },
   mkv: {
-    label: "Matroska MKV",
-    video: "any",
-    audio: "any",
+    label: 'Matroska MKV',
+    video: 'any',
+    audio: 'any',
     subtitles: {
-      text: "any",
-      image: "any",
+      text: 'any',
+      image: 'any',
     },
   },
   gif: {
-    label: "GIF",
-    video: ["gif"],
+    label: 'GIF',
+    video: ['gif'],
     audio: [],
     subtitles: {
       text: [],
       image: [],
-      notes: "GIF does not support separate audio or subtitle streams.",
+      notes: 'GIF does not support separate audio or subtitle streams.',
     },
-    notes: "Use for short clips only.",
+    notes: 'Use for short clips only.',
   },
   m4a: {
-    label: "M4A",
+    label: 'M4A',
     video: [],
-    audio: ["aac", "alac"],
+    audio: ['aac', 'alac'],
   },
   mp3: {
-    label: "MP3",
+    label: 'MP3',
     video: [],
-    audio: ["mp3"],
+    audio: ['mp3'],
   },
   flac: {
-    label: "FLAC",
+    label: 'FLAC',
     video: [],
-    audio: ["flac"],
+    audio: ['flac'],
   },
   wav: {
-    label: "WAV",
+    label: 'WAV',
     video: [],
-    audio: ["pcm_s16le"],
+    audio: ['pcm_s16le'],
   },
 };

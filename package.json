@@ -1,13 +1,31 @@
 {
   "name": "honeymelon",
-  "private": true,
   "version": "0.1.0",
+  "description": "A beautiful, simple, and powerful media converter for macOS Apple Silicon",
+  "author": "Honeymelon Contributors",
+  "license": "MIT",
   "type": "module",
+  "homepage": "https://github.com/YOUR_USERNAME/honeymelon",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/honeymelon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/honeymelon/issues"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build --target aarch64-apple-darwin",
+    "tauri:build:universal": "tauri build --target universal-apple-darwin",
+    "lint": "eslint . --ext .js,.ts,.vue,.mjs,.cjs",
+    "lint:fix": "eslint . --ext .js,.ts,.vue,.mjs,.cjs --fix",
+    "format": "prettier --write \"src/**/*.{js,ts,vue,json,css,scss,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,ts,vue,json,css,scss,md}\"",
+    "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.16",
@@ -34,12 +52,21 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@eslint/js": "^9.38.0",
     "@tauri-apps/cli": "^2",
     "@types/node": "^24.9.1",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
     "@vitejs/plugin-vue": "^5.2.1",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-vue": "^10.5.1",
+    "prettier": "^3.6.2",
     "typescript": "~5.6.2",
     "vite": "^6.0.3",
     "vite-tsconfig-paths": "^5.1.4",
+    "vue-eslint-parser": "^10.2.0",
     "vue-tsc": "^2.1.10"
   }
 }

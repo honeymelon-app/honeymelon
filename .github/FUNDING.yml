@@ -1,0 +1,24 @@
+# GitHub Sponsors configuration for Honeymelon
+#
+# This file enables the "Sponsor" button on your repository,
+# allowing people to financially support the project.
+#
+# Learn more: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# GitHub Sponsors username
+# Replace with your GitHub username once you've enrolled in GitHub Sponsors
+github: YOUR_GITHUB_USERNAME
+
+# Other sponsorship platforms (optional - uncomment and configure as needed)
+# patreon: YOUR_PATREON_USERNAME
+# open_collective: YOUR_OPEN_COLLECTIVE_USERNAME
+# ko_fi: YOUR_KO_FI_USERNAME
+# tidelift: npm/YOUR_PACKAGE_NAME
+# community_bridge: YOUR_PROJECT_NAME
+# liberapay: YOUR_LIBERAPAY_USERNAME
+# issuehunt: YOUR_ISSUEHUNT_USERNAME
+# lfx_crowdfunding: YOUR_CROWDFUNDING_PROJECT
+# polar: YOUR_POLAR_USERNAME
+# buy_me_a_coffee: YOUR_BUY_ME_A_COFFEE_USERNAME
+# thanks_dev: YOUR_THANKS_DEV_USERNAME
+# custom: ['https://your-custom-sponsorship-url.com']

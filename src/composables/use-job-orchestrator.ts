@@ -1,16 +1,16 @@
-import { ref, watch } from "vue";
+import { ref, watch } from 'vue';
 
-import { listen } from "@tauri-apps/api/event";
+import { listen } from '@tauri-apps/api/event';
 
-import { availablePresets, loadCapabilities } from "@/lib/capability";
-import { planJob, resolvePreset } from "@/lib/ffmpeg-plan";
-import { probeMedia } from "@/lib/ffmpeg-probe";
-import type { PlannerDecision } from "@/lib/ffmpeg-plan";
-import type { CapabilitySnapshot, ProbeSummary, Tier } from "@/lib/types";
-import { joinPath, pathBasename, pathDirname, stripExtension } from "@/lib/utils";
-import { useJobsStore } from "@/stores/jobs";
-import { usePrefsStore } from "@/stores/prefs";
-import { storeToRefs } from "pinia";
+import { availablePresets, loadCapabilities } from '@/lib/capability';
+import { planJob, resolvePreset } from '@/lib/ffmpeg-plan';
+import { probeMedia } from '@/lib/ffmpeg-probe';
+import type { PlannerDecision } from '@/lib/ffmpeg-plan';
+import type { CapabilitySnapshot, ProbeSummary, Tier } from '@/lib/types';
+import { joinPath, pathBasename, pathDirname, stripExtension } from '@/lib/utils';
+import { useJobsStore } from '@/stores/jobs';
+import { usePrefsStore } from '@/stores/prefs';
+import { storeToRefs } from 'pinia';
 
 interface StartJobOptions {
   jobId: string;
@@ -45,14 +45,14 @@ interface CompletionEventPayload {
   logs?: string[];
 }
 
-const PROGRESS_EVENT = "ffmpeg://progress";
-const COMPLETION_EVENT = "ffmpeg://completion";
+const PROGRESS_EVENT = 'ffmpeg://progress';
+const COMPLETION_EVENT = 'ffmpeg://completion';
 
 function isTauriRuntime(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
-const EXCLUSIVE_VIDEO_CODECS = new Set(["av1", "prores"]);
+const EXCLUSIVE_VIDEO_CODECS = new Set(['av1', 'prores']);
 
 export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   const jobs = useJobsStore();
@@ -69,7 +69,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   const simulatedJobs = new Map<string, number>();
   const simulate = options.simulate ?? !isTauriRuntime();
 
-  if (typeof options.concurrency === "number") {
+  if (typeof options.concurrency === 'number') {
     prefs.setPreferredConcurrency(options.concurrency);
   }
 
@@ -90,8 +90,8 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     }
 
     const normalized = Math.max(1, Math.floor(limit || 1));
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("set_max_concurrency", { limit: normalized });
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('set_max_concurrency', { limit: normalized });
   }
 
   loadCapabilities()
@@ -99,7 +99,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       capabilities.value = snapshot;
     })
     .catch((error) => {
-      console.warn("[orchestrator] Failed to load capabilities:", error);
+      console.warn('[orchestrator] Failed to load capabilities:', error);
     });
 
   if (!simulate) {
@@ -136,13 +136,13 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
 
       if (payload.success) {
         const job = jobs.getJob(payload.job_id);
-        jobs.markCompleted(payload.job_id, job?.outputPath ?? "");
+        jobs.markCompleted(payload.job_id, job?.outputPath ?? '');
       } else {
         const errorMessage =
           payload.message ??
           (payload.exit_code !== undefined && payload.exit_code !== null
             ? `FFmpeg exited with code ${payload.exit_code}`
-            : "FFmpeg process terminated unexpectedly.");
+            : 'FFmpeg process terminated unexpectedly.');
         jobs.markFailed(payload.job_id, errorMessage, payload.code ?? undefined);
       }
 
@@ -176,7 +176,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       const decision = await plan(summary, job.presetId, job.tier);
       const exclusive = requiresExclusive(decision);
       const otherActive = activeJobs.value.filter(
-        (active) => active.id !== job.id && active.state.status === "running",
+        (active) => active.id !== job.id && active.state.status === 'running',
       ).length;
 
       if (exclusive && otherActive > 0) {
@@ -210,7 +210,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       const decision = await plan(summary, presetId, tier);
       const exclusive = requiresExclusive(decision);
       const otherActive = activeJobs.value.filter(
-        (active) => active.id !== jobId && active.state.status === "running",
+        (active) => active.id !== jobId && active.state.status === 'running',
       ).length;
 
       if (exclusive && otherActive > 0) {
@@ -237,14 +237,14 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       await wait(200);
       return {
         durationSec: 120,
-        vcodec: "h264",
-        acodec: "aac",
+        vcodec: 'h264',
+        acodec: 'aac',
       };
     }
 
     const response = await probeMedia(path);
     if (!response.summary) {
-      throw new Error("Probe summary missing from response.");
+      throw new Error('Probe summary missing from response.');
     }
     return response.summary;
   }
@@ -286,7 +286,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     const outputPath = buildOutputPath(job, decision);
     jobs.setOutputPath(jobId, outputPath);
 
-    const args = ["-y", "-i", job?.path ?? "", ...decision.ffmpegArgs];
+    const args = ['-y', '-i', job?.path ?? '', ...decision.ffmpegArgs];
 
     try {
       await invokeStartJob({
@@ -298,10 +298,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       return true;
     } catch (error) {
       const details = parseErrorDetails(error);
-      if (
-        details.code === "job_concurrency_limit" ||
-        details.code === "job_exclusive_blocked"
-      ) {
+      if (details.code === 'job_concurrency_limit' || details.code === 'job_exclusive_blocked') {
         return false;
       }
 
@@ -317,23 +314,22 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     job: { path?: string; tier?: Tier } | undefined,
     decision: PlannerDecision,
   ) {
-    const sourcePath = job?.path ?? "";
+    const sourcePath = job?.path ?? '';
     const preset = decision.preset;
     const extension = preset.outputExtension ?? preset.container;
 
     const baseDirCandidate = outputDirectory.value;
-    const baseDir = baseDirCandidate && baseDirCandidate.length
-      ? baseDirCandidate
-      : sourcePath
-        ? pathDirname(sourcePath)
-        : "";
+    const baseDir =
+      baseDirCandidate && baseDirCandidate.length
+        ? baseDirCandidate
+        : sourcePath
+          ? pathDirname(sourcePath)
+          : '';
 
-    const rawBaseName = sourcePath
-      ? stripExtension(pathBasename(sourcePath))
-      : preset.id;
+    const rawBaseName = sourcePath ? stripExtension(pathBasename(sourcePath)) : preset.id;
 
-    const segments: string[] = [rawBaseName || "output"];
-    const separator = filenameSeparator.value || "-";
+    const segments: string[] = [rawBaseName || 'output'];
+    const separator = filenameSeparator.value || '-';
 
     if (includePresetInName.value) {
       segments.push(slugify(preset.id));
@@ -356,8 +352,8 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       return;
     }
 
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("start_job", payload);
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('start_job', payload);
   }
 
   function simulateProgress(jobId: string, outputPath: string) {
@@ -374,7 +370,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       fps: 30,
       speed: 1,
     });
-    jobs.appendLog(jobId, "Simulation started");
+    jobs.appendLog(jobId, 'Simulation started');
 
     const timer = window.setInterval(() => {
       elapsed += step;
@@ -387,7 +383,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       if (elapsed >= totalDuration) {
         window.clearInterval(timer);
         jobs.markCompleted(jobId, outputPath);
-        jobs.appendLog(jobId, "Simulation completed");
+        jobs.appendLog(jobId, 'Simulation completed');
         simulatedJobs.delete(jobId);
       }
     }, interval);
@@ -420,15 +416,15 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     return value
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   function parseErrorDetails(error: unknown): { message: string; code?: string } {
-    if (typeof error === "object" && error !== null) {
+    if (typeof error === 'object' && error !== null) {
       const maybe = error as Record<string, unknown>;
-      const message = typeof maybe.message === "string" ? maybe.message : String(error);
-      const code = typeof maybe.code === "string" ? maybe.code : undefined;
+      const message = typeof maybe.message === 'string' ? maybe.message : String(error);
+      const code = typeof maybe.code === 'string' ? maybe.code : undefined;
       return { message, code };
     }
 
@@ -451,8 +447,8 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       return;
     }
 
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke<boolean>("cancel_job", { job_id: jobId });
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke<boolean>('cancel_job', { job_id: jobId });
   }
 
   return {

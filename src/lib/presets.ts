@@ -1,15 +1,15 @@
-import type { Preset } from "./types";
+import type { Preset } from './types';
 
-export const DEFAULT_PRESET_ID = "mp4-h264-aac-balanced";
+export const DEFAULT_PRESET_ID = 'mp4-h264-aac-balanced';
 
 export const PRESETS: Preset[] = [
   {
-    id: "mp4-h264-aac-balanced",
-    label: "MP4 | H.264 + AAC",
-    container: "mp4",
-    description: "Compatible MP4 for general playback on Apple platforms and beyond.",
+    id: 'mp4-h264-aac-balanced',
+    label: 'MP4 | H.264 + AAC',
+    container: 'mp4',
+    description: 'Compatible MP4 for general playback on Apple platforms and beyond.',
     video: {
-      codec: "h264",
+      codec: 'h264',
       tiers: {
         fast: { bitrateK: 4500, maxrateK: 6000, bufsizeK: 9000 },
         balanced: { bitrateK: 6000, maxrateK: 9000, bufsizeK: 12000 },
@@ -18,7 +18,7 @@ export const PRESETS: Preset[] = [
       copyColorMetadata: true,
     },
     audio: {
-      codec: "aac",
+      codec: 'aac',
       tiers: {
         fast: { bitrateK: 128 },
         balanced: { bitrateK: 160 },
@@ -27,18 +27,18 @@ export const PRESETS: Preset[] = [
       stereoOnly: true,
     },
     subs: {
-      mode: "convert",
+      mode: 'convert',
       burnInAvailable: true,
-      notes: "Text subtitles convert to mov_text; image subs require burn-in.",
+      notes: 'Text subtitles convert to mov_text; image subs require burn-in.',
     },
   },
   {
-    id: "mp4-hevc-aac",
-    label: "MP4 | HEVC + AAC",
-    container: "mp4",
-    description: "Smaller MP4 using hardware HEVC encode on Apple Silicon.",
+    id: 'mp4-hevc-aac',
+    label: 'MP4 | HEVC + AAC',
+    container: 'mp4',
+    description: 'Smaller MP4 using hardware HEVC encode on Apple Silicon.',
     video: {
-      codec: "hevc",
+      codec: 'hevc',
       tiers: {
         fast: { bitrateK: 3000, maxrateK: 4500, bufsizeK: 7000 },
         balanced: { bitrateK: 3800, maxrateK: 5200, bufsizeK: 8000 },
@@ -47,7 +47,7 @@ export const PRESETS: Preset[] = [
       copyColorMetadata: true,
     },
     audio: {
-      codec: "aac",
+      codec: 'aac',
       tiers: {
         fast: { bitrateK: 128 },
         balanced: { bitrateK: 160 },
@@ -56,18 +56,18 @@ export const PRESETS: Preset[] = [
       stereoOnly: true,
     },
     subs: {
-      mode: "convert",
+      mode: 'convert',
       burnInAvailable: true,
-      notes: "Text subtitles convert to mov_text; image subs require burn-in.",
+      notes: 'Text subtitles convert to mov_text; image subs require burn-in.',
     },
   },
   {
-    id: "webm-vp9-opus",
-    label: "WebM | VP9 + Opus",
-    container: "webm",
-    description: "Web-friendly VP9 with Opus audio; requires libvpx + libopus.",
+    id: 'webm-vp9-opus',
+    label: 'WebM | VP9 + Opus',
+    container: 'webm',
+    description: 'Web-friendly VP9 with Opus audio; requires libvpx + libopus.',
     video: {
-      codec: "vp9",
+      codec: 'vp9',
       tiers: {
         fast: { bitrateK: 2800 },
         balanced: { bitrateK: 3500 },
@@ -75,7 +75,7 @@ export const PRESETS: Preset[] = [
       },
     },
     audio: {
-      codec: "opus",
+      codec: 'opus',
       tiers: {
         fast: { bitrateK: 112 },
         balanced: { bitrateK: 128 },
@@ -84,18 +84,18 @@ export const PRESETS: Preset[] = [
       stereoOnly: true,
     },
     subs: {
-      mode: "burn",
+      mode: 'burn',
       burnInAvailable: true,
-      notes: "Subtitles require burn-in for WebM in v1.",
+      notes: 'Subtitles require burn-in for WebM in v1.',
     },
   },
   {
-    id: "webm-av1-opus",
-    label: "WebM | AV1 + Opus (Experimental)",
-    container: "webm",
-    description: "Experimental AV1 encode; significantly slower than VP9/HEVC.",
+    id: 'webm-av1-opus',
+    label: 'WebM | AV1 + Opus (Experimental)',
+    container: 'webm',
+    description: 'Experimental AV1 encode; significantly slower than VP9/HEVC.',
     video: {
-      codec: "av1",
+      codec: 'av1',
       tiers: {
         fast: { bitrateK: 2200 },
         balanced: { bitrateK: 3000 },
@@ -103,7 +103,7 @@ export const PRESETS: Preset[] = [
       },
     },
     audio: {
-      codec: "opus",
+      codec: 'opus',
       tiers: {
         fast: { bitrateK: 112 },
         balanced: { bitrateK: 128 },
@@ -112,78 +112,78 @@ export const PRESETS: Preset[] = [
       stereoOnly: true,
     },
     subs: {
-      mode: "burn",
+      mode: 'burn',
       burnInAvailable: true,
-      notes: "Subtitles require burn-in for WebM in v1.",
+      notes: 'Subtitles require burn-in for WebM in v1.',
     },
     experimental: true,
   },
   {
-    id: "mov-prores-pcm",
-    label: "MOV | ProRes 422 HQ + PCM",
-    container: "mov",
-    description: "Editing/archival preset targeting ProRes 422 HQ and uncompressed audio.",
+    id: 'mov-prores-pcm',
+    label: 'MOV | ProRes 422 HQ + PCM',
+    container: 'mov',
+    description: 'Editing/archival preset targeting ProRes 422 HQ and uncompressed audio.',
     video: {
-      codec: "prores",
+      codec: 'prores',
       tiers: {
-        fast: { profile: "422", bitrateK: 100000 },
-        balanced: { profile: "422hq", bitrateK: 147000 },
-        high: { profile: "422hq", bitrateK: 220000 },
+        fast: { profile: '422', bitrateK: 100000 },
+        balanced: { profile: '422hq', bitrateK: 147000 },
+        high: { profile: '422hq', bitrateK: 220000 },
       },
     },
     audio: {
-      codec: "pcm_s16le",
+      codec: 'pcm_s16le',
     },
     subs: {
-      mode: "burn",
+      mode: 'burn',
       burnInAvailable: true,
-      notes: "Subtitles must be burned in for MOV in v1.",
+      notes: 'Subtitles must be burned in for MOV in v1.',
     },
   },
   {
-    id: "mkv-passthrough",
-    label: "MKV | Passthrough",
-    container: "mkv",
-    description: "Copy existing streams into Matroska without re-encode when possible.",
+    id: 'mkv-passthrough',
+    label: 'MKV | Passthrough',
+    container: 'mkv',
+    description: 'Copy existing streams into Matroska without re-encode when possible.',
     video: {
-      codec: "copy",
+      codec: 'copy',
     },
     audio: {
-      codec: "copy",
+      codec: 'copy',
     },
     subs: {
-      mode: "keep",
+      mode: 'keep',
       burnInAvailable: true,
     },
     remuxOnly: true,
   },
   {
-    id: "gif-export",
-    label: "GIF | Animated GIF",
-    container: "gif",
-    description: "Short social-friendly GIF export; best for clips under 20 seconds.",
+    id: 'gif-export',
+    label: 'GIF | Animated GIF',
+    container: 'gif',
+    description: 'Short social-friendly GIF export; best for clips under 20 seconds.',
     video: {
-      codec: "none",
+      codec: 'none',
     },
     audio: {
-      codec: "none",
+      codec: 'none',
     },
     subs: {
-      mode: "drop",
-      notes: "GIF output drops audio and subtitle streams.",
+      mode: 'drop',
+      notes: 'GIF output drops audio and subtitle streams.',
     },
-    tags: ["length-guard"],
+    tags: ['length-guard'],
   },
   {
-    id: "audio-m4a",
-    label: "Audio | M4A (AAC)",
-    container: "m4a",
-    description: "Stereo AAC in M4A container.",
+    id: 'audio-m4a',
+    label: 'Audio | M4A (AAC)',
+    container: 'm4a',
+    description: 'Stereo AAC in M4A container.',
     video: {
-      codec: "none",
+      codec: 'none',
     },
     audio: {
-      codec: "aac",
+      codec: 'aac',
       tiers: {
         fast: { bitrateK: 128 },
         balanced: { bitrateK: 160 },
@@ -193,15 +193,15 @@ export const PRESETS: Preset[] = [
     },
   },
   {
-    id: "audio-mp3",
-    label: "Audio | MP3",
-    container: "mp3",
-    description: "Legacy MP3 output when AAC is not preferred.",
+    id: 'audio-mp3',
+    label: 'Audio | MP3',
+    container: 'mp3',
+    description: 'Legacy MP3 output when AAC is not preferred.',
     video: {
-      codec: "none",
+      codec: 'none',
     },
     audio: {
-      codec: "mp3",
+      codec: 'mp3',
       tiers: {
         fast: { bitrateK: 128 },
         balanced: { bitrateK: 160 },
@@ -211,60 +211,60 @@ export const PRESETS: Preset[] = [
     },
   },
   {
-    id: "audio-flac",
-    label: "Audio | FLAC",
-    container: "flac",
-    description: "Lossless FLAC audio archive.",
+    id: 'audio-flac',
+    label: 'Audio | FLAC',
+    container: 'flac',
+    description: 'Lossless FLAC audio archive.',
     video: {
-      codec: "none",
+      codec: 'none',
     },
     audio: {
-      codec: "flac",
+      codec: 'flac',
     },
   },
   {
-    id: "audio-wav",
-    label: "Audio | WAV (PCM)",
-    container: "wav",
-    description: "Uncompressed PCM WAV output.",
+    id: 'audio-wav',
+    label: 'Audio | WAV (PCM)',
+    container: 'wav',
+    description: 'Uncompressed PCM WAV output.',
     video: {
-      codec: "none",
+      codec: 'none',
     },
     audio: {
-      codec: "pcm_s16le",
+      codec: 'pcm_s16le',
     },
   },
   {
-    id: "remux-mp4",
-    label: "Remux → MP4",
-    container: "mp4",
-    description: "Copy compatible streams into MP4 without re-encoding.",
+    id: 'remux-mp4',
+    label: 'Remux → MP4',
+    container: 'mp4',
+    description: 'Copy compatible streams into MP4 without re-encoding.',
     video: {
-      codec: "copy",
+      codec: 'copy',
     },
     audio: {
-      codec: "copy",
+      codec: 'copy',
     },
     subs: {
-      mode: "convert",
+      mode: 'convert',
       burnInAvailable: true,
-      notes: "Non mov_text subs convert when possible; otherwise require burn-in.",
+      notes: 'Non mov_text subs convert when possible; otherwise require burn-in.',
     },
     remuxOnly: true,
   },
   {
-    id: "remux-mkv",
-    label: "Remux → MKV",
-    container: "mkv",
-    description: "Copy streams into MKV for maximum compatibility.",
+    id: 'remux-mkv',
+    label: 'Remux → MKV',
+    container: 'mkv',
+    description: 'Copy streams into MKV for maximum compatibility.',
     video: {
-      codec: "copy",
+      codec: 'copy',
     },
     audio: {
-      codec: "copy",
+      codec: 'copy',
     },
     subs: {
-      mode: "keep",
+      mode: 'keep',
       burnInAvailable: true,
     },
     remuxOnly: true,

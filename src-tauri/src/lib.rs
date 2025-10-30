@@ -4,13 +4,8 @@ mod ffmpeg_probe;
 mod ffmpeg_runner;
 mod fs_utils;
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 use error::AppError;
+use tauri::Manager;
 
 #[tauri::command]
 async fn load_capabilities(
@@ -59,19 +54,110 @@ async fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError>
         .map_err(|err| AppError::new("fs_thread_join", err.to_string()))?
 }
 
+#[tauri::command]
+async fn show_about(app: tauri::AppHandle) -> Result<(), AppError> {
+    if let Some(window) = app.get_webview_window("about") {
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    tauri::WebviewWindowBuilder::new(
+        &app,
+        "about",
+        tauri::WebviewUrl::App("index.html#/about".into()),
+    )
+    .title("About Honeymelon")
+    .inner_size(450.0, 550.0)
+    .resizable(false)
+    .center()
+    .build()
+    .map_err(|e| AppError::new("window_creation", e.to_string()))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn show_preferences(app: tauri::AppHandle) -> Result<(), AppError> {
+    if let Some(window) = app.get_webview_window("preferences") {
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    tauri::WebviewWindowBuilder::new(
+        &app,
+        "preferences",
+        tauri::WebviewUrl::App("index.html#/preferences".into()),
+    )
+    .title("Preferences")
+    .inner_size(700.0, 600.0)
+    .resizable(false)
+    .center()
+    .build()
+    .map_err(|e| AppError::new("window_creation", e.to_string()))?;
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            greet,
             load_capabilities,
             probe_media,
             start_job,
             cancel_job,
             set_max_concurrency,
-            expand_media_paths
+            expand_media_paths,
+            show_about,
+            show_preferences
         ])
+        .setup(|app| {
+            // Build the application menu
+            let about_item = MenuItemBuilder::with_id("about", "About Honeymelon").build(app)?;
+            let preferences_item = MenuItemBuilder::with_id("preferences", "Preferences...")
+                .accelerator("Cmd+,")
+                .build(app)?;
+            let quit_item = MenuItemBuilder::with_id("quit", "Quit Honeymelon")
+                .accelerator("Cmd+Q")
+                .build(app)?;
+
+            let menu = MenuBuilder::new(app)
+                .item(&about_item)
+                .separator()
+                .item(&preferences_item)
+                .separator()
+                .item(&quit_item)
+                .build()?;
+
+            app.set_menu(menu)?;
+
+            // Handle menu events
+            app.on_menu_event(move |app, event| {
+                match event.id.as_ref() {
+                    "about" => {
+                        let app_clone = app.clone();
+                        tauri::async_runtime::spawn(async move {
+                            let _ = show_about(app_clone).await;
+                        });
+                    }
+                    "preferences" => {
+                        let app_clone = app.clone();
+                        tauri::async_runtime::spawn(async move {
+                            let _ = show_preferences(app_clone).await;
+                        });
+                    }
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    _ => {}
+                }
+            });
+
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

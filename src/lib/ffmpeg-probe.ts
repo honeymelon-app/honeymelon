@@ -1,6 +1,6 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from '@tauri-apps/api/core';
 
-import type { ProbeSummary } from "./types";
+import type { ProbeSummary } from './types';
 
 export interface ProbeResponse {
   raw: unknown;
@@ -9,14 +9,12 @@ export interface ProbeResponse {
 
 export async function probeMedia(path: string): Promise<ProbeResponse> {
   const isTauri =
-    typeof window !== "undefined" &&
-    "__TAURI_INTERNALS__" in window &&
-    typeof invoke === "function";
+    typeof window !== 'undefined' &&
+    '__TAURI_INTERNALS__' in window &&
+    typeof invoke === 'function';
 
   if (!isTauri) {
-    console.warn(
-      "[probeMedia] Falling back to stub response; Tauri runtime not detected.",
-    );
+    console.warn('[probeMedia] Falling back to stub response; Tauri runtime not detected.');
     return {
       raw: null,
       summary: {
@@ -25,5 +23,5 @@ export async function probeMedia(path: string): Promise<ProbeResponse> {
     };
   }
 
-  return invoke<ProbeResponse>("probe_media", { path });
+  return invoke<ProbeResponse>('probe_media', { path });
 }

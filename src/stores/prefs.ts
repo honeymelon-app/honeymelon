@@ -1,13 +1,13 @@
-import { computed, ref } from "vue";
+import { computed, ref } from 'vue';
 
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia';
 
 const MIN_CONCURRENCY = 1;
 const DEFAULT_CONCURRENCY = 2;
 
-const DEFAULT_FILENAME_SEPARATOR = "-";
+const DEFAULT_FILENAME_SEPARATOR = '-';
 
-export const usePrefsStore = defineStore("prefs", () => {
+export const usePrefsStore = defineStore('prefs', () => {
   const preferredConcurrency = ref<number>(DEFAULT_CONCURRENCY);
   const outputDirectory = ref<string | null>(null);
   const includePresetInName = ref(true);
@@ -21,14 +21,11 @@ export const usePrefsStore = defineStore("prefs", () => {
   const hasCustomOutputDirectory = computed(() => Boolean(outputDirectory.value?.trim().length));
 
   function setPreferredConcurrency(value: number) {
-    preferredConcurrency.value = Math.max(
-      MIN_CONCURRENCY,
-      Math.floor(value || MIN_CONCURRENCY),
-    );
+    preferredConcurrency.value = Math.max(MIN_CONCURRENCY, Math.floor(value || MIN_CONCURRENCY));
   }
 
   function setOutputDirectory(value: string | null) {
-    const sanitized = value?.trim() ?? "";
+    const sanitized = value?.trim() ?? '';
     outputDirectory.value = sanitized.length ? sanitized : null;
   }
 

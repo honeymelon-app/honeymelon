@@ -1,0 +1,6 @@
+[build]
+# Default to Apple Silicon (ARM64) for macOS
+target = "aarch64-apple-darwin"
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-mmacosx-version-min=13.0"]

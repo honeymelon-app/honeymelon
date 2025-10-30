@@ -1,0 +1,147 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v1.2.3, etc.
+
+permissions:
+  contents: write  # Required for creating releases and uploading assets
+
+jobs:
+  create-release:
+    runs-on: macos-14  # macOS 14 on Apple Silicon (M1)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Install Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install FFmpeg (for capability detection)
+        run: brew install ffmpeg
+
+      - name: Build application
+        run: npm run tauri:build
+        env:
+          # Apple code signing (optional - only if secrets are configured)
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Enable notarization if credentials provided
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Prepare release artifacts
+        run: |
+          cd src-tauri/target/release/bundle
+
+          # Create a staging directory
+          mkdir -p release-artifacts
+
+          # Copy DMG if it exists
+          if [ -d "dmg" ]; then
+            cp dmg/*.dmg release-artifacts/ || true
+          fi
+
+          # Copy app bundle if it exists
+          if [ -d "macos" ]; then
+            cd macos
+            zip -r ../release-artifacts/Honeymelon-macOS-aarch64.app.zip Honeymelon.app
+            cd ..
+          fi
+
+          # List what we're releasing
+          ls -lh release-artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Honeymelon v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Honeymelon v${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+
+            1. Download the DMG file below
+            2. Open the DMG
+            3. Drag Honeymelon to your Applications folder
+            4. Launch from Applications or Spotlight
+
+            ### System Requirements
+
+            - macOS 13.0 (Ventura) or later
+            - Apple Silicon (M1, M2, M3, or later)
+
+            ### Changes
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+
+            ### Notes
+
+            - First launch may show a security warning - Control-click and select "Open"
+            - FFmpeg is bundled with the application
+            - All conversions are performed locally on your machine
+
+            ---
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.ref_name }}
+          files: |
+            src-tauri/target/release/bundle/release-artifacts/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload build artifacts (for debugging)
+        uses: actions/upload-artifact@v4
+        with:
+          name: honeymelon-macos-aarch64
+          path: src-tauri/target/release/bundle/release-artifacts/*
+          retention-days: 30
+
+  # Optional: Create checksums for verification
+  create-checksums:
+    needs: create-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: honeymelon-macos-aarch64
+          path: artifacts
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          shasum -a 256 * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Upload checksums to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

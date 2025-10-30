@@ -1,40 +1,33 @@
-import { CONTAINER_RULES } from "./container-rules";
-import type { ContainerRule } from "./container-rules";
-import { PRESETS } from "./presets";
-import type {
-  CapabilitySnapshot,
-  ACodec,
-  Preset,
-  ProbeSummary,
-  Tier,
-  VCodec,
-} from "./types";
+import { CONTAINER_RULES } from './container-rules';
+import type { ContainerRule } from './container-rules';
+import { PRESETS } from './presets';
+import type { CapabilitySnapshot, ACodec, Preset, ProbeSummary, Tier, VCodec } from './types';
 
 const VIDEO_ENCODERS: Record<VCodec, string | null> = {
-  copy: "copy",
+  copy: 'copy',
   none: null,
-  h264: "h264_videotoolbox",
-  hevc: "hevc_videotoolbox",
-  vp9: "libvpx-vp9",
-  av1: "libaom-av1",
-  prores: "prores_ks",
+  h264: 'h264_videotoolbox',
+  hevc: 'hevc_videotoolbox',
+  vp9: 'libvpx-vp9',
+  av1: 'libaom-av1',
+  prores: 'prores_ks',
 };
 
 const AUDIO_ENCODERS: Record<ACodec, string | null> = {
-  copy: "copy",
+  copy: 'copy',
   none: null,
-  aac: "aac",
-  alac: "alac",
-  mp3: "libmp3lame",
-  opus: "libopus",
-  vorbis: "libvorbis",
-  flac: "flac",
-  pcm_s16le: "pcm_s16le",
+  aac: 'aac',
+  alac: 'alac',
+  mp3: 'libmp3lame',
+  opus: 'libopus',
+  vorbis: 'libvorbis',
+  flac: 'flac',
+  pcm_s16le: 'pcm_s16le',
 };
 
-const SUBTITLE_CONVERT_CODEC = "mov_text";
+const SUBTITLE_CONVERT_CODEC = 'mov_text';
 
-const TIER_PRIORITY: Tier[] = ["balanced", "fast", "high"];
+const TIER_PRIORITY: Tier[] = ['balanced', 'fast', 'high'];
 
 export interface PlannerContext {
   presetId: string;
@@ -55,9 +48,7 @@ export function resolvePreset(id: string): Preset | undefined {
   return PRESETS.find((preset) => preset.id === id);
 }
 
-export function listSupportedPresets(
-  capabilities?: CapabilitySnapshot,
-): Preset[] {
+export function listSupportedPresets(capabilities?: CapabilitySnapshot): Preset[] {
   if (!capabilities) {
     return PRESETS;
   }
@@ -75,8 +66,8 @@ export function listSupportedPresets(
 
     const requiredVideoEncoder = VIDEO_ENCODERS[preset.video.codec];
     if (
-      preset.video.codec !== "copy" &&
-      preset.video.codec !== "none" &&
+      preset.video.codec !== 'copy' &&
+      preset.video.codec !== 'none' &&
       requiredVideoEncoder &&
       !capabilities.videoEncoders.has(requiredVideoEncoder)
     ) {
@@ -85,8 +76,8 @@ export function listSupportedPresets(
 
     const requiredAudioEncoder = AUDIO_ENCODERS[preset.audio.codec];
     if (
-      preset.audio.codec !== "copy" &&
-      preset.audio.codec !== "none" &&
+      preset.audio.codec !== 'copy' &&
+      preset.audio.codec !== 'none' &&
       requiredAudioEncoder &&
       !capabilities.audioEncoders.has(requiredAudioEncoder)
     ) {
@@ -100,20 +91,16 @@ export function listSupportedPresets(
 export function planJob(context: PlannerContext): PlannerDecision {
   const preset =
     resolvePreset(context.presetId) ??
-    PRESETS.find((candidate) => candidate.id === "mp4-h264-aac-balanced")!;
+    PRESETS.find((candidate) => candidate.id === 'mp4-h264-aac-balanced')!;
 
-  const desiredTier: Tier = context.requestedTier ?? "balanced";
+  const desiredTier: Tier = context.requestedTier ?? 'balanced';
   const notes: string[] = [];
   const warnings: string[] = [];
   const args: string[] = [];
 
   const containerRule = CONTAINER_RULES[preset.container];
 
-  validatePresetAvailability(
-    preset,
-    containerRule,
-    warnings,
-  );
+  validatePresetAvailability(preset, containerRule, warnings);
 
   const videoTier = resolveTierDefaults(preset.video.tiers, desiredTier);
   const audioTier = resolveTierDefaults(preset.audio.tiers, desiredTier);
@@ -128,35 +115,32 @@ export function planJob(context: PlannerContext): PlannerDecision {
   const sourceVideoCodec = normalizeCodec(context.summary.vcodec);
   const sourceAudioCodec = normalizeCodec(context.summary.acodec);
 
-  let videoAction: "copy" | "transcode" | "drop";
+  let videoAction: 'copy' | 'transcode' | 'drop';
   let videoEncoder = VIDEO_ENCODERS[preset.video.codec] ?? undefined;
   let videoNote: string;
 
-  if (preset.video.codec === "none") {
-    videoAction = "drop";
-    videoNote = "Video: disabled by preset.";
+  if (preset.video.codec === 'none') {
+    videoAction = 'drop';
+    videoNote = 'Video: disabled by preset.';
   } else if (!sourceVideoCodec) {
-    videoAction = "drop";
-    videoNote = "Video: input provides no video stream.";
-    warnings.push("Input contains no video stream; output will omit video.");
-  } else if (preset.video.codec === "copy") {
-    videoAction = "copy";
-    videoEncoder = "copy";
+    videoAction = 'drop';
+    videoNote = 'Video: input provides no video stream.';
+    warnings.push('Input contains no video stream; output will omit video.');
+  } else if (preset.video.codec === 'copy') {
+    videoAction = 'copy';
+    videoEncoder = 'copy';
     videoNote = `Video: copy source codec ${sourceVideoCodec}.`;
-    if (
-      containerRule &&
-      !codecAllowed(containerRule.video, sourceVideoCodec)
-    ) {
+    if (containerRule && !codecAllowed(containerRule.video, sourceVideoCodec)) {
       warnings.push(
         `Source video codec ${sourceVideoCodec} is not listed for ${preset.container}; verify container compatibility.`,
       );
     }
   } else if (sourceVideoCodec === preset.video.codec) {
-    videoAction = "copy";
-    videoEncoder = "copy";
+    videoAction = 'copy';
+    videoEncoder = 'copy';
     videoNote = `Video: copy matching codec ${sourceVideoCodec}.`;
   } else {
-    videoAction = "transcode";
+    videoAction = 'transcode';
     videoEncoder = videoEncoder ?? preset.video.codec;
     const requiredEncoder = VIDEO_ENCODERS[preset.video.codec];
     if (
@@ -164,46 +148,41 @@ export function planJob(context: PlannerContext): PlannerDecision {
       context.capabilities &&
       !context.capabilities.videoEncoders.has(requiredEncoder)
     ) {
-      warnings.push(
-        `Encoder ${requiredEncoder} not reported by FFmpeg; transcode may fail.`,
-      );
+      warnings.push(`Encoder ${requiredEncoder} not reported by FFmpeg; transcode may fail.`);
     }
-    videoNote = `Video: transcode ${sourceVideoCodec ?? "unknown"} → ${preset.video.codec} with ${videoEncoder}.`;
+    videoNote = `Video: transcode ${sourceVideoCodec ?? 'unknown'} → ${preset.video.codec} with ${videoEncoder}.`;
   }
 
-  if (videoAction === "drop" && preset.video.codec !== "none") {
-    warnings.push("Preset expects video output but planner is dropping the stream.");
+  if (videoAction === 'drop' && preset.video.codec !== 'none') {
+    warnings.push('Preset expects video output but planner is dropping the stream.');
   }
 
-  let audioAction: "copy" | "transcode" | "drop";
+  let audioAction: 'copy' | 'transcode' | 'drop';
   let audioEncoder = AUDIO_ENCODERS[preset.audio.codec] ?? undefined;
   let audioNote: string;
 
-  if (preset.audio.codec === "none") {
-    audioAction = "drop";
-    audioNote = "Audio: disabled by preset.";
+  if (preset.audio.codec === 'none') {
+    audioAction = 'drop';
+    audioNote = 'Audio: disabled by preset.';
   } else if (!sourceAudioCodec) {
-    audioAction = "drop";
-    audioNote = "Audio: input provides no audio stream.";
-    warnings.push("Input contains no audio stream; output will omit audio.");
-  } else if (preset.audio.codec === "copy") {
-    audioAction = "copy";
-    audioEncoder = "copy";
+    audioAction = 'drop';
+    audioNote = 'Audio: input provides no audio stream.';
+    warnings.push('Input contains no audio stream; output will omit audio.');
+  } else if (preset.audio.codec === 'copy') {
+    audioAction = 'copy';
+    audioEncoder = 'copy';
     audioNote = `Audio: copy source codec ${sourceAudioCodec}.`;
-    if (
-      containerRule &&
-      !codecAllowed(containerRule.audio, sourceAudioCodec)
-    ) {
+    if (containerRule && !codecAllowed(containerRule.audio, sourceAudioCodec)) {
       warnings.push(
         `Source audio codec ${sourceAudioCodec} is not listed for ${preset.container}; verify container compatibility.`,
       );
     }
   } else if (sourceAudioCodec === preset.audio.codec) {
-    audioAction = "copy";
-    audioEncoder = "copy";
+    audioAction = 'copy';
+    audioEncoder = 'copy';
     audioNote = `Audio: copy matching codec ${sourceAudioCodec}.`;
   } else {
-    audioAction = "transcode";
+    audioAction = 'transcode';
     audioEncoder = audioEncoder ?? preset.audio.codec;
     const requiredEncoder = AUDIO_ENCODERS[preset.audio.codec];
     if (
@@ -211,97 +190,83 @@ export function planJob(context: PlannerContext): PlannerDecision {
       context.capabilities &&
       !context.capabilities.audioEncoders.has(requiredEncoder)
     ) {
-      warnings.push(
-        `Encoder ${requiredEncoder} not reported by FFmpeg; transcode may fail.`,
-      );
+      warnings.push(`Encoder ${requiredEncoder} not reported by FFmpeg; transcode may fail.`);
     }
-    audioNote = `Audio: transcode ${sourceAudioCodec ?? "unknown"} → ${preset.audio.codec} with ${audioEncoder}.`;
+    audioNote = `Audio: transcode ${sourceAudioCodec ?? 'unknown'} → ${preset.audio.codec} with ${audioEncoder}.`;
   }
 
-  if (audioAction === "drop" && preset.audio.codec !== "none") {
-    warnings.push("Preset expects audio output but planner is dropping the stream.");
+  if (audioAction === 'drop' && preset.audio.codec !== 'none') {
+    warnings.push('Preset expects audio output but planner is dropping the stream.');
   }
 
-  const subtitlePlan = determineSubtitlePlan(
-    preset,
-    containerRule,
-    context.summary,
-    warnings,
-  );
+  const subtitlePlan = determineSubtitlePlan(preset, containerRule, context.summary, warnings);
 
   notes.push(videoNote);
   notes.push(audioNote);
   notes.push(subtitlePlan.note);
 
-  if (videoAction === "drop") {
-    args.push("-vn");
+  if (videoAction === 'drop') {
+    args.push('-vn');
   } else {
-    args.push("-map", "0:v:0?");
+    args.push('-map', '0:v:0?');
     if (videoEncoder) {
-      args.push("-c:v", videoEncoder);
+      args.push('-c:v', videoEncoder);
     }
-    if (videoAction === "transcode" && videoTier.value) {
+    if (videoAction === 'transcode' && videoTier.value) {
       const tierDefaults = videoTier.value;
-      if (typeof tierDefaults.bitrateK === "number") {
-        args.push("-b:v", `${tierDefaults.bitrateK}k`);
+      if (typeof tierDefaults.bitrateK === 'number') {
+        args.push('-b:v', `${tierDefaults.bitrateK}k`);
       }
-      if (typeof tierDefaults.maxrateK === "number") {
-        args.push("-maxrate", `${tierDefaults.maxrateK}k`);
+      if (typeof tierDefaults.maxrateK === 'number') {
+        args.push('-maxrate', `${tierDefaults.maxrateK}k`);
       }
-      if (typeof tierDefaults.bufsizeK === "number") {
-        args.push("-bufsize", `${tierDefaults.bufsizeK}k`);
+      if (typeof tierDefaults.bufsizeK === 'number') {
+        args.push('-bufsize', `${tierDefaults.bufsizeK}k`);
       }
-      if (typeof tierDefaults.crf === "number") {
-        args.push("-crf", tierDefaults.crf.toString());
+      if (typeof tierDefaults.crf === 'number') {
+        args.push('-crf', tierDefaults.crf.toString());
       }
       if (tierDefaults.profile) {
-        args.push("-profile:v", tierDefaults.profile);
+        args.push('-profile:v', tierDefaults.profile);
       }
       notes.push(`Video tier ${videoTier.tier} applied.`);
     }
-    if (
-      videoAction === "transcode" &&
-      preset.video.copyColorMetadata &&
-      context.summary.color
-    ) {
+    if (videoAction === 'transcode' && preset.video.copyColorMetadata && context.summary.color) {
       const { primaries, trc, space } = context.summary.color;
       if (primaries) {
-        args.push("-color_primaries", primaries);
+        args.push('-color_primaries', primaries);
       }
       if (trc) {
-        args.push("-color_trc", trc);
+        args.push('-color_trc', trc);
       }
       if (space) {
-        args.push("-colorspace", space);
+        args.push('-colorspace', space);
       }
-      notes.push("Video color metadata copied.");
+      notes.push('Video color metadata copied.');
     }
   }
 
-  if (audioAction === "drop") {
-    args.push("-an");
+  if (audioAction === 'drop') {
+    args.push('-an');
   } else {
-    args.push("-map", "0:a:0?");
+    args.push('-map', '0:a:0?');
     if (audioEncoder) {
-      args.push("-c:a", audioEncoder);
+      args.push('-c:a', audioEncoder);
     }
-    if (audioAction === "transcode") {
+    if (audioAction === 'transcode') {
       const audioTierDefaults = audioTier.value;
       const bitrateK =
-        (audioTierDefaults && typeof audioTierDefaults.bitrateK === "number"
+        (audioTierDefaults && typeof audioTierDefaults.bitrateK === 'number'
           ? audioTierDefaults.bitrateK
           : undefined) ?? preset.audio.bitrateK;
-      if (typeof bitrateK === "number") {
-        args.push("-b:a", `${bitrateK}k`);
+      if (typeof bitrateK === 'number') {
+        args.push('-b:a', `${bitrateK}k`);
       }
-      if (
-        audioTierDefaults &&
-        typeof audioTierDefaults.quality === "number"
-      ) {
-        args.push("-q:a", audioTierDefaults.quality.toString());
+      if (audioTierDefaults && typeof audioTierDefaults.quality === 'number') {
+        args.push('-q:a', audioTierDefaults.quality.toString());
       }
       if (preset.audio.stereoOnly) {
-        args.push("-ac", "2");
+        args.push('-ac', '2');
       }
       if (audioTierDefaults) {
         notes.push(`Audio tier ${audioTier.tier} applied.`);
@@ -309,25 +274,20 @@ export function planJob(context: PlannerContext): PlannerDecision {
     }
   }
 
-  if (subtitlePlan.mode === "drop") {
-    args.push("-sn");
+  if (subtitlePlan.mode === 'drop') {
+    args.push('-sn');
   } else {
-    args.push("-map", "0:s?");
-    args.push(
-      "-c:s",
-      subtitlePlan.mode === "convert" ? SUBTITLE_CONVERT_CODEC : "copy",
-    );
+    args.push('-map', '0:s?');
+    args.push('-c:s', subtitlePlan.mode === 'convert' ? SUBTITLE_CONVERT_CODEC : 'copy');
   }
 
   if (containerRule?.requiresFaststart) {
-    args.push("-movflags", "+faststart");
-    notes.push("Applied faststart for fragmented MP4/MOV.");
+    args.push('-movflags', '+faststart');
+    notes.push('Applied faststart for fragmented MP4/MOV.');
   }
 
   const remuxOnly =
-    videoAction === "copy" &&
-    audioAction === "copy" &&
-    subtitlePlan.mode === "copy";
+    videoAction === 'copy' && audioAction === 'copy' && subtitlePlan.mode === 'copy';
 
   return {
     preset,
@@ -339,7 +299,7 @@ export function planJob(context: PlannerContext): PlannerDecision {
 }
 
 interface SubtitlePlanDecision {
-  mode: "drop" | "copy" | "convert";
+  mode: 'drop' | 'copy' | 'convert';
   note: string;
 }
 
@@ -356,19 +316,19 @@ function determineSubtitlePlan(
 
   if (!preset.subs) {
     return {
-      mode: "drop",
+      mode: 'drop',
       note: hasAny
-        ? "Subtitles: drop (preset has no subtitle policy)."
-        : "Subtitles: no streams detected.",
+        ? 'Subtitles: drop (preset has no subtitle policy).'
+        : 'Subtitles: no streams detected.',
     };
   }
 
   switch (preset.subs.mode) {
-    case "keep": {
+    case 'keep': {
       if (!hasAny) {
         return {
-          mode: "copy",
-          note: "Subtitles: keep requested but no streams detected.",
+          mode: 'copy',
+          note: 'Subtitles: keep requested but no streams detected.',
         };
       }
       if (hasText && rule && !allowsAny(rule.text)) {
@@ -377,23 +337,19 @@ function determineSubtitlePlan(
         );
       }
       if (hasImage && rule && !allowsAny(rule.image)) {
-        warnings.push(
-          `${preset.container} does not permit image subtitles; consider burn-in.`,
-        );
+        warnings.push(`${preset.container} does not permit image subtitles; consider burn-in.`);
       }
       return {
-        mode: "copy",
-        note: "Subtitles: keep existing streams.",
+        mode: 'copy',
+        note: 'Subtitles: keep existing streams.',
       };
     }
-    case "convert": {
+    case 'convert': {
       if (!hasText) {
-        warnings.push("No text subtitles available for conversion.");
+        warnings.push('No text subtitles available for conversion.');
       }
       if (hasImage) {
-        warnings.push(
-          "Image-based subtitles detected; conversion to mov_text not supported.",
-        );
+        warnings.push('Image-based subtitles detected; conversion to mov_text not supported.');
       }
       if (rule && !subtitleCodecAllowed(rule.text, SUBTITLE_CONVERT_CODEC)) {
         warnings.push(
@@ -401,30 +357,26 @@ function determineSubtitlePlan(
         );
       }
       return {
-        mode: "convert",
-        note: "Subtitles: convert text streams to mov_text.",
+        mode: 'convert',
+        note: 'Subtitles: convert text streams to mov_text.',
       };
     }
-    case "burn": {
-      warnings.push(
-        "Subtitle burn-in requested; execution layer must inject subtitle filters.",
-      );
+    case 'burn': {
+      warnings.push('Subtitle burn-in requested; execution layer must inject subtitle filters.');
       return {
-        mode: "drop",
-        note: "Subtitles: burn-in requested (planner defers to execution).",
+        mode: 'drop',
+        note: 'Subtitles: burn-in requested (planner defers to execution).',
       };
     }
-    case "drop":
+    case 'drop':
       return {
-        mode: "drop",
-        note: hasAny
-          ? "Subtitles: drop streams per preset."
-          : "Subtitles: no streams detected.",
+        mode: 'drop',
+        note: hasAny ? 'Subtitles: drop streams per preset.' : 'Subtitles: no streams detected.',
       };
     default:
       return {
-        mode: "drop",
-        note: "Subtitles: drop (unrecognized mode).",
+        mode: 'drop',
+        note: 'Subtitles: drop (unrecognized mode).',
       };
   }
 }
@@ -442,8 +394,8 @@ function validatePresetAvailability(
   }
 
   if (
-    preset.video.codec !== "copy" &&
-    preset.video.codec !== "none" &&
+    preset.video.codec !== 'copy' &&
+    preset.video.codec !== 'none' &&
     !codecAllowed(containerRule.video, preset.video.codec)
   ) {
     warnings.push(
@@ -452,8 +404,8 @@ function validatePresetAvailability(
   }
 
   if (
-    preset.audio.codec !== "copy" &&
-    preset.audio.codec !== "none" &&
+    preset.audio.codec !== 'copy' &&
+    preset.audio.codec !== 'none' &&
     !codecAllowed(containerRule.audio, preset.audio.codec)
   ) {
     warnings.push(
@@ -467,13 +419,13 @@ function normalizeCodec(value: string | undefined): string | undefined {
 }
 
 function codecAllowed(
-  allowed: ContainerRule["video"] | ContainerRule["audio"] | undefined,
+  allowed: ContainerRule['video'] | ContainerRule['audio'] | undefined,
   codec: string | undefined,
 ): boolean {
   if (!codec) {
     return false;
   }
-  if (!allowed || allowed === "any") {
+  if (!allowed || allowed === 'any') {
     return true;
   }
   return allowed.includes(codec);
@@ -506,18 +458,15 @@ function resolveTierDefaults<T>(
   return { tier: requested, usedFallback: false };
 }
 
-function allowsAny(list: "any" | string[] | undefined): boolean {
-  if (!list || list === "any") {
+function allowsAny(list: 'any' | string[] | undefined): boolean {
+  if (!list || list === 'any') {
     return true;
   }
   return list.length > 0;
 }
 
-function subtitleCodecAllowed(
-  list: "any" | string[] | undefined,
-  codec: string,
-): boolean {
-  if (!list || list === "any") {
+function subtitleCodecAllowed(list: 'any' | string[] | undefined, codec: string): boolean {
+  if (!list || list === 'any') {
     return true;
   }
   return list.includes(codec);

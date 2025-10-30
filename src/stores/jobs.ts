@@ -1,13 +1,8 @@
-import { computed, ref } from "vue";
-import { defineStore } from "pinia";
+import { computed, ref } from 'vue';
+import { defineStore } from 'pinia';
 
-import type { PlannerDecision } from "@/lib/ffmpeg-plan";
-import type {
-  JobProgress,
-  JobState,
-  ProbeSummary,
-  Tier,
-} from "@/lib/types";
+import type { PlannerDecision } from '@/lib/ffmpeg-plan';
+import type { JobProgress, JobState, ProbeSummary, Tier } from '@/lib/types';
 
 interface JobRecord {
   id: string;
@@ -27,19 +22,11 @@ interface JobRecord {
 type JobId = string;
 
 function isActiveState(state: JobState): boolean {
-  return (
-    state.status === "probing" ||
-    state.status === "planning" ||
-    state.status === "running"
-  );
+  return state.status === 'probing' || state.status === 'planning' || state.status === 'running';
 }
 
 function isTerminalState(state: JobState): boolean {
-  return (
-    state.status === "completed" ||
-    state.status === "failed" ||
-    state.status === "cancelled"
-  );
+  return state.status === 'completed' || state.status === 'failed' || state.status === 'cancelled';
 }
 
 function now(): number {
@@ -47,7 +34,7 @@ function now(): number {
 }
 
 function createJobId(): JobId {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
   }
   return `job-${Math.random().toString(36).slice(2, 10)}`;
@@ -57,30 +44,22 @@ function readEnqueuedAt(state: JobState): number {
   return state.enqueuedAt;
 }
 
-export const useJobsStore = defineStore("jobs", () => {
+export const useJobsStore = defineStore('jobs', () => {
   const jobs = ref<JobRecord[]>([]);
   const maxConcurrency = ref(2);
 
-  const queuedJobs = computed(() =>
-    jobs.value.filter((job) => job.state.status === "queued"),
-  );
-  const activeJobs = computed(() =>
-    jobs.value.filter((job) => isActiveState(job.state)),
-  );
-  const terminalJobs = computed(() =>
-    jobs.value.filter((job) => isTerminalState(job.state)),
-  );
+  const queuedJobs = computed(() => jobs.value.filter((job) => job.state.status === 'queued'));
+  const activeJobs = computed(() => jobs.value.filter((job) => isActiveState(job.state)));
+  const terminalJobs = computed(() => jobs.value.filter((job) => isTerminalState(job.state)));
 
-  const hasExclusiveActive = computed(() =>
-    activeJobs.value.some((job) => job.exclusive),
-  );
+  const hasExclusiveActive = computed(() => activeJobs.value.some((job) => job.exclusive));
 
   const runningEtaSeconds = computed<number | null>(() => {
     let total = 0;
     let haveEstimate = false;
 
     for (const job of jobs.value) {
-      if (job.state.status !== "running") {
+      if (job.state.status !== 'running') {
         continue;
       }
 
@@ -101,35 +80,35 @@ export const useJobsStore = defineStore("jobs", () => {
     maxConcurrency.value = Math.max(1, Math.floor(count));
   }
 
-function enqueue(path: string, presetId: string, tier: Tier = "balanced"): JobId | null {
-  if (jobs.value.some((job) => job.path === path)) {
-    return null;
-  }
-  const createdAt = now();
-  const id = createJobId();
-  const record: JobRecord = {
-    id,
-    path,
-    presetId,
-    tier,
+  function enqueue(path: string, presetId: string, tier: Tier = 'balanced'): JobId | null {
+    if (jobs.value.some((job) => job.path === path)) {
+      return null;
+    }
+    const createdAt = now();
+    const id = createJobId();
+    const record: JobRecord = {
+      id,
+      path,
+      presetId,
+      tier,
       state: {
-        status: "queued",
-      enqueuedAt: createdAt,
-    },
-    logs: [],
-    createdAt,
-    updatedAt: createdAt,
-  };
+        status: 'queued',
+        enqueuedAt: createdAt,
+      },
+      logs: [],
+      createdAt,
+      updatedAt: createdAt,
+    };
 
-  jobs.value = [...jobs.value, record];
-  return id;
-}
+    jobs.value = [...jobs.value, record];
+    return id;
+  }
 
-function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced"): JobId[] {
-  return paths
-    .map((path) => enqueue(path, presetId, tier))
-    .filter((id): id is JobId => id !== null);
-}
+  function enqueueMany(paths: string[], presetId: string, tier: Tier = 'balanced'): JobId[] {
+    return paths
+      .map((path) => enqueue(path, presetId, tier))
+      .filter((id): id is JobId => id !== null);
+  }
 
   function getJob(id: JobId): JobRecord | undefined {
     return jobs.value.find((job) => job.id === id);
@@ -146,12 +125,12 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
 
   function markProbing(id: JobId) {
     updateJob(id, (job) => {
-      if (job.state.status !== "queued") {
+      if (job.state.status !== 'queued') {
         return;
       }
       const startedAt = now();
       job.state = {
-        status: "probing",
+        status: 'probing',
         enqueuedAt: job.state.enqueuedAt,
         startedAt,
       };
@@ -161,13 +140,10 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
   function markPlanning(id: JobId, summary: ProbeSummary) {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
-      const startedAt =
-        job.state.status === "probing"
-          ? job.state.startedAt
-          : now();
+      const startedAt = job.state.status === 'probing' ? job.state.startedAt : now();
       job.summary = summary;
       job.state = {
-        status: "planning",
+        status: 'planning',
         enqueuedAt,
         startedAt,
         probeSummary: summary,
@@ -178,15 +154,12 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
   function markRunning(id: JobId, decision: PlannerDecision) {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
-      const startedAt =
-        job.state.status === "planning"
-          ? job.state.startedAt
-          : now();
+      const startedAt = job.state.status === 'planning' ? job.state.startedAt : now();
       job.decision = decision;
       job.exclusive = job.exclusive ?? false;
       job.logs = [];
       job.state = {
-        status: "running",
+        status: 'running',
         enqueuedAt,
         startedAt,
         progress: {},
@@ -232,7 +205,7 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
 
   function updateProgress(id: JobId, progress: JobProgress) {
     updateJob(id, (job) => {
-      if (job.state.status !== "running") {
+      if (job.state.status !== 'running') {
         return;
       }
       job.state = {
@@ -248,12 +221,9 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
   function markCompleted(id: JobId, outputPath: string) {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
-      const startedAt =
-        job.state.status === "running"
-            ? job.state.startedAt
-            : now();
+      const startedAt = job.state.status === 'running' ? job.state.startedAt : now();
       job.state = {
-        status: "completed",
+        status: 'completed',
         enqueuedAt,
         startedAt,
         finishedAt: now(),
@@ -267,9 +237,9 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
   function markFailed(id: JobId, error: string, code?: string) {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
-      const startedAt = "startedAt" in job.state ? job.state.startedAt : now();
+      const startedAt = 'startedAt' in job.state ? job.state.startedAt : now();
       job.state = {
-        status: "failed",
+        status: 'failed',
         enqueuedAt,
         startedAt,
         finishedAt: now(),
@@ -283,9 +253,9 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
   function cancelJob(id: JobId) {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
-      const startedAt = "startedAt" in job.state ? job.state.startedAt : now();
+      const startedAt = 'startedAt' in job.state ? job.state.startedAt : now();
       job.state = {
-        status: "cancelled",
+        status: 'cancelled',
         enqueuedAt,
         startedAt,
         finishedAt: now(),
@@ -298,7 +268,7 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
   function requeue(id: JobId) {
     updateJob(id, (job) => {
       job.state = {
-        status: "queued",
+        status: 'queued',
         enqueuedAt: now(),
       };
       job.exclusive = false;
@@ -314,7 +284,7 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
     if (activeJobs.value.length >= maxConcurrency.value) {
       return undefined;
     }
-    const next = jobs.value.find((job) => job.state.status === "queued");
+    const next = jobs.value.find((job) => job.state.status === 'queued');
     if (!next) {
       return undefined;
     }
@@ -323,7 +293,7 @@ function enqueueMany(paths: string[], presetId: string, tier: Tier = "balanced")
   }
 
   function peekNext(): JobRecord | undefined {
-    return jobs.value.find((job) => job.state.status === "queued");
+    return jobs.value.find((job) => job.state.status === 'queued');
   }
 
   return {
