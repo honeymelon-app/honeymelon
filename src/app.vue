@@ -300,7 +300,7 @@ onUnmounted(() => {
 
     <!-- Main Content with ScrollArea -->
     <ScrollArea class="flex-1 w-full overflow-auto" style="-webkit-app-region: no-drag">
-      <main class="flex flex-col gap-6 p-6 pt-16">
+      <main class="flex flex-col gap-6 p-6 pt-10">
         <!-- Drop Zone (only show when no active jobs) -->
         <div
           v-if="!hasActiveJobs"
