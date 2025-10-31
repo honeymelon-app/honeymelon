@@ -50,17 +50,18 @@ let child = Command::new(ffmpeg_path)
 ```
 
 This is **process execution**, identical to running a command in Terminal:
+
 ```bash
 $ ffmpeg -i input.mp4 output.mp4
 ```
 
 ### What This Means Legally
 
-| Technical Approach | Legal Effect |
-|-------------------|--------------|
-| Static linking to libavcodec, libavformat, etc. | ❌ Your app becomes LGPL |
-| Dynamic linking to .dylib files | ⚠️ Complex LGPL obligations |
-| **Process execution (Honeymelon's approach)** | ✅ **Your app stays MIT** |
+| Technical Approach                              | Legal Effect             |
+| ----------------------------------------------- | ------------------------ |
+| Static linking to libavcodec, libavformat, etc. | Your app becomes LGPL    |
+| Dynamic linking to .dylib files                 | Complex LGPL obligations |
+| **Process execution (Honeymelon's approach)**   | **Your app stays MIT**   |
 
 ### LGPL Section 6 Exemption
 
@@ -82,9 +83,9 @@ Honeymelon.app/
     ├── MacOS/
     │   └── Honeymelon              # Your app (MIT)
     ├── Resources/
-    │   ├── LICENSE.txt             # ✅ REQUIRED: Honeymelon MIT License
-    │   ├── FFMPEG-LICENSE.txt      # ✅ REQUIRED: FFmpeg LGPL License
-    │   ├── THIRD-PARTY-NOTICES.txt # ✅ REQUIRED: All dependencies
+    │   ├── LICENSE.txt             #  REQUIRED: Honeymelon MIT License
+    │   ├── FFMPEG-LICENSE.txt      #  REQUIRED: FFmpeg LGPL License
+    │   ├── THIRD-PARTY-NOTICES.txt #  REQUIRED: All dependencies
     │   └── bin/                     # Optional: Bundled FFmpeg
     │       ├── ffmpeg              # LGPL binary
     │       └── ffprobe             # LGPL binary
@@ -112,10 +113,11 @@ cp LICENSE "$RESOURCES/LICENSE.txt"
 cp LICENSES/FFMPEG-LGPL.txt "$RESOURCES/FFMPEG-LICENSE.txt"
 cp THIRD_PARTY_NOTICES.md "$RESOURCES/THIRD-PARTY-NOTICES.txt"
 
-echo "✅ License files bundled successfully"
+echo " License files bundled successfully"
 ```
 
 **Usage**:
+
 ```bash
 chmod +x scripts/bundle-licenses.sh
 ./scripts/bundle-licenses.sh "src-tauri/target/release/bundle/macos/Honeymelon.app"
@@ -130,11 +132,7 @@ Update `src-tauri/tauri.conf.json` to include licenses in the bundle:
 ```json
 {
   "bundle": {
-    "resources": [
-      "../LICENSE",
-      "../LICENSES/FFMPEG-LGPL.txt",
-      "../THIRD_PARTY_NOTICES.md"
-    ]
+    "resources": ["../LICENSE", "../LICENSES/FFMPEG-LGPL.txt", "../THIRD_PARTY_NOTICES.md"]
   }
 }
 ```
@@ -166,7 +164,7 @@ import { resolveResource } from '@tauri-apps/api/path';
 const licenses = ref({
   honeymelon: '',
   ffmpeg: '',
-  thirdParty: ''
+  thirdParty: '',
 });
 
 onMounted(async () => {
@@ -237,7 +235,7 @@ hdiutil create -volname "Honeymelon" \
   -ov -format UDZO \
   "Honeymelon_${VERSION}_aarch64.dmg"
 
-echo "✅ DMG created with all license files"
+echo " DMG created with all license files"
 ```
 
 ---
@@ -261,14 +259,16 @@ To minimize patent and licensing concerns, build FFmpeg with:
 
 ### Codecs to Avoid (GPL/Patent Issues)
 
-❌ **DO NOT ENABLE**:
+**DO NOT ENABLE**:
+
 - `--enable-gpl` - Would make FFmpeg GPL, not LGPL
 - `--enable-libx264` - GPL licensed
 - `--enable-libx265` - GPL licensed
 - `--enable-nonfree` - Proprietary codecs
 - `--enable-libfdk-aac` - Non-free license
 
-✅ **SAFE TO USE**:
+  **SAFE TO USE**:
+
 - VideoToolbox (hardware, Apple licensed)
 - Native AAC encoder (built-in)
 - libvpx (VP9, open source)
@@ -307,13 +307,17 @@ ls -la /Volumes/Honeymelon/
 ## Legal Q&A for Developers
 
 ### Q: Can I statically link FFmpeg to make distribution easier?
-**A**: ❌ **NO**. This would make your entire app LGPL and require you to provide source code or object files to users. Stick with process execution.
+
+**A**: **NO**. This would make your entire app LGPL and require you to provide source code or object files to users. Stick with process execution.
 
 ### Q: What if I use FFmpeg libraries via FFI (Foreign Function Interface)?
-**A**: ⚠️ This is effectively dynamic linking and has complex LGPL obligations. Avoid this approach.
+
+**A**: This is effectively dynamic linking and has complex LGPL obligations. Avoid this approach.
 
 ### Q: Can I modify FFmpeg source code?
+
 **A**: Yes, but then you MUST:
+
 1. Provide modified FFmpeg source code to users
 2. Document your modifications
 3. Still follow LGPL terms for the modified version
@@ -321,25 +325,29 @@ ls -la /Volumes/Honeymelon/
 It's easier to NOT modify FFmpeg.
 
 ### Q: What about linking to other GPL/LGPL libraries?
+
 **A**: Each library has its own license. If you use process separation (like with FFmpeg), you're safe. If you link, check each library's specific terms.
 
 ---
 
 ## Summary
 
-✅ **Honeymelon's approach is compliant because**:
+**Honeymelon's approach is compliant because**:
+
 1. FFmpeg runs as a separate process (no linking)
 2. License files are included with distribution
 3. No FFmpeg source modifications
 4. Patent-risky codecs use hardware encoders
 
-✅ **To stay compliant**:
+**To stay compliant**:
+
 1. Always include LICENSE, FFMPEG-LICENSE.txt, and THIRD_PARTY_NOTICES.md
 2. Never link FFmpeg libraries
 3. Use bundle scripts to automate license inclusion
 4. Display licenses in the app UI
 
-✅ **This allows commercial sale** without requiring:
+**This allows commercial sale** without requiring:
+
 - Open-sourcing your code
 - Providing source to customers
 - Special permissions from FFmpeg developers

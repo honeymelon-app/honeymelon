@@ -4,7 +4,7 @@ This document explains how Honeymelon can be sold commercially while maintaining
 
 ---
 
-## ✅ Can I Sell Honeymelon?
+## Can I Sell Honeymelon?
 
 **YES!** Honeymelon can be sold commercially as a paid application on your website, app store, or any other distribution channel.
 
@@ -15,11 +15,12 @@ This document explains how Honeymelon can be sold commercially while maintaining
 ### 1. Honeymelon's License (MIT)
 
 Honeymelon's source code is licensed under the **MIT License**, which explicitly allows:
-- ✅ Commercial use
-- ✅ Modification
-- ✅ Distribution
-- ✅ Private use
-- ✅ Selling the software
+
+- Commercial use
+- Modification
+- Distribution
+- Private use
+- Selling the software
 
 ### 2. FFmpeg's License (LGPL v2.1)
 
@@ -29,13 +30,14 @@ FFmpeg is licensed under the **GNU Lesser General Public License (LGPL) v2.1**, 
 
 #### LGPL Compliance Through Process Separation
 
-| Method | LGPL Impact | Honeymelon's Approach |
-|--------|-------------|----------------------|
-| Static Linking | ❌ Your entire app becomes LGPL | ✅ NOT USED |
-| Dynamic Linking | ❌ Your app may need to be LGPL | ✅ NOT USED |
-| Separate Process | ✅ Your app stays independent | ✅ USED - This is how Honeymelon works |
+| Method           | LGPL Impact                  | Honeymelon's Approach               |
+| ---------------- | ---------------------------- | ----------------------------------- |
+| Static Linking   | Your entire app becomes LGPL | NOT USED                            |
+| Dynamic Linking  | Your app may need to be LGPL | NOT USED                            |
+| Separate Process | Your app stays independent   | USED - This is how Honeymelon works |
 
 **How Honeymelon Uses FFmpeg**:
+
 ```
 Honeymelon App (MIT License)
     ↓ (spawns process)
@@ -43,6 +45,7 @@ FFmpeg Binary (LGPL License)
 ```
 
 The two programs communicate through:
+
 - Process execution (like running a command in Terminal)
 - Standard input/output streams
 - File system (reading/writing files)
@@ -52,9 +55,10 @@ This is **identical** to how any macOS app can run system commands without licen
 ### 3. No FFmpeg Modifications
 
 Honeymelon does **not modify FFmpeg's source code**. This means:
-- ✅ No obligation to distribute FFmpeg source code
-- ✅ No obligation to offer source code to users
-- ✅ LGPL requirements are minimal
+
+- No obligation to distribute FFmpeg source code
+- No obligation to offer source code to users
+- LGPL requirements are minimal
 
 ---
 
@@ -65,14 +69,14 @@ When selling Honeymelon (as a DMG, app bundle, or download), you must include th
 ### Required Files
 
 1. **LICENSE** (MIT License for Honeymelon)
-   - ✅ Already created in repository root
+   - Already created in repository root
 
 2. **LICENSES/FFMPEG-LGPL.txt** (FFmpeg's LGPL license)
-   - ✅ Already created
+   - Already created
    - Must be accessible to users (e.g., in app bundle or documentation)
 
 3. **THIRD_PARTY_NOTICES.md** (All dependency attributions)
-   - ✅ Already created
+   - Already created
    - Lists all third-party software and their licenses
 
 ### Recommended Placement
@@ -95,6 +99,7 @@ Honeymelon.app/
 ### In-App Accessibility
 
 Best practice is to make licenses accessible via the app menu:
+
 - "Honeymelon" → "About Honeymelon" → "Licenses" button
 - This opens a window showing all license information
 
@@ -113,23 +118,26 @@ Some video/audio codecs have patent claims in certain jurisdictions:
 ### Honeymelon's Approach
 
 **Hardware Encoders**: Honeymelon primarily uses **Apple VideoToolbox**, which provides:
-- ✅ Hardware-accelerated H.264/HEVC encoding
-- ✅ Patent licensing handled by Apple
-- ✅ Included with macOS at no additional cost
+
+- Hardware-accelerated H.264/HEVC encoding
+- Patent licensing handled by Apple
+- Included with macOS at no additional cost
 
 **User Responsibility**: If users provide their own FFmpeg binary with additional software encoders (like x264, x265), they are responsible for any patent licensing in their jurisdiction.
 
 ### Your Risk Profile
 
 **Low Risk Scenario** (Recommended):
-- ✅ Bundle FFmpeg with only hardware encoders enabled
-- ✅ Use Apple VideoToolbox for H.264/HEVC
-- ✅ Use native AAC encoder
-- ✅ Document that users bringing their own FFmpeg are responsible for codec licensing
+
+- Bundle FFmpeg with only hardware encoders enabled
+- Use Apple VideoToolbox for H.264/HEVC
+- Use native AAC encoder
+- Document that users bringing their own FFmpeg are responsible for codec licensing
 
 **Higher Risk Scenario**:
-- ❌ Bundle FFmpeg with software encoders (x264, x265, fdk-aac)
-- ❌ May require separate patent licensing agreements
+
+- Bundle FFmpeg with software encoders (x264, x265, fdk-aac)
+- May require separate patent licensing agreements
 
 ---
 
@@ -161,21 +169,25 @@ Before selling Honeymelon commercially:
 Since Honeymelon can be sold commercially, here are viable models:
 
 ### One-Time Purchase
+
 - Sell app for fixed price on your website
 - Provide updates for free or with upgrade pricing
 - No licensing restrictions
 
 ### Subscription Model
+
 - Monthly/annual subscription
 - Continuous updates included
 - Cloud features (if added) can justify ongoing pricing
 
 ### Freemium Model
+
 - Free version with basic features
 - Paid "Pro" version with advanced features
 - Upsell within the app
 
 ### Site License
+
 - Sell to organizations with multiple users
 - Per-seat or unlimited pricing
 - Custom terms possible
@@ -185,27 +197,35 @@ Since Honeymelon can be sold commercially, here are viable models:
 ## Frequently Asked Questions
 
 ### Q: Do I need to open-source Honeymelon to sell it?
+
 **A**: No. The MIT license allows you to sell proprietary versions. You can keep your modifications private.
 
 ### Q: Can I remove the MIT license and make it fully proprietary?
+
 **A**: If you wrote 100% of the code, yes. But you must still include FFmpeg's LGPL license and third-party notices.
 
 ### Q: What if I modify FFmpeg?
+
 **A**: LGPL requires you to offer the modified FFmpeg source code to users (but NOT Honeymelon's source). However, Honeymelon doesn't modify FFmpeg, so this doesn't apply.
 
 ### Q: Can I bundle FFmpeg with my commercial version?
+
 **A**: Yes! Bundling the FFmpeg binary is allowed. Just include the LGPL license file.
 
 ### Q: What about code signing and notarization?
+
 **A**: These are required for macOS distribution but don't affect licensing. See BUILD.md for details.
 
 ### Q: Can I sell on the Mac App Store?
+
 **A**: Potentially, but the Mac App Store has restrictions on:
+
 - LGPL software (sometimes accepted if clearly separated)
 - Apps that execute external binaries (may require sandboxing exceptions)
 - Check Apple's latest guidelines before submitting
 
 ### Q: Do I need a separate commercial license from FFmpeg developers?
+
 **A**: No. The LGPL explicitly allows commercial use when you follow its terms (which Honeymelon does through process separation).
 
 ---
@@ -225,6 +245,7 @@ When selling Honeymelon, you can use language like:
 This document provides information about software licensing but **is not legal advice**. For specific legal questions about your commercial use case, consult with a lawyer familiar with software licensing and intellectual property law.
 
 The information here is based on:
+
 - LGPL v2.1 license terms
 - MIT license terms
 - Common practices in the software industry
@@ -234,17 +255,17 @@ The information here is based on:
 
 ## Summary
 
-✅ **You CAN sell Honeymelon commercially**
+**You CAN sell Honeymelon commercially**
 
-✅ **You DO need to include license files** (already created)
+**You DO need to include license files** (already created)
 
-✅ **You DON'T need to open-source your modifications**
+**You DON'T need to open-source your modifications**
 
-✅ **You DON'T need special permission from FFmpeg developers**
+**You DON'T need special permission from FFmpeg developers**
 
-✅ **Patent risks are LOW if using hardware encoders**
+**Patent risks are LOW if using hardware encoders**
 
-✅ **This approach is used by many commercial apps**
+**This approach is used by many commercial apps**
 
 ---
 

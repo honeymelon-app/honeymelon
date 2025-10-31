@@ -18,6 +18,7 @@ export default [
       '**/.nuxt/**',
       '**/.output/**',
       '**/.vite/**',
+      '**/scripts/**',
     ],
   },
 

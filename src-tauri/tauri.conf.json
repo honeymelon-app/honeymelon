@@ -67,7 +67,7 @@
     ],
     "resources": ["resources/bin/ffmpeg", "resources/bin/ffprobe"],
     "category": "public.app-category.productivity",
-    "copyright": "Copyright © 2025 Honeymelon",
+    "copyright": "Copyright  2025 Honeymelon",
     "shortDescription": "Media converter with remux-first FFmpeg workflow",
     "longDescription": "Professional media converter for macOS with intelligent remux-first FFmpeg workflow. Supports H.264, HEVC, VP9, AV1, and more.",
     "macOS": {

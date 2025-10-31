@@ -362,4 +362,4 @@ By contributing to Honeymelon, you agree that your contributions will be license
 
 ---
 
-Thank you for contributing to Honeymelon! 🍈
+Thank you for contributing to Honeymelon!

@@ -52,6 +52,7 @@ If applicable, add screenshots to help explain your problem.
 ## Log Files
 
 If available, please attach or paste relevant log output. You can find logs in:
+
 - Console.app (filter by "Honeymelon")
 - Any error messages shown in the app
 

@@ -127,11 +127,11 @@ test('should launch app', async ({ page }) => {
 
 The E2E tests are currently set up with:
 
-- ✅ Playwright configuration
-- ✅ Test file structure
-- ✅ Basic test scaffolding
-- ⏳ Tauri WebView connection (placeholder)
-- ⏳ Actual UI interaction tests (placeholder)
+- Playwright configuration
+- Test file structure
+- Basic test scaffolding
+- Tauri WebView connection (placeholder)
+- Actual UI interaction tests (placeholder)
 
 The placeholder tests verify that the test infrastructure works correctly. To fully implement E2E testing:
 

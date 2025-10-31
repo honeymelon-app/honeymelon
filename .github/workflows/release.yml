@@ -3,10 +3,10 @@ name: Release Build
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v1.2.3, etc.
+      - 'v*.*.*' # Triggers on version tags like v1.0.0, v1.2.3, etc.
 
 permissions:
-  contents: write  # Required for creating releases and uploading assets
+  contents: write # Required for creating releases and uploading assets
 
 jobs:
   # Pre-release validation
@@ -68,7 +68,7 @@ jobs:
   # Main release build
   create-release:
     name: Create Release
-    runs-on: macos-14  # macOS 14 on Apple Silicon (M1)
+    runs-on: macos-14 # macOS 14 on Apple Silicon (M1)
     needs: pre-release-checks
 
     steps:

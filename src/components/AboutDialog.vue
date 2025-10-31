@@ -23,7 +23,7 @@ function openLicense() {
       <div
         class="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg"
       >
-        <span class="text-5xl">🍈</span>
+        <span class="text-5xl"></span>
       </div>
 
       <!-- App Name & Version -->
@@ -74,7 +74,7 @@ function openLicense() {
 
       <!-- Copyright -->
       <div class="border-t border-border pt-4 text-xs text-muted-foreground">
-        <p>© 2025 Honeymelon. All rights reserved.</p>
+        <p>2025 Honeymelon. All rights reserved.</p>
         <p class="mt-1">
           This app uses FFmpeg via out-of-process execution.<br />
           We do not statically link FFmpeg nor enable GPL/non-free components.

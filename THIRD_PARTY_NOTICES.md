@@ -7,8 +7,8 @@ This file contains the licenses and notices for third-party software included wi
 ## FFmpeg
 
 **License**: GNU Lesser General Public License (LGPL) v2.1 or later
-**Website**: https://ffmpeg.org/
-**Source Code**: https://github.com/FFmpeg/FFmpeg
+**Website**: <https://ffmpeg.org/>
+**Source Code**: <https://github.com/FFmpeg/FFmpeg>
 
 FFmpeg is a complete, cross-platform solution to record, convert and stream audio and video.
 
@@ -23,8 +23,8 @@ FFmpeg is a complete, cross-platform solution to record, convert and stream audi
 ## Tauri
 
 **License**: Apache License 2.0 or MIT License
-**Website**: https://tauri.app/
-**Source Code**: https://github.com/tauri-apps/tauri
+**Website**: <https://tauri.app/>
+**Source Code**: <https://github.com/tauri-apps/tauri>
 
 Tauri is a framework for building tiny, blazingly fast binaries for all major desktop platforms.
 
@@ -37,8 +37,8 @@ Licensed under the Apache License, Version 2.0 or MIT License.
 ## Vue.js
 
 **License**: MIT License
-**Website**: https://vuejs.org/
-**Source Code**: https://github.com/vuejs/core
+**Website**: <https://vuejs.org/>
+**Source Code**: <https://github.com/vuejs/core>
 
 Copyright (c) 2013-present Evan You
 
@@ -51,8 +51,8 @@ The above copyright notice and this permission notice shall be included in all c
 ## Pinia
 
 **License**: MIT License
-**Website**: https://pinia.vuejs.org/
-**Source Code**: https://github.com/vuejs/pinia
+**Website**: <https://pinia.vuejs.org/>
+**Source Code**: <https://github.com/vuejs/pinia>
 
 Copyright (c) 2019-present Eduardo San Martin Morote
 
@@ -61,8 +61,8 @@ Copyright (c) 2019-present Eduardo San Martin Morote
 ## Tailwind CSS
 
 **License**: MIT License
-**Website**: https://tailwindcss.com/
-**Source Code**: https://github.com/tailwindlabs/tailwindcss
+**Website**: <https://tailwindcss.com/>
+**Source Code**: <https://github.com/tailwindlabs/tailwindcss>
 
 Copyright (c) Tailwind Labs, Inc.
 
@@ -71,8 +71,8 @@ Copyright (c) Tailwind Labs, Inc.
 ## shadcn-vue (Radix Vue / Reka UI)
 
 **License**: MIT License
-**Website**: https://www.shadcn-vue.com/
-**Source Code**: https://github.com/radix-vue/shadcn-vue
+**Website**: <https://www.shadcn-vue.com/>
+**Source Code**: <https://github.com/radix-vue/shadcn-vue>
 
 Based on Radix UI and ported to Vue.
 
@@ -81,8 +81,8 @@ Based on Radix UI and ported to Vue.
 ## Lucide Icons
 
 **License**: ISC License
-**Website**: https://lucide.dev/
-**Source Code**: https://github.com/lucide-icons/lucide
+**Website**: <https://lucide.dev/>
+**Source Code**: <https://github.com/lucide-icons/lucide>
 
 Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright for Lucide are held by Lucide Contributors 2022.
 
@@ -91,8 +91,8 @@ Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of
 ## TypeScript
 
 **License**: Apache License 2.0
-**Website**: https://www.typescriptlang.org/
-**Source Code**: https://github.com/microsoft/TypeScript
+**Website**: <https://www.typescriptlang.org/>
+**Source Code**: <https://github.com/microsoft/TypeScript>
 
 Copyright (c) Microsoft Corporation
 
@@ -101,7 +101,7 @@ Copyright (c) Microsoft Corporation
 ## Rust Language and Cargo Dependencies
 
 **License**: Apache License 2.0 or MIT License (dual licensed)
-**Website**: https://www.rust-lang.org/
+**Website**: <https://www.rust-lang.org/>
 
 Various Rust crates used in the Tauri backend are licensed under Apache 2.0 and/or MIT licenses. See `src-tauri/Cargo.lock` for a complete list of dependencies.
 
@@ -124,6 +124,7 @@ The following dependencies are used in this project and are licensed under MIT o
 - **vaul-vue** - MIT License
 
 For a complete list of dependencies and their licenses, see:
+
 - `package.json` for frontend dependencies
 - `src-tauri/Cargo.toml` for Rust dependencies
 
@@ -132,6 +133,7 @@ For a complete list of dependencies and their licenses, see:
 ## Fonts and Assets
 
 Any fonts or graphical assets included with Honeymelon are either:
+
 1. Created originally for this project
 2. Licensed under permissive licenses (OFL, Apache, MIT)
 3. System fonts provided by macOS
@@ -147,6 +149,7 @@ Any fonts or graphical assets included with Honeymelon are either:
 - **AAC**: May require Via Licensing or other patent licensing in some jurisdictions
 
 **Honeymelon's Approach**:
+
 - Primarily uses **Apple VideoToolbox** hardware encoders for H.264/HEVC on macOS
 - Hardware encoders are provided by Apple as part of macOS
 - Apple handles patent licensing for these system-provided codecs

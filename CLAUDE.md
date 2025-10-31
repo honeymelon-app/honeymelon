@@ -9,16 +9,19 @@ Honeymelon is a macOS Apple Silicon media converter built with Tauri + Vue 3. It
 ## Development Commands
 
 ### Frontend Development
+
 - `npm run dev` — Vite dev server for UI iteration only
 - `npm run tauri dev` — Full desktop app with live reload (preferred for development)
 - `npm run build` — Type-check with vue-tsc and build production assets
 - `npm run tauri build` — Compile macOS bundle for distribution
 
 ### Backend Development (Rust)
+
 - `cd src-tauri && cargo test` — Run Rust tests
 - `cd src-tauri && cargo build` — Build Rust backend only
 
 ### Package Management
+
 - Uses `npm` with `package-lock.json` for dependency tracking
 - Install dependencies: `npm install`
 
@@ -50,6 +53,7 @@ The application follows a three-stage conversion pipeline implemented across fro
 ### Preset System ([src/lib/presets.ts](src/lib/presets.ts))
 
 Presets define target container + codec combinations with quality tiers:
+
 - Each preset specifies `container`, `video.codec`, `audio.codec`
 - Three tiers per preset: `fast` (remux-first), `balanced` (moderate bitrate), `high` (quality-focused)
 - Tier defaults stored in `video.tiers` and `audio.tiers` (bitrate, CRF, profile)
@@ -71,6 +75,7 @@ Presets define target container + codec combinations with quality tiers:
 ### Tauri Commands ([src-tauri/src/lib.rs](src-tauri/src/lib.rs))
 
 Exposed commands:
+
 - `load_capabilities` — Returns encoder/format availability
 - `probe_media` — Runs ffprobe on input file
 - `start_job` — Spawns FFmpeg process with args and output path
@@ -81,6 +86,7 @@ Exposed commands:
 ## File Organization
 
 ### Frontend (`src/`)
+
 - `app.vue` — Root component with dropzone and preset picker
 - `lib/` — Core conversion logic (all kebab-case):
   - `ffmpeg-plan.ts` — Planning engine (main business logic)
@@ -97,6 +103,7 @@ Exposed commands:
 - `components/ui/` — shadcn-vue UI components (auto-generated, edit carefully)
 
 ### Backend (`src-tauri/src/`)
+
 - `lib.rs` — Tauri command handler registration
 - `ffmpeg_probe.rs` — ffprobe command execution and JSON parsing
 - `ffmpeg_runner.rs` — FFmpeg process spawning, progress parsing, event emission
@@ -107,28 +114,33 @@ Exposed commands:
 ## Development Patterns
 
 ### TypeScript Style
+
 - Use `<script setup>` with Composition API
 - 2-space indentation
 - Import order: external packages → `@/` local modules
 - Component names: PascalCase; lib modules: kebab-case
 
 ### Rust Style
+
 - snake_case for modules and functions
 - Add `#[cfg(test)]` blocks for Rust logic tests
 - Document Tauri commands with `///` when behavior non-obvious
 
 ### Tailwind Classes
+
 - Group by: layout → spacing → color
 - Use `tw-animate-css` for animations
 - Prefer `class-variance-authority` for component variants
 
 ### Adding New Presets
+
 1. Define preset object in [src/lib/presets.ts](src/lib/presets.ts) with container, codecs, tiers
 2. Add container rules to [src/lib/container-rules.ts](src/lib/container-rules.ts) if new container
 3. Update encoder mappings in [src/lib/ffmpeg-plan.ts](src/lib/ffmpeg-plan.ts) (`VIDEO_ENCODERS`, `AUDIO_ENCODERS`)
 4. Test with various inputs to validate copy vs. transcode logic
 
 ### Testing Strategy
+
 - Automated JS tests not yet configured (add Vitest specs to `src/lib/__tests__/` when ready)
 - Smoke-test with `npm run tauri dev` and real media files
 - Rust tests: `cd src-tauri && cargo test`
@@ -137,23 +149,27 @@ Exposed commands:
 ## FFmpeg Integration Notes
 
 ### Bundled vs. System FFmpeg
+
 - Bundled: Place binaries in `src-tauri/resources/bin/{ffmpeg,ffprobe}`
 - System: Configure path in app Settings
 - LGPL compliance: Honeymelon runs FFmpeg out-of-process (no static linking)
 - Recommended codecs: VideoToolbox (H.264/HEVC), libvpx-vp9, libaom-av1, libopus
 
 ### Subtitle Handling
+
 - Text subs (SRT/ASS): MP4 converts to `mov_text`, MKV keeps original
 - Image subs (PGS): Burn-in planned (not yet implemented in execution layer)
 - Preset subtitle mode: `keep` | `convert` | `burn` | `drop`
 
 ### Color Metadata
+
 - When transcoding, planner copies color primaries, TRC, and colorspace from source
 - Controlled by `preset.video.copyColorMetadata` flag
 
 ## Common Tasks
 
 ### Adding a New Tauri Command
+
 1. Add async function in appropriate `src-tauri/src/*.rs` module
 2. Export from module with `pub` if needed
 3. Add `#[tauri::command]` attribute
@@ -161,11 +177,13 @@ Exposed commands:
 5. Call from frontend via `import { invoke } from '@tauri-apps/api/core'`
 
 ### Debugging FFmpeg Arguments
+
 - Enable logs in job card UI (shows full FFmpeg stderr)
 - Check `decision.ffmpegArgs` in planner output
 - Use `simulate: true` in orchestrator to test without FFmpeg
 
 ### Modifying Job State Machine
+
 - All state transitions in [src/stores/jobs.ts](src/stores/jobs.ts)
 - State type defined in [src/lib/types.ts](src/lib/types.ts) as discriminated union
 - Use helper functions: `isActiveState()`, `isTerminalState()`

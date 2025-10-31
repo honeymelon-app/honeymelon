@@ -106,6 +106,7 @@ Honeymelon accepts a wide variety of input formats through FFmpeg's comprehensiv
 #### Video Presets
 
 **MP4 | H.264 + AAC**
+
 - Codec: H.264 (via VideoToolbox hardware acceleration)
 - Audio: AAC
 - Compatibility: Universal compatibility across devices and platforms
@@ -113,6 +114,7 @@ Honeymelon accepts a wide variety of input formats through FFmpeg's comprehensiv
 - Quality Tiers: Fast (remux-first), Balanced (~5-7 Mbps @ 1080p), High (higher bitrate)
 
 **MP4 | HEVC + AAC**
+
 - Codec: HEVC/H.265 (via VideoToolbox hardware acceleration)
 - Audio: AAC
 - Compatibility: Modern devices (iOS 11+, macOS 10.13+)
@@ -120,6 +122,7 @@ Honeymelon accepts a wide variety of input formats through FFmpeg's comprehensiv
 - Quality Tiers: Fast (remux-first), Balanced (~3-5 Mbps @ 1080p), High (higher bitrate)
 
 **WebM | VP9 + Opus**
+
 - Codec: VP9 (requires libvpx in FFmpeg build)
 - Audio: Opus (requires libopus in FFmpeg build)
 - Compatibility: Modern web browsers, YouTube
@@ -127,6 +130,7 @@ Honeymelon accepts a wide variety of input formats through FFmpeg's comprehensiv
 - Quality Tiers: Fast (remux-first), Balanced (optimized), High (quality-focused)
 
 **WebM | AV1 + Opus**
+
 - Codec: AV1 (requires libaom in FFmpeg build)
 - Audio: Opus (requires libopus in FFmpeg build)
 - Compatibility: Latest browsers, experimental support
@@ -135,6 +139,7 @@ Honeymelon accepts a wide variety of input formats through FFmpeg's comprehensiv
 - Note: AV1 encoding is computationally intensive
 
 **MOV | ProRes 422 HQ + PCM**
+
 - Codec: ProRes 422 HQ (via prores_ks encoder)
 - Audio: PCM (uncompressed)
 - Compatibility: Professional video editing applications
@@ -142,12 +147,14 @@ Honeymelon accepts a wide variety of input formats through FFmpeg's comprehensiv
 - Quality: Lossless/near-lossless quality
 
 **MKV | Passthrough**
+
 - Codec: Stream copy (remux only)
 - Audio: Stream copy (remux only)
 - Compatibility: Universal container for diverse codec combinations
 - Use Case: Container conversion without re-encoding
 
 **GIF**
+
 - Format: Animated GIF
 - Use Case: Short clips, animations
 - Note: Limited to short durations and small resolutions due to file size considerations
@@ -170,6 +177,7 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 **Purpose**: Extract comprehensive metadata from input media files
 
 **Process**:
+
 1. Execute `ffprobe` via Tauri command interface
 2. Parse JSON output for codec information, duration, resolution, color metadata, subtitle tracks
 3. Generate `ProbeSummary` object for planning stage
@@ -177,6 +185,7 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 **Implementation**: `src/lib/ffmpeg-probe.ts`, `src-tauri/src/ffmpeg_probe.rs`
 
 **Output**: Complete media metadata including:
+
 - Video codec, resolution, frame rate, color space information
 - Audio codec, sample rate, channel configuration
 - Subtitle tracks with type classification (text/image)
@@ -187,6 +196,7 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 **Purpose**: Determine optimal conversion strategy based on source characteristics and target preset
 
 **Process**:
+
 1. Evaluate source codecs against target preset requirements
 2. Check container compatibility using constraint rules
 3. Query encoder capability detection for available encoders
@@ -194,6 +204,7 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 5. Set remux flag if lossless stream copy is possible
 
 **Decision Matrix**:
+
 - **Full Remux**: Source codec and container both match target (no re-encoding)
 - **Container Remux**: Source codec matches target, only container differs (stream copy)
 - **Partial Transcode**: Video stream copied, audio re-encoded (or vice versa)
@@ -202,6 +213,7 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 **Implementation**: `src/lib/ffmpeg-plan.ts`, `src/lib/container-rules.ts`, `src/lib/presets.ts`
 
 **Output**: `PlannerDecision` object containing:
+
 - Complete FFmpeg argument array
 - Remux flag indicating stream copy usage
 - Warning messages for quality/compatibility considerations
@@ -212,6 +224,7 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 **Purpose**: Execute FFmpeg conversion with progress tracking and error handling
 
 **Process**:
+
 1. Spawn FFmpeg as separate child process via Rust backend
 2. Parse stderr output for progress information (time processed, FPS, encoding speed)
 3. Emit progress events to frontend via Tauri event system
@@ -219,12 +232,14 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 5. Emit completion event with success/failure status
 
 **Progress Tracking**:
+
 - Time-based progress when duration is known
 - Frame-based progress for duration-less sources
 - Real-time FPS and encoding speed metrics
 - ETA calculation based on processing velocity
 
 **Concurrency Management**:
+
 - Configurable concurrent job limit (1-4 jobs)
 - Exclusive lock system for resource-intensive codecs (AV1, ProRes)
 - Automatic queue management and job scheduling
@@ -232,6 +247,7 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 **Implementation**: `src-tauri/src/ffmpeg_runner.rs`, `src/composables/use-job-orchestrator.ts`
 
 **Events**:
+
 - `ffmpeg://progress`: Periodic progress updates during conversion
 - `ffmpeg://completion`: Final status (success, error, cancelled)
 
@@ -242,6 +258,7 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 ### Technology Stack
 
 **Frontend**
+
 - **Framework**: Vue 3 with Composition API and `<script setup>` syntax
 - **Language**: TypeScript (strict mode)
 - **State Management**: Pinia for job queue and user preferences
@@ -250,12 +267,14 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 - **Build Tool**: Vite 6.x
 
 **Backend**
+
 - **Framework**: Tauri 2.x for native desktop integration
 - **Language**: Rust with async/await runtime
 - **Process Management**: Tokio async runtime for FFmpeg process handling
 - **IPC**: Tauri command system for frontend-backend communication
 
 **External Dependencies**
+
 - **Media Processing**: FFmpeg/FFprobe (out-of-process execution)
 - **Hardware Acceleration**: Apple VideoToolbox (system-provided)
 
@@ -318,23 +337,27 @@ honeymelon/
 ### Architectural Principles
 
 **Process Separation**
+
 - FFmpeg runs as completely separate process (no library linking)
 - Ensures LGPL compliance without contaminating application license
 - Enables easy FFmpeg binary replacement and updates
 - Provides process-level isolation for stability
 
 **Reactive State Management**
+
 - Pinia stores manage job queue with discriminated union types
 - Job state transitions: `queued → probing → planning → running → completed/failed/cancelled`
 - Real-time UI updates via Vue reactivity system
 - Persistent preferences across application restarts
 
 **Event-Driven Progress**
+
 - Tauri event system for asynchronous FFmpeg output streaming
 - Non-blocking progress updates maintain UI responsiveness
 - Backpressure handling for high-frequency progress events
 
 **Capability Detection**
+
 - Runtime detection of available FFmpeg encoders and formats
 - Automatic preset disabling when required encoders unavailable
 - Graceful degradation for incomplete FFmpeg builds
@@ -351,6 +374,7 @@ honeymelon/
 4. Launch Honeymelon from Applications or Spotlight
 
 **First Launch**: macOS may display a security warning for unsigned applications. To allow:
+
 - Control-click the app icon
 - Select "Open" from the context menu
 - Click "Open" in the confirmation dialog
@@ -366,57 +390,70 @@ See [Building from Source](#building-from-source) section below.
 ### Prerequisites
 
 **Required Tools**:
+
 - **Xcode Command Line Tools**: `xcode-select --install`
 - **Rust**: Install via rustup: `curl https://sh.rustup.rs -sSf | sh`
 - **Node.js**: Version 18 or later
 - **npm**: Included with Node.js (alternatively use pnpm or yarn)
 
 **Optional**:
+
 - **FFmpeg**: System installation or place binaries in `src-tauri/resources/bin/`
 
 ### Build Steps
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/honeymelon.git
    cd honeymelon
    ```
 
 2. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
 3. **Run in development mode**:
+
    ```bash
    npm run tauri:dev
    ```
+
    This launches the app with hot-reload enabled for rapid development.
 
 4. **Build for production**:
+
    ```bash
    npm run tauri:build
    ```
+
    Output location: `src-tauri/target/release/bundle/dmg/Honeymelon_*.dmg`
 
 ### Advanced Build Configuration
 
 **Target Architectures**:
+
 - **Apple Silicon only** (default): `npm run tauri:build`
 - **Universal binary**: `npm run tauri:build:universal`
 
 **FFmpeg Configuration**:
+
 - **Bundled**: Place `ffmpeg` and `ffprobe` binaries in `src-tauri/resources/bin/`
 - **System**: Configure path in application Preferences after building
 
 **Code Signing** (for distribution):
+
 1. Obtain Apple Developer ID Application certificate
 2. Set environment variables:
+
    ```bash
    export APPLE_ID="your@apple.id"
    export APPLE_PASSWORD="app-specific-password"
    export APPLE_TEAM_ID="YOUR_TEAM_ID"
    ```
+
 3. Run build command: `npm run tauri:build`
 
 See [BUILD.md](BUILD.md) for comprehensive build documentation.
@@ -430,19 +467,23 @@ See [BUILD.md](BUILD.md) for comprehensive build documentation.
 Access via menu: **Honeymelon → Preferences...** or keyboard shortcut: `Cmd+,`
 
 **Concurrent Conversions**
+
 - Range: 1-4 simultaneous jobs
 - Default: 2 jobs
 - Recommendation: Match to available CPU cores and memory
 
 **Output Directory**
+
 - Default: Same directory as source file
 - Configurable: Choose custom output location
 
 **FFmpeg Binary Path**
+
 - Default: Bundled binary (if available) or system FFmpeg
 - Custom: Specify alternative FFmpeg installation
 
 **Filename Options**
+
 - Include format in output filename (e.g., `video_h264.mp4`)
 - Include quality tier in output filename (e.g., `video_balanced.mp4`)
 
@@ -474,10 +515,12 @@ Presets are defined in `src/lib/presets.ts` with the following structure:
 ### Environment Variables
 
 **Development**:
+
 - `VITE_DEV_SERVER_URL`: Override Vite dev server URL
 - `RUST_LOG`: Enable Rust logging (e.g., `RUST_LOG=debug`)
 
 **Build**:
+
 - `APPLE_ID`: Apple Developer account email (for notarization)
 - `APPLE_PASSWORD`: App-specific password
 - `APPLE_TEAM_ID`: Apple Developer Team ID
@@ -524,6 +567,7 @@ Presets are defined in `src/lib/presets.ts` with the following structure:
 ### Menu Bar
 
 **Honeymelon Menu**:
+
 - About Honeymelon
 - Preferences...
 - Quit Honeymelon
@@ -551,24 +595,28 @@ cd src-tauri && cargo test
 ### Development Guidelines
 
 **TypeScript Standards**:
+
 - Strict mode enabled
 - Explicit return types for functions
 - Avoid `any` type; use `unknown` with type guards
 - Use discriminated unions for state management
 
 **Vue Standards**:
+
 - Use `<script setup>` syntax
 - Composition API over Options API
 - Extract reusable logic into composables
 - Keep components focused and under 300 lines
 
 **Rust Standards**:
+
 - Follow Rust idioms and conventions
 - Use `Result` for error handling
 - Document public APIs with doc comments
 - Keep Tauri commands minimal and focused
 
 **Code Style**:
+
 - 2-space indentation for TypeScript/Vue
 - 4-space indentation for Rust
 - Line length: 100 characters (soft limit)
@@ -578,16 +626,19 @@ cd src-tauri && cargo test
 ### Testing
 
 **Frontend Testing**:
+
 - Unit tests for utility functions and business logic
 - Component tests for Vue components (planned)
 - Test framework: Vitest (to be configured)
 
 **Backend Testing**:
+
 - Rust unit tests in module files
 - Integration tests in `src-tauri/tests/` directory
 - Run tests: `cd src-tauri && cargo test`
 
 **Manual Testing Checklist**:
+
 - Drag and drop functionality
 - Multiple file formats
 - Concurrent job processing
@@ -610,6 +661,7 @@ For comprehensive commercial use guidance, see [COMMERCIAL_LICENSE.md](COMMERCIA
 **License**: LGPL v2.1 or later
 
 **Compliance Method**: Process Separation
+
 - Honeymelon executes FFmpeg as a completely separate process
 - No static linking to FFmpeg libraries
 - No dynamic linking to FFmpeg libraries
@@ -617,6 +669,7 @@ For comprehensive commercial use guidance, see [COMMERCIAL_LICENSE.md](COMMERCIA
 - This approach satisfies LGPL requirements without affecting Honeymelon's MIT license
 
 **Implications**:
+
 - Honeymelon source code can remain proprietary
 - No obligation to provide Honeymelon source code to users
 - Must include FFmpeg license file with distribution
@@ -630,17 +683,20 @@ See [LICENSES/FFMPEG-LGPL.txt](LICENSES/FFMPEG-LGPL.txt) for complete license te
 Certain audio and video codecs may be subject to patent claims in various jurisdictions:
 
 **H.264/H.265 (HEVC)**:
+
 - Patent pools managed by MPEG LA and HEVC Advance
 - Honeymelon uses Apple VideoToolbox hardware encoders
 - Apple handles patent licensing for system-provided codecs
 - Included with macOS at no additional cost to users
 
 **AAC**:
+
 - Patent pool managed by Via Licensing
 - Provided by system codecs when using hardware acceleration
 - Covered by Apple's licensing arrangements
 
 **VP9/AV1/Opus**:
+
 - Royalty-free codecs without patent licensing requirements
 - Available through open-source encoder libraries
 
@@ -651,10 +707,12 @@ Certain audio and video codecs may be subject to patent claims in various jurisd
 All third-party dependencies are documented with proper attribution:
 
 **License Documentation**:
+
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): Complete list of dependencies and licenses
 - [LICENSES/](LICENSES/): Individual license files for major dependencies
 
 **Key Dependencies**:
+
 - **Tauri**: MIT/Apache-2.0 dual license
 - **Vue.js**: MIT license
 - **Rust ecosystem**: Primarily MIT/Apache-2.0 dual licensed crates
@@ -681,35 +739,42 @@ For technical implementation details, see [LICENSE_COMPLIANCE.md](LICENSE_COMPLI
 ### Common Issues
 
 **Preset Unavailable / Greyed Out**
+
 - **Cause**: FFmpeg lacks required encoder (e.g., libvpx for VP9, libaom for AV1)
 - **Solution**: Use bundled FFmpeg with required encoders, or install system FFmpeg with necessary libraries
 - **Verification**: Check FFmpeg encoders: `ffmpeg -encoders | grep <encoder_name>`
 
 **Conversion Progress Stuck at 0%**
+
 - **Cause**: Input file lacks duration metadata
 - **Solution**: Progress will fall back to frame-based estimation; conversion continues normally
 - **Note**: Some formats (live streams, damaged files) may not provide duration information
 
 **Subtitle Handling Issues**
+
 - **PGS Subtitles in MP4**: MP4 container doesn't support image-based subtitles (PGS/VOBSUB)
   - Solution: Use burn-in option (rasterizes subtitles onto video) or output to MKV
 - **Text Subtitle Conversion**: MP4 converts SRT/ASS to mov_text; MKV preserves original format
 
 **Choppy HEVC Playback**
+
 - **Cause**: High bitrate or profile incompatibility with playback device
 - **Solution**: Use H.264 preset, or reduce quality tier from High to Balanced
 - **Note**: Some older devices lack hardware HEVC decoding support
 
 **Large GIF Files**
+
 - **Cause**: GIF format is inefficient for long or high-resolution animations
 - **Solution**: Keep clips under 10 seconds and resolution under 720p
 - **Alternative**: Use WebM format for better compression with animation support
 
 **FFmpeg Not Found**
+
 - **Cause**: No bundled FFmpeg and system FFmpeg not in PATH
 - **Solution**: Install FFmpeg via Homebrew (`brew install ffmpeg`) or specify custom path in Preferences
 
 **Conversion Fails with Codec Error**
+
 - **Cause**: Input file uses unsupported or proprietary codec
 - **Solution**: Check FFmpeg codec support: `ffmpeg -decoders`
 - **Workaround**: Convert file with another tool to supported format first
@@ -717,12 +782,14 @@ For technical implementation details, see [LICENSE_COMPLIANCE.md](LICENSE_COMPLI
 ### Performance Optimization
 
 **Maximize Conversion Speed**:
+
 - Use remux-first presets (Fast tier) when possible
 - Increase concurrent job limit if system has available resources
 - Ensure sufficient free disk space for temporary files
 - Close resource-intensive applications during conversion
 
 **Reduce Memory Usage**:
+
 - Decrease concurrent job limit to 1-2
 - Process files sequentially rather than in batch
 - Restart application if memory usage becomes excessive
@@ -730,18 +797,21 @@ For technical implementation details, see [LICENSE_COMPLIANCE.md](LICENSE_COMPLI
 ### Getting Help
 
 **Before Reporting Issues**:
+
 1. Check this Troubleshooting section
 2. Review [GitHub Discussions](../../discussions) for similar questions
 3. Verify FFmpeg installation and encoder availability
 4. Check Console.app for error messages (filter by "Honeymelon")
 
 **Bug Reports**:
+
 - Use [Bug Report template](.github/ISSUE_TEMPLATE/bug_report.md)
 - Include macOS version, chip type, Honeymelon version
 - Provide sample file details (format, codec, size) if applicable
 - Attach relevant log output from Console.app
 
 **Feature Requests**:
+
 - Use [Feature Request template](.github/ISSUE_TEMPLATE/feature_request.md)
 - Describe use case and expected behavior
 - Include examples or mockups if helpful
@@ -761,18 +831,21 @@ Contributions are welcome and appreciated. Please read [CONTRIBUTING.md](CONTRIB
 ### Development Priorities
 
 **High Priority**:
+
 - Bug fixes for reported issues
 - Performance optimizations
 - FFmpeg integration improvements
 - Documentation enhancements
 
 **Medium Priority**:
+
 - Additional preset configurations
 - UI/UX refinements
 - Automated testing infrastructure
 - Accessibility improvements
 
 **Future Enhancements**:
+
 - Batch folder processing
 - Video trimming and cropping
 - Multi-track audio selection
@@ -826,4 +899,4 @@ All third-party software licenses and attributions are documented in [THIRD_PART
 
 **Maintained By**: Honeymelon Contributors
 
-**Repository**: https://github.com/YOUR_USERNAME/honeymelon
+**Repository**: <https://github.com/YOUR_USERNAME/honeymelon>
