@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import JobQueueItem from '@/components/JobQueueItem.vue';
 import AboutDialog from '@/components/AboutDialog.vue';
 import PreferencesDialog from '@/components/PreferencesDialog.vue';
@@ -15,11 +16,6 @@ import type { CapabilitySnapshot } from '@/lib/types';
 import { Upload, XCircle } from 'lucide-vue-next';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
-// Simple routing for About and Preferences windows
-const currentRoute = ref(
-  typeof window !== 'undefined' ? window.location.hash.slice(1) || '/' : '/',
-);
-
 const capabilities = ref<CapabilitySnapshot>();
 const defaultPresetId = ref(DEFAULT_PRESET_ID);
 const isDragOver = ref(false);
@@ -30,11 +26,16 @@ const presetsReady = computed(() => presetOptions.value.length > 0);
 const unlistenDrop = ref<UnlistenFn | null>(null);
 const unlistenEnter = ref<UnlistenFn | null>(null);
 const unlistenLeave = ref<UnlistenFn | null>(null);
+const unlistenMenuAbout = ref<UnlistenFn | null>(null);
+const unlistenMenuPreferences = ref<UnlistenFn | null>(null);
 
 const jobsStore = useJobsStore();
 const { jobs } = storeToRefs(jobsStore);
 
-const orchestrator = useJobOrchestrator();
+const orchestrator = useJobOrchestrator({ autoStartNext: false });
+
+const isAboutOpen = ref(false);
+const isPreferencesOpen = ref(false);
 
 const presetOptions = computed(() => availablePresets(capabilities.value));
 
@@ -123,9 +124,6 @@ async function addFiles(fileList: FileList) {
 
     const jobIds = jobsStore.enqueueMany(paths, presetId);
     console.log('[app] Enqueued job IDs:', jobIds);
-    orchestrator
-      .startNextAvailable()
-      .catch((err) => console.error('[app] startNextAvailable', err));
   } catch (error) {
     console.error('[app] Failed to add files:', error);
   }
@@ -155,9 +153,6 @@ async function addFilesFromPaths(paths: string[]) {
 
     const jobIds = jobsStore.enqueueMany(expanded, presetId);
     console.log('[app] Enqueued job IDs:', jobIds);
-    orchestrator
-      .startNextAvailable()
-      .catch((err) => console.error('[app] startNextAvailable', err));
   } catch (error) {
     console.error('[app] Failed to add files from paths:', error);
   }
@@ -169,6 +164,12 @@ function cancelAll() {
       console.error('[app] Failed to cancel job:', job.id, error);
     });
   });
+  // Remove any queued jobs since they haven't started yet.
+  jobs.value
+    .filter((job) => job.state.status === 'queued')
+    .forEach((job) => {
+      jobsStore.removeJob(job.id);
+    });
 }
 
 function clearCompleted() {
@@ -176,6 +177,16 @@ function clearCompleted() {
 }
 
 function handleCancelJob(jobId: string) {
+  const job = jobsStore.getJob(jobId);
+  if (!job) {
+    return;
+  }
+
+  if (job.state.status === 'queued') {
+    jobsStore.removeJob(jobId);
+    return;
+  }
+
   orchestrator.cancel(jobId).catch((error) => {
     console.error('[app] Failed to cancel job:', jobId, error);
   });
@@ -193,12 +204,39 @@ function handleUpdatePreset(jobId: string, presetId: string) {
   }
 }
 
+function handleStartJob(jobId: string) {
+  const job = jobsStore.getJob(jobId);
+  if (!job) {
+    return;
+  }
+  const usablePreset = ensureUsablePresetId(job.presetId);
+  if (!usablePreset) {
+    console.warn('[app] Cannot start job; preset not ready.');
+    return;
+  }
+  orchestrator
+    .startJob({
+      jobId,
+      path: job.path,
+      presetId: usablePreset,
+      tier: job.tier,
+    })
+    .catch((error) => {
+      console.error('[app] Failed to start job:', jobId, error);
+    });
+  console.debug('[app] startJob dispatched', { jobId, presetId: usablePreset });
+}
+
+function openAbout() {
+  isAboutOpen.value = true;
+}
+
+function openPreferences() {
+  isPreferencesOpen.value = true;
+}
+
 onMounted(async () => {
   capabilities.value = await loadCapabilities();
-
-  window.addEventListener('hashchange', () => {
-    currentRoute.value = window.location.hash.slice(1) || '/';
-  });
 
   // Prevent accidental window close when jobs are running
   if (isTauriRuntime()) {
@@ -222,6 +260,14 @@ onMounted(async () => {
       browseForFiles().catch((error) => {
         console.error('[app] Failed to open file picker from menu:', error);
       });
+    });
+
+    unlistenMenuAbout.value = await listen('menu:about', () => {
+      openAbout();
+    });
+
+    unlistenMenuPreferences.value = await listen('menu:preferences', () => {
+      openPreferences();
     });
   }
 
@@ -253,16 +299,12 @@ onUnmounted(() => {
   unlistenDrop.value?.();
   unlistenEnter.value?.();
   unlistenLeave.value?.();
+  unlistenMenuAbout.value?.();
+  unlistenMenuPreferences.value?.();
 });
 </script>
 
 <template>
-  <!-- About Dialog -->
-  <AboutDialog v-if="currentRoute === '/about'" />
-
-  <!-- Preferences Dialog -->
-  <PreferencesDialog v-else-if="currentRoute === '/preferences'" />
-
   <p v-if="!presetsReady" class="text-xs text-muted-foreground">Initializing presets…</p>
 
   <!-- Main App -->
@@ -282,12 +324,12 @@ onUnmounted(() => {
     />
 
     <!-- Main Content with ScrollArea -->
-    <div class="flex-1 w-full overflow-hidden">
-      <main class="flex flex-col gap-6 p-6 pt-10">
+    <div class="flex-1 w-full min-h-0">
+      <main class="flex h-full min-h-0 flex-col gap-6 p-6 pt-10">
         <!-- Drop Zone (only show when no active jobs) -->
         <div
           v-if="!hasActiveJobs"
-          class="relative flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all"
+          class="relative flex min-h-[280px] flex-none flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all"
           :class="[
             isDragOver ? 'border-primary bg-primary/5 shadow-lg' : 'border-border bg-muted/20',
           ]"
@@ -319,7 +361,7 @@ onUnmounted(() => {
         <!-- Compact Drop Zone (when jobs exist) -->
         <div
           v-else
-          class="relative flex items-center justify-center rounded-lg border-2 border-dashed py-4 transition-all"
+          class="relative flex flex-none items-center justify-center rounded-lg border-2 border-dashed py-4 transition-all"
           :class="[isDragOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/10']"
         >
           <div class="flex items-center gap-3">
@@ -340,7 +382,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Active Queue -->
-        <section v-if="hasActiveJobs" class="space-y-4">
+        <section v-if="hasActiveJobs" class="flex flex-1 min-h-0 flex-col space-y-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <h2 class="text-lg font-semibold">Converting</h2>
@@ -349,26 +391,29 @@ onUnmounted(() => {
               </Badge>
             </div>
           </div>
-          <div class="">
-            <ScrollArea class="w-full space-y-3 h-[500px] overflow-y-auto">
-              <JobQueueItem
-                v-for="job in activeJobs"
-                :key="job.id"
-                :job-id="job.id"
-                :path="job.path"
-                :state="job.state"
-                :preset-id="job.presetId"
-                :available-presets="presetOptions"
-                :duration="job.summary?.durationSec"
-                @cancel="handleCancelJob"
-                @update-preset="handleUpdatePreset"
-              />
+          <div class="flex min-h-0 flex-1">
+            <ScrollArea class="flex-1 min-h-0 [&_[data-slot=scroll-area-viewport]]:pb-6">
+              <div class="flex flex-col gap-3 pr-3">
+                <JobQueueItem
+                  v-for="job in activeJobs"
+                  :key="job.id"
+                  :job-id="job.id"
+                  :path="job.path"
+                  :state="job.state"
+                  :preset-id="job.presetId"
+                  :available-presets="presetOptions"
+                  :duration="job.summary?.durationSec"
+                  @cancel="handleCancelJob"
+                  @update-preset="handleUpdatePreset"
+                  @start="handleStartJob"
+                />
+              </div>
             </ScrollArea>
           </div>
         </section>
 
         <!-- Completed Jobs -->
-        <section v-if="hasCompletedJobs" class="space-y-4">
+        <section v-if="hasCompletedJobs" class="flex flex-1 min-h-0 flex-col space-y-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <h2 class="text-lg font-semibold">Completed</h2>
@@ -378,21 +423,23 @@ onUnmounted(() => {
             </div>
             <Button variant="ghost" size="sm" @click="clearCompleted"> Clear All </Button>
           </div>
-          <div class="">
-            <ScrollArea class="w-full space-y-3 h-[500px] overflow-y-auto">
-              <JobQueueItem
-                v-for="job in completedJobs"
-                class="mb-4"
-                :key="job.id"
-                :job-id="job.id"
-                :path="job.path"
-                :state="job.state"
-                :preset-id="job.presetId"
-                :available-presets="presetOptions"
-                :duration="job.summary?.durationSec"
-                @cancel="handleCancelJob"
-                @update-preset="handleUpdatePreset"
-              />
+          <div class="flex min-h-0 flex-1">
+            <ScrollArea class="flex-1 min-h-0 [&_[data-slot=scroll-area-viewport]]:pb-6">
+              <div class="flex flex-col gap-3 pr-3">
+                <JobQueueItem
+                  v-for="job in completedJobs"
+                  :key="job.id"
+                  :job-id="job.id"
+                  :path="job.path"
+                  :state="job.state"
+                  :preset-id="job.presetId"
+                  :available-presets="presetOptions"
+                  :duration="job.summary?.durationSec"
+                  @cancel="handleCancelJob"
+                  @update-preset="handleUpdatePreset"
+                  @start="handleStartJob"
+                />
+              </div>
             </ScrollArea>
           </div>
         </section>
@@ -428,4 +475,18 @@ onUnmounted(() => {
       </div>
     </footer>
   </div>
+
+  <Dialog :open="isAboutOpen" @update:open="(value) => (isAboutOpen = value)" modal>
+    <DialogContent class="sm:max-w-md">
+      <AboutDialog />
+    </DialogContent>
+  </Dialog>
+
+  <Dialog :open="isPreferencesOpen" @update:open="(value) => (isPreferencesOpen = value)" modal>
+    <DialogContent class="sm:max-w-2xl pt-12">
+      <ScrollArea class="max-h-[70vh] overflow-y-auto pr-2">
+        <PreferencesDialog />
+      </ScrollArea>
+    </DialogContent>
+  </Dialog>
 </template>

@@ -42,13 +42,7 @@
       "csp": null,
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": true,
-      "capabilities": [
-        {
-          "identifier": "draggable-window",
-          "windows": ["main"],
-          "permissions": ["core:window:allow-start-dragging"]
-        }
-      ],
+      "capabilities": ["default"],
       "assetProtocol": {
         "enable": true,
         "scope": ["$APPDATA/**", "$RESOURCE/**"]

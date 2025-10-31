@@ -1,5 +1,11 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, ffi::OsString, fs, path::PathBuf, process::Command};
+use std::{
+    collections::BTreeSet,
+    ffi::OsString,
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 use tauri::{AppHandle, Manager};
 
 use crate::error::AppError;
@@ -97,15 +103,39 @@ fn run_ffmpeg(app: &AppHandle, args: &[&str]) -> Result<String, AppError> {
 pub fn candidate_ffmpeg_paths(app: &AppHandle) -> Vec<OsString> {
     let mut candidates: Vec<OsString> = Vec::new();
 
+    fn push_if_valid(list: &mut Vec<OsString>, path: PathBuf) {
+        if is_valid_binary(&path) {
+            list.push(path.into_os_string());
+        }
+    }
+
+    if let Ok(override_path) = std::env::var("HONEYMELON_FFMPEG_PATH") {
+        push_if_valid(&mut candidates, PathBuf::from(override_path));
+    }
+
+    // When running with `tauri dev`, bundled resources are still located in the
+    // workspace under `src-tauri/resources/bin`.
+    let dev_bundled_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/bin/ffmpeg");
+    push_if_valid(&mut candidates, dev_bundled_path);
+
     if let Ok(resource_dir) = app.path().resource_dir() {
         let bundled = resource_dir.join("bin/ffmpeg");
-        if bundled.exists() && bundled.is_file() {
-            candidates.push(bundled.into_os_string());
-        }
+        push_if_valid(&mut candidates, bundled);
     }
 
     candidates.push(OsString::from("ffmpeg"));
     candidates
+}
+
+pub(crate) fn is_valid_binary(path: &Path) -> bool {
+    if !path.exists() || !path.is_file() {
+        return false;
+    }
+
+    match path.metadata() {
+        Ok(meta) => meta.len() > 0,
+        Err(_) => false,
+    }
 }
 
 fn parse_encoders(output: &str) -> (Vec<String>, Vec<String>) {

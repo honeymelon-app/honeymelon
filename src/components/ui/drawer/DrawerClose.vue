@@ -1,12 +1,14 @@
 <script lang="ts" setup>
-import type { DrawerCloseProps } from 'vaul-vue';
+import { useAttrs } from 'vue';
 import { DrawerClose } from 'vaul-vue';
 
-const props = defineProps<DrawerCloseProps>();
+defineOptions({ inheritAttrs: false });
+
+const attrs = useAttrs();
 </script>
 
 <template>
-  <DrawerClose data-slot="drawer-close" v-bind="props">
+  <DrawerClose data-slot="drawer-close" v-bind="attrs">
     <slot />
   </DrawerClose>
 </template>

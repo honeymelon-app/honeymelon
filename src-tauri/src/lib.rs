@@ -61,50 +61,6 @@ async fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError>
 }
 
 #[tauri::command]
-async fn show_about(app: tauri::AppHandle) -> Result<(), AppError> {
-    if let Some(window) = app.get_webview_window("about") {
-        let _ = window.set_focus();
-        return Ok(());
-    }
-
-    tauri::WebviewWindowBuilder::new(
-        &app,
-        "about",
-        tauri::WebviewUrl::App("index.html#/about".into()),
-    )
-    .title("About Honeymelon")
-    .inner_size(450.0, 550.0)
-    .resizable(false)
-    .center()
-    .build()
-    .map_err(|e| AppError::new("window_creation", e.to_string()))?;
-
-    Ok(())
-}
-
-#[tauri::command]
-async fn show_preferences(app: tauri::AppHandle) -> Result<(), AppError> {
-    if let Some(window) = app.get_webview_window("preferences") {
-        let _ = window.set_focus();
-        return Ok(());
-    }
-
-    tauri::WebviewWindowBuilder::new(
-        &app,
-        "preferences",
-        tauri::WebviewUrl::App("index.html#/preferences".into()),
-    )
-    .title("Preferences")
-    .inner_size(700.0, 600.0)
-    .resizable(false)
-    .center()
-    .build()
-    .map_err(|e| AppError::new("window_creation", e.to_string()))?;
-
-    Ok(())
-}
-
-#[tauri::command]
 async fn pick_media_files() -> Result<Vec<String>, AppError> {
     let selection = tauri::async_runtime::spawn_blocking(|| {
         rfd::FileDialog::new()
@@ -127,6 +83,25 @@ async fn pick_media_files() -> Result<Vec<String>, AppError> {
     Ok(files)
 }
 
+#[tauri::command]
+async fn choose_output_directory(default_path: Option<String>) -> Result<Option<String>, AppError> {
+    let selection = tauri::async_runtime::spawn_blocking(move || {
+        let mut dialog = rfd::FileDialog::new().set_title("Select output folder");
+        if let Some(path) = &default_path {
+            dialog = dialog.set_directory(path);
+        }
+        dialog.pick_folder()
+    })
+    .await
+    .map_err(|err| AppError::new("dialog_thread_join", err.to_string()))?;
+
+    let Some(path) = selection else {
+        return Ok(None);
+    };
+
+    Ok(path.to_str().map(|value| value.to_string()))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
@@ -141,8 +116,7 @@ pub fn run() {
             set_max_concurrency,
             expand_media_paths,
             pick_media_files,
-            show_about,
-            show_preferences
+            choose_output_directory
         ])
         .setup(|app| {
             // Build native macOS menu structure
@@ -260,16 +234,10 @@ pub fn run() {
             app.on_menu_event(move |app, event| {
                 match event.id.as_ref() {
                     "about" => {
-                        let app_clone = app.clone();
-                        tauri::async_runtime::spawn(async move {
-                            let _ = show_about(app_clone).await;
-                        });
+                        let _ = app.emit("menu:about", ());
                     },
                     "preferences" => {
-                        let app_clone = app.clone();
-                        tauri::async_runtime::spawn(async move {
-                            let _ = show_preferences(app_clone).await;
-                        });
+                        let _ = app.emit("menu:preferences", ());
                     },
                     "quit" => {
                         app.exit(0);

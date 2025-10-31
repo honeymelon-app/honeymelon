@@ -6,7 +6,7 @@ use std::{
     collections::{HashMap, VecDeque},
     ffi::OsString,
     fs,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, ErrorKind},
     path::{Path, PathBuf},
     process::{Child, Command, ExitStatus, Stdio},
     sync::{
@@ -177,6 +177,28 @@ impl FfmpegRunner {
                 AppError::new("job_output_invalid", "Output path contains invalid UTF-8")
             })?
             .to_string();
+
+        match fs::File::create(&temp_path) {
+            Ok(file) => {
+                drop(file);
+                let _ = fs::remove_file(&temp_path);
+            },
+            Err(err) if err.kind() == ErrorKind::PermissionDenied => {
+                return Err(AppError::new(
+                    "job_output_permission",
+                    format!(
+                        "Unable to write output file at {}: {err}. Select a different output directory in Preferences or grant Honeymelon Full Disk Access (System Settings → Privacy & Security → Full Disk Access).",
+                        output.display()
+                    ),
+                ));
+            },
+            Err(err) => {
+                return Err(AppError::new(
+                    "job_output_prepare",
+                    format!("Failed preparing output file {}: {err}", output.display()),
+                ));
+            },
+        }
 
         let mut command = Command::new(ffmpeg_path);
         command.args(&args);

@@ -114,7 +114,6 @@ export const useJobsStore = defineStore('jobs', () => {
     return jobs.value.find((job) => job.id === id);
   }
 
-  // eslint-disable-next-line no-unused-vars
   function updateJob(id: JobId, updater: (job: JobRecord) => JobRecord) {
     const index = jobs.value.findIndex((j) => j.id === id);
     if (index === -1) {
@@ -307,6 +306,10 @@ export const useJobsStore = defineStore('jobs', () => {
     }));
   }
 
+  function removeJob(id: JobId) {
+    jobs.value = jobs.value.filter((job) => job.id !== id);
+  }
+
   function updateJobPreset(id: JobId, presetId: string) {
     updateJob(id, (job) => ({
       ...job,
@@ -359,6 +362,7 @@ export const useJobsStore = defineStore('jobs', () => {
     markFailed,
     cancelJob,
     requeue,
+    removeJob,
     updateJobPreset,
     clearCompleted,
     startNext,

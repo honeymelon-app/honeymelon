@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{ffi::OsString, process::Command};
+use std::{ffi::OsString, path::PathBuf, process::Command};
 use tauri::{AppHandle, Manager};
 
-use crate::error::AppError;
+use crate::{error::AppError, ffmpeg_capabilities::is_valid_binary};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -126,11 +126,22 @@ fn run_ffprobe(app: &AppHandle, path: &str) -> Result<String, AppError> {
 fn candidate_ffprobe_paths(app: &AppHandle) -> Vec<OsString> {
     let mut candidates: Vec<OsString> = Vec::new();
 
+    fn push_if_valid(list: &mut Vec<OsString>, path: PathBuf) {
+        if is_valid_binary(&path) {
+            list.push(path.into_os_string());
+        }
+    }
+
+    if let Ok(override_path) = std::env::var("HONEYMELON_FFPROBE_PATH") {
+        push_if_valid(&mut candidates, PathBuf::from(override_path));
+    }
+
+    let dev_bundled_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/bin/ffprobe");
+    push_if_valid(&mut candidates, dev_bundled_path);
+
     if let Ok(resource_dir) = app.path().resource_dir() {
         let bundled = resource_dir.join("bin/ffprobe");
-        if bundled.exists() && bundled.is_file() {
-            candidates.push(bundled.into_os_string());
-        }
+        push_if_valid(&mut candidates, bundled);
     }
 
     candidates.push(OsString::from("ffprobe"));

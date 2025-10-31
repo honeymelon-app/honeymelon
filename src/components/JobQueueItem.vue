@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { formatFileSize, formatDuration, pathBasename, getFileExtension } from '@/lib/utils';
 import type { JobState, Preset } from '@/lib/types';
-import { File, CheckCircle2, XCircle, Clock, Loader2, AlertCircle, X } from 'lucide-vue-next';
+import { File, CheckCircle2, XCircle, Clock, Loader2, AlertCircle, X, Play } from 'lucide-vue-next';
 
 interface JobQueueItemProps {
   jobId: string;
@@ -29,6 +29,7 @@ const props = defineProps<JobQueueItemProps>();
 const emit = defineEmits<{
   cancel: [jobId: string];
   updatePreset: [jobId: string, presetId: string];
+  start: [jobId: string];
 }>();
 
 const fileName = computed(() => pathBasename(props.path));
@@ -126,6 +127,8 @@ const canChangePreset = computed(() => {
   return props.state.status === 'queued';
 });
 
+const canStart = computed(() => props.state.status === 'queued');
+
 const canCancel = computed(() => {
   return (
     props.state.status === 'running' ||
@@ -135,6 +138,17 @@ const canCancel = computed(() => {
   );
 });
 
+const isPermissionError = computed(() => {
+  return (
+    props.state.status === 'failed' &&
+    'code' in props.state &&
+    props.state.code === 'job_output_permission'
+  );
+});
+
+const permissionHelpText =
+  'Choose a different output folder or grant Honeymelon Full Disk Access in System Settings.';
+
 function handleCancel() {
   emit('cancel', props.jobId);
 }
@@ -142,6 +156,19 @@ function handleCancel() {
 function handlePresetChange(newPresetId: unknown) {
   if (typeof newPresetId === 'string') {
     emit('updatePreset', props.jobId, newPresetId);
+  }
+}
+
+function handleStart() {
+  emit('start', props.jobId);
+}
+
+async function handleOpenDiskAccessHelp() {
+  try {
+    const { openUrl } = await import('@tauri-apps/plugin-opener');
+    await openUrl('x-apple.systempreferences:com.apple.preference.security?Privacy_FullDiskAccess');
+  } catch (error) {
+    console.error('[JobQueueItem] Failed to open Full Disk Access settings', error);
   }
 }
 </script>
@@ -181,16 +208,21 @@ function handlePresetChange(newPresetId: unknown) {
             </div>
           </div>
 
-          <!-- Cancel Button -->
-          <Button
-            v-if="canCancel"
-            variant="ghost"
-            size="icon"
-            class="h-8 w-8 shrink-0"
-            @click="handleCancel"
-          >
-            <X class="h-4 w-4" />
-          </Button>
+          <div class="flex items-center gap-2">
+            <Button v-if="canStart" size="sm" class="h-8 px-3" @click="handleStart">
+              <Play class="mr-2 h-4 w-4" />
+              Start
+            </Button>
+            <Button
+              v-if="canCancel"
+              variant="ghost"
+              size="icon"
+              class="h-8 w-8 shrink-0"
+              @click="handleCancel"
+            >
+              <X class="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <!-- Format Selector or Display -->
@@ -225,7 +257,7 @@ function handlePresetChange(newPresetId: unknown) {
         </div>
 
         <!-- Status Message -->
-        <div class="flex items-start gap-2 text-xs">
+        <div class="flex flex-wrap items-start gap-2 text-xs">
           <Badge
             :variant="
               state.status === 'completed'
@@ -239,6 +271,18 @@ function handlePresetChange(newPresetId: unknown) {
           </Badge>
           <span v-if="state.status === 'failed' && 'error' in state" class="text-red-500">
             {{ state.error }}
+          </span>
+          <Button
+            v-if="isPermissionError"
+            variant="link"
+            size="sm"
+            class="px-0 text-xs"
+            @click="handleOpenDiskAccessHelp"
+          >
+            Open Settings
+          </Button>
+          <span v-if="isPermissionError" class="text-muted-foreground">
+            {{ permissionHelpText }}
           </span>
         </div>
       </div>
