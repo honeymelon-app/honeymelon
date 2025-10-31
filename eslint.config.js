@@ -157,6 +157,7 @@ export default [
 
       // Vue rules
       'vue/html-indent': ['error', 2],
+      'vue/max-len': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/no-v-html': 'warn',
       'vue/require-default-prop': 'off',

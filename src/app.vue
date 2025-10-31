@@ -16,12 +16,15 @@ import { Upload, XCircle } from 'lucide-vue-next';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 // Simple routing for About and Preferences windows
-const currentRoute = ref(window.location.hash.slice(1) || '/');
+const currentRoute = ref(
+  typeof window !== 'undefined' ? window.location.hash.slice(1) || '/' : '/',
+);
 
 const capabilities = ref<CapabilitySnapshot>();
 const defaultPresetId = ref(DEFAULT_PRESET_ID);
 const isDragOver = ref(false);
-const fileInput = ref<HTMLInputElement>();
+const fileInput = ref<HTMLInputElement | null>(null);
+const presetsReady = computed(() => presetOptions.value.length > 0);
 
 // Store unlisten functions for cleanup
 const unlistenDrop = ref<UnlistenFn | null>(null);
@@ -35,38 +38,50 @@ const orchestrator = useJobOrchestrator();
 
 const presetOptions = computed(() => availablePresets(capabilities.value));
 
-const activeJobs = computed(() =>
-  jobs.value.filter(
-    (job) =>
-      job.state.status === 'queued' ||
-      job.state.status === 'probing' ||
-      job.state.status === 'planning' ||
-      job.state.status === 'running',
-  ),
-);
+const ACTIVE_STATUSES = new Set([
+  'queued',
+  'probing',
+  'planning',
+  'running',
+  'pending',
+  'created',
+  'ready',
+]);
+const DONE_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
-const completedJobs = computed(() =>
-  jobs.value.filter(
-    (job) =>
-      job.state.status === 'completed' ||
-      job.state.status === 'failed' ||
-      job.state.status === 'cancelled',
-  ),
-);
+const activeJobs = computed(() => jobs.value.filter((j) => ACTIVE_STATUSES.has(j.state.status)));
+const completedJobs = computed(() => jobs.value.filter((j) => DONE_STATUSES.has(j.state.status)));
 
 const hasActiveJobs = computed(() => activeJobs.value.length > 0);
 const hasCompletedJobs = computed(() => completedJobs.value.length > 0);
+
+function isPresetAvailable(id: string) {
+  return presetOptions.value.some((p) => p.id === id);
+}
+
+function ensureUsablePresetId(prefId: string): string | null {
+  if (!presetsReady.value) return null;
+  if (isPresetAvailable(prefId)) return prefId;
+  // fall back to first available (prevents "uploaded but nothing appears")
+  return presetOptions.value[0]?.id ?? null;
+}
+
+async function ensurePresetsReady(): Promise<boolean> {
+  if (presetsReady.value) return true;
+  console.warn('[app] Presets not ready yet; ignoring file input right now.');
+  return false;
+}
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
 async function browseForFiles() {
+  if (!(await ensurePresetsReady())) return;
   if (isTauriRuntime()) {
     try {
       const { invoke } = await import('@tauri-apps/api/core');
       const selection = await invoke<string[]>('pick_media_files');
-
       if (Array.isArray(selection) && selection.length > 0) {
         await addFilesFromPaths(selection);
       }
@@ -75,7 +90,6 @@ async function browseForFiles() {
     }
     return;
   }
-
   fileInput.value?.click();
 }
 
@@ -89,33 +103,29 @@ async function handleFileInput(event: Event) {
 
 async function addFiles(fileList: FileList) {
   try {
-    console.log('[app] Adding files:', fileList);
+    if (!(await ensurePresetsReady())) return;
+
     const { discoverDroppedEntries } = await import('@/lib/file-discovery');
     const entries = await discoverDroppedEntries(fileList);
-    console.log('[app] Discovered entries:', entries);
+    const paths = entries.map((e) => e.path).filter((p): p is string => !!p?.trim());
 
-    if (!entries.length) {
-      console.warn('[app] No valid media files found');
+    if (!paths.length) {
+      console.warn('[app] No resolvable paths from dropped entries', entries.slice(0, 3));
       return;
     }
 
-    const paths = entries.map((entry) => entry.path).filter(Boolean) as string[];
-    console.log('[app] Paths to enqueue:', paths);
-
-    // Validate preset availability
-    const availablePresetIds = presetOptions.value.map((p) => p.id);
-    if (!availablePresetIds.includes(defaultPresetId.value)) {
-      console.error('[app] Default preset not available:', defaultPresetId.value);
+    // choose a usable preset (fallback to first)
+    const presetId = ensureUsablePresetId(defaultPresetId.value);
+    if (!presetId) {
+      console.error('[app] No presets available yet.');
       return;
     }
 
-    const jobIds = jobsStore.enqueueMany(paths, defaultPresetId.value);
+    const jobIds = jobsStore.enqueueMany(paths, presetId);
     console.log('[app] Enqueued job IDs:', jobIds);
-    console.log('[app] Total jobs in store:', jobsStore.jobs.length);
-
-    orchestrator.startNextAvailable().catch((error) => {
-      console.error('[app] Failed to start job:', error);
-    });
+    orchestrator
+      .startNextAvailable()
+      .catch((err) => console.error('[app] startNextAvailable', err));
   } catch (error) {
     console.error('[app] Failed to add files:', error);
   }
@@ -123,57 +133,31 @@ async function addFiles(fileList: FileList) {
 
 async function addFilesFromPaths(paths: string[]) {
   try {
-    console.log('[app] Adding files from paths:', paths);
+    if (!(await ensurePresetsReady())) return;
 
-    if (!paths.length) {
-      console.warn('[app] No paths provided');
-      return;
-    }
+    const validPaths = paths.filter((p) => typeof p === 'string' && p.trim().length > 0);
+    if (!validPaths.length) return;
 
-    // Validate paths before processing
-    const validPaths = paths.filter((path) => {
-      if (!path || typeof path !== 'string' || path.trim().length === 0) {
-        console.warn('[app] Invalid path:', path);
-        return false;
-      }
-      return true;
-    });
-
-    if (!validPaths.length) {
-      console.warn('[app] No valid paths provided');
-      return;
-    }
-
-    // Filter for media files
     const { invoke } = await import('@tauri-apps/api/core');
     let expanded: string[] = [];
     try {
       expanded = await invoke<string[]>('expand_media_paths', { paths: validPaths });
-      console.log('[app] Expanded paths:', expanded);
-    } catch (error) {
-      console.warn('[app] Failed to expand paths, using original:', error);
+    } catch {
       expanded = validPaths;
     }
+    if (!expanded.length) return;
 
-    if (!expanded.length) {
-      console.warn('[app] No valid media files after expansion');
+    const presetId = ensureUsablePresetId(defaultPresetId.value);
+    if (!presetId) {
+      console.error('[app] No presets available yet.');
       return;
     }
 
-    // Validate preset availability
-    const availablePresetIds = presetOptions.value.map((p) => p.id);
-    if (!availablePresetIds.includes(defaultPresetId.value)) {
-      console.error('[app] Default preset not available:', defaultPresetId.value);
-      return;
-    }
-
-    const jobIds = jobsStore.enqueueMany(expanded, defaultPresetId.value);
+    const jobIds = jobsStore.enqueueMany(expanded, presetId);
     console.log('[app] Enqueued job IDs:', jobIds);
-    console.log('[app] Total jobs in store:', jobsStore.jobs.length);
-
-    orchestrator.startNextAvailable().catch((error) => {
-      console.error('[app] Failed to start job:', error);
-    });
+    orchestrator
+      .startNextAvailable()
+      .catch((err) => console.error('[app] startNextAvailable', err));
   } catch (error) {
     console.error('[app] Failed to add files from paths:', error);
   }
@@ -198,17 +182,14 @@ function handleCancelJob(jobId: string) {
 }
 
 function handleUpdatePreset(jobId: string, presetId: string) {
-  // Validate preset availability
-  const availablePresetIds = presetOptions.value.map((p) => p.id);
-  if (!availablePresetIds.includes(presetId)) {
-    console.warn('[app] Preset not available:', presetId);
+  const usable = ensureUsablePresetId(presetId);
+  if (!usable) {
+    console.warn('[app] No usable preset right now.');
     return;
   }
-
   const job = jobsStore.getJob(jobId);
   if (job && job.state.status === 'queued') {
-    // Update preset immutably through the store
-    jobsStore.updateJobPreset(jobId, presetId);
+    jobsStore.updateJobPreset(jobId, usable);
   }
 }
 
@@ -282,6 +263,8 @@ onUnmounted(() => {
   <!-- Preferences Dialog -->
   <PreferencesDialog v-else-if="currentRoute === '/preferences'" />
 
+  <p v-if="!presetsReady" class="text-xs text-muted-foreground">Initializing presets…</p>
+
   <!-- Main App -->
   <div v-else class="flex h-screen flex-col bg-background text-foreground">
     <!-- Drag Region for macOS window controls -->
@@ -299,7 +282,7 @@ onUnmounted(() => {
     />
 
     <!-- Main Content with ScrollArea -->
-    <ScrollArea class="flex-1 w-full overflow-auto" style="-webkit-app-region: no-drag">
+    <div class="flex-1 w-full overflow-hidden">
       <main class="flex flex-col gap-6 p-6 pt-10">
         <!-- Drop Zone (only show when no active jobs) -->
         <div
@@ -319,7 +302,9 @@ onUnmounted(() => {
               <h2 class="text-xl font-semibold">Drop your media files here</h2>
               <p class="text-sm text-muted-foreground">or click to browse your computer</p>
             </div>
-            <Button size="lg" @click="browseForFiles"> Choose Files </Button>
+            <Button size="lg" :disabled="!presetsReady" @click="browseForFiles">
+              Choose Files
+            </Button>
           </div>
           <input
             ref="fileInput"
@@ -340,7 +325,9 @@ onUnmounted(() => {
           <div class="flex items-center gap-3">
             <Upload :class="['h-5 w-5 text-muted-foreground']" />
             <span class="text-sm text-muted-foreground"> Drop more files here or </span>
-            <Button variant="outline" size="sm" @click="browseForFiles"> Browse </Button>
+            <Button variant="outline" size="sm" :disabled="!presetsReady" @click="browseForFiles">
+              Browse
+            </Button>
           </div>
           <input
             ref="fileInput"
@@ -362,8 +349,8 @@ onUnmounted(() => {
               </Badge>
             </div>
           </div>
-          <div class="space-y-3">
-            <div class="w-full space-y-3 rounded-md border p-4">
+          <div class="">
+            <ScrollArea class="w-full space-y-3 h-[500px] overflow-y-auto">
               <JobQueueItem
                 v-for="job in activeJobs"
                 :key="job.id"
@@ -376,7 +363,7 @@ onUnmounted(() => {
                 @cancel="handleCancelJob"
                 @update-preset="handleUpdatePreset"
               />
-            </div>
+            </ScrollArea>
           </div>
         </section>
 
@@ -392,7 +379,7 @@ onUnmounted(() => {
             <Button variant="ghost" size="sm" @click="clearCompleted"> Clear All </Button>
           </div>
           <div class="">
-            <div class="w-full space-y-3 rounded-md border p-4">
+            <ScrollArea class="w-full space-y-3 h-[500px] overflow-y-auto">
               <JobQueueItem
                 v-for="job in completedJobs"
                 class="mb-4"
@@ -406,7 +393,7 @@ onUnmounted(() => {
                 @cancel="handleCancelJob"
                 @update-preset="handleUpdatePreset"
               />
-            </div>
+            </ScrollArea>
           </div>
         </section>
 
@@ -420,7 +407,7 @@ onUnmounted(() => {
           </div>
         </div>
       </main>
-    </ScrollArea>
+    </div>
 
     <!-- Footer Actions -->
     <footer

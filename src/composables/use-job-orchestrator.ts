@@ -22,10 +22,11 @@ interface StartJobOptions {
 interface OrchestratorOptions {
   concurrency?: number;
   simulate?: boolean;
+  requirePresetBeforeStart?: boolean; // NEW
 }
 
 interface ProgressEventPayload {
-  job_id: string;
+  jobId: string;
   progress?: {
     processed_seconds?: number;
     fps?: number;
@@ -35,10 +36,10 @@ interface ProgressEventPayload {
 }
 
 interface CompletionEventPayload {
-  job_id: string;
+  jobId: string;
   success: boolean;
   cancelled: boolean;
-  exit_code?: number | null;
+  exitCode?: number | null;
   signal?: number | null;
   code?: string | null;
   message?: string | null;
@@ -55,6 +56,7 @@ function isTauriRuntime(): boolean {
 const EXCLUSIVE_VIDEO_CODECS = new Set(['av1', 'prores']);
 
 export function useJobOrchestrator(options: OrchestratorOptions = {}) {
+  const requirePresetBeforeStart = options.requirePresetBeforeStart ?? true;
   const jobs = useJobsStore();
   const prefs = usePrefsStore();
   const { hasExclusiveActive, activeJobs } = storeToRefs(jobs);
@@ -109,16 +111,16 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   if (!simulate) {
     listen<ProgressEventPayload>(PROGRESS_EVENT, (event) => {
       const payload = event.payload;
-      if (!payload?.job_id) {
+      if (!payload?.jobId) {
         return;
       }
-      jobs.updateProgress(payload.job_id, {
+      jobs.updateProgress(payload.jobId, {
         processedSeconds: payload.progress?.processed_seconds,
         fps: payload.progress?.fps,
         speed: payload.progress?.speed,
       });
       if (payload.raw) {
-        jobs.appendLog(payload.job_id, payload.raw);
+        jobs.appendLog(payload.jobId, payload.raw);
       }
     })
       .then((unlisten) => {
@@ -130,16 +132,16 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
 
     listen<CompletionEventPayload>(COMPLETION_EVENT, (event) => {
       const payload = event.payload;
-      if (!payload?.job_id) {
+      if (!payload?.jobId) {
         return;
       }
 
       if (payload.logs) {
-        jobs.setLogs(payload.job_id, payload.logs);
+        jobs.setLogs(payload.jobId, payload.logs);
       }
 
       if (payload.cancelled) {
-        jobs.cancelJob(payload.job_id);
+        jobs.cancelJob(payload.jobId);
         startNextAvailable().catch((error) => {
           console.error('[orchestrator] Failed to start next job after cancellation:', error);
         });
@@ -147,15 +149,15 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       }
 
       if (payload.success) {
-        const job = jobs.getJob(payload.job_id);
-        jobs.markCompleted(payload.job_id, job?.outputPath ?? '');
+        const job = jobs.getJob(payload.jobId);
+        jobs.markCompleted(payload.jobId, job?.outputPath ?? '');
       } else {
         const errorMessage =
           payload.message ??
-          (payload.exit_code !== undefined && payload.exit_code !== null
-            ? `FFmpeg exited with code ${payload.exit_code}`
+          (payload.exitCode !== undefined && payload.exitCode !== null
+            ? `FFmpeg exited with code ${payload.exitCode}`
             : 'FFmpeg process terminated unexpectedly.');
-        jobs.markFailed(payload.job_id, errorMessage, payload.code ?? undefined);
+        jobs.markFailed(payload.jobId, errorMessage, payload.code ?? undefined);
       }
 
       startNextAvailable().catch((error) => {
@@ -193,12 +195,21 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       return;
     }
 
+    if (!canStartJob(nextQueued.presetId)) {
+      return;
+    }
+
     if (shouldDeferQueuedExclusive(nextQueued.presetId)) {
       return;
     }
 
     const job = jobs.startNext();
     if (!job) {
+      return;
+    }
+
+    if (!canStartJob(job.presetId)) {
+      jobs.requeue(job.id);
       return;
     }
 
@@ -233,8 +244,18 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     }
   }
 
+  function canStartJob(presetId: string | undefined | null): boolean {
+    if (!presetId || !presetId.trim()) return false;
+    if (!requirePresetBeforeStart) return true;
+    return true; // presetId exists when the flag is on
+  }
+
   async function startJob(input: StartJobOptions) {
     const { jobId, path, presetId, tier } = input;
+
+    if (!canStartJob(presetId)) {
+      return;
+    }
 
     jobs.markProbing(jobId);
 
@@ -327,9 +348,9 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
 
     try {
       await invokeStartJob({
-        job_id: jobId,
+        jobId: jobId,
         args,
-        output_path: outputPath,
+        outputPath: outputPath,
         exclusive,
       });
       return true;
@@ -376,9 +397,9 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   }
 
   async function invokeStartJob(payload: {
-    job_id: string;
+    jobId: string;
     args: string[];
-    output_path: string;
+    outputPath: string;
     exclusive: boolean;
   }) {
     if (simulate) {
@@ -483,7 +504,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     }
 
     const { invoke } = await import('@tauri-apps/api/core');
-    await invoke<boolean>('cancel_job', { job_id: jobId });
+    await invoke<boolean>('cancel_job', { jobId: jobId });
   }
 
   return {
