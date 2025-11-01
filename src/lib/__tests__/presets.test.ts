@@ -28,17 +28,16 @@ describe('generated presets', () => {
   });
 
   describe('video presets', () => {
-    it('provides every source → target combination', () => {
-      VIDEO_CONTAINERS.forEach((source) => {
-        VIDEO_CONTAINERS.forEach((target) => {
-          if (source === target) return;
-          const id = `video-${source}-to-${target}`;
-          const preset = PRESETS.find((item) => item.id === id);
-          expect(preset).toBeDefined();
-          expect(preset?.mediaKind).toBe('video');
-          expect(preset?.sourceContainers).toContain(source);
-          expect(preset?.container).toBe(target);
-        });
+    it('provides a preset for each video container target', () => {
+      VIDEO_CONTAINERS.forEach((target) => {
+        const id = `video-to-${target}`;
+        const preset = PRESETS.find((item) => item.id === id);
+        expect(preset).toBeDefined();
+        expect(preset?.mediaKind).toBe('video');
+        expect(preset?.container).toBe(target);
+        // Each preset should support all other containers except itself
+        const expectedSources = VIDEO_CONTAINERS.filter((c) => c !== target);
+        expect(preset?.sourceContainers.sort()).toEqual(expectedSources.sort());
       });
     });
 
@@ -55,18 +54,17 @@ describe('generated presets', () => {
   });
 
   describe('audio presets', () => {
-    it('provides every source → target combination', () => {
-      AUDIO_CONTAINERS.forEach((source) => {
-        AUDIO_CONTAINERS.forEach((target) => {
-          if (source === target) return;
-          const id = `audio-${source}-to-${target}`;
-          const preset = PRESETS.find((item) => item.id === id);
-          expect(preset).toBeDefined();
-          expect(preset?.mediaKind).toBe('audio');
-          expect(preset?.sourceContainers).toContain(source);
-          expect(preset?.container).toBe(target);
-          expect(preset?.video.codec).toBe('none');
-        });
+    it('provides a preset for each audio container target', () => {
+      AUDIO_CONTAINERS.forEach((target) => {
+        const id = `audio-to-${target}`;
+        const preset = PRESETS.find((item) => item.id === id);
+        expect(preset).toBeDefined();
+        expect(preset?.mediaKind).toBe('audio');
+        expect(preset?.container).toBe(target);
+        expect(preset?.video.codec).toBe('none');
+        // Each preset should support all other containers except itself
+        const expectedSources = AUDIO_CONTAINERS.filter((c) => c !== target);
+        expect(preset?.sourceContainers.sort()).toEqual(expectedSources.sort());
       });
     });
   });

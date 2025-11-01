@@ -2,7 +2,7 @@
 
 A professional media converter application designed exclusively for macOS Apple Silicon devices.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](#license)
 [![macOS](https://img.shields.io/badge/macOS-13.0+-blue.svg)](https://www.apple.com/macos)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-Native-brightgreen.svg)](https://www.apple.com/mac/)
 
@@ -387,17 +387,22 @@ honeymelon/
 │       └── integration_tests.rs
 │
 ├── e2e/                            # Playwright end-to-end tests (infrastructure exists, minimal tests)
+├── docs/                           # Project documentation
+│   ├── development/                # Development-related documentation
+│   │   ├── AGENTS.md               # Commit/PR guidelines
+│   │   ├── CLAUDE.md               # AI assistant development guide (codebase context)
+│   │   ├── CONTRIBUTING.md         # Contribution guidelines
+│   │   └── notes.md                # Development notes and scratchpad
+│   ├── legal/                      # Legal and licensing documentation
+│   │   ├── COMMERCIAL_LICENSE.md   # Commercial use guidance
+│   │   ├── LICENSE_COMPLIANCE.md   # Technical LGPL compliance documentation
+│   │   └── THIRD_PARTY_NOTICES.md  # Comprehensive dependency attribution
+│   ├── CHANGELOG.md                # Version history and release notes
+│   └── CODE_OF_CONDUCT.md          # Community code of conduct
 ├── LICENSES/                       # Third-party license files
 │   └── FFMPEG-LGPL.txt             # FFmpeg LGPL v2.1 license
 ├── LICENSE                         # MIT license for Honeymelon application
-├── THIRD_PARTY_NOTICES.md          # Comprehensive dependency attribution
-├── COMMERCIAL_LICENSE.md           # Commercial use guidance
-├── LICENSE_COMPLIANCE.md           # Technical LGPL compliance documentation
-├── CONTRIBUTING.md                 # Contribution guidelines
-├── CODE_OF_CONDUCT.md              # Community code of conduct
 ├── CODEOWNERS                      # Code ownership definitions
-├── CLAUDE.md                       # AI assistant development guide (codebase context)
-├── AGENTS.md                       # Commit/PR guidelines
 ├── package.json                    # Node.js dependencies and scripts
 ├── tsconfig.json                   # TypeScript compiler configuration
 ├── vite.config.ts                  # Vite build configuration
@@ -878,11 +883,11 @@ cd src-tauri && cargo fmt --all
 
 ## Legal & Licensing
 
-### Commercial Use
+### Proprietary Software
 
-**Honeymelon can be sold commercially** under its MIT license. The application executes FFmpeg as a separate, external process without any linking, ensuring full LGPL compliance while allowing proprietary commercial distribution.
+**Honeymelon is proprietary software**. All rights are reserved by the copyright holder. The source code, binaries, and documentation are confidential and may not be used, copied, modified, or distributed without explicit written permission from Jerome Thayananthajothy.
 
-For comprehensive commercial use guidance, see [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md).
+For commercial licensing inquiries, please contact tjthavarshan@gmail.com.
 
 ### FFmpeg Licensing
 
@@ -897,16 +902,15 @@ For comprehensive commercial use guidance, see [COMMERCIAL_LICENSE.md](COMMERCIA
   - Command-line arguments
   - Standard input/output/error streams
   - File system (input files, output files)
-- This approach satisfies LGPL requirements **without affecting Honeymelon's MIT license**
+- This approach satisfies LGPL requirements **without affecting Honeymelon's proprietary license**
 
-**Implications**:
+**Implications for Honeymelon**:
 
-- ✅ Honeymelon source code can remain proprietary
-- ✅ No obligation to provide Honeymelon source code to users
-- ✅ Application can be sold commercially without restrictions
-- ✅ Must include FFmpeg license file with distribution
-- ✅ Must provide information on obtaining FFmpeg source code
-- ✅ Cannot modify FFmpeg without offering source (Honeymelon doesn't modify FFmpeg)
+- Honeymelon remains proprietary and confidential
+- FFmpeg's LGPL license does not affect Honeymelon's proprietary status due to process separation
+- Must include FFmpeg license file with distribution
+- Must provide information on obtaining FFmpeg source code
+- Cannot modify FFmpeg without offering source (Honeymelon doesn't modify FFmpeg)
 
 See [LICENSES/FFMPEG-LGPL.txt](LICENSES/FFMPEG-LGPL.txt) for complete license text.
 
@@ -941,30 +945,28 @@ All third-party dependencies are documented with proper attribution:
 
 **License Documentation**:
 
-- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): Complete list of dependencies and licenses
+- [THIRD_PARTY_NOTICES.md](docs/legal/THIRD_PARTY_NOTICES.md): Complete list of dependencies and licenses
 - [LICENSES/](LICENSES/): Individual license files for major dependencies
 
-**Key Dependencies**:
+**Key Dependencies** (all used in compliance with their respective licenses):
 
 - **Tauri**: MIT/Apache-2.0 dual license
 - **Vue.js**: MIT license
 - **Rust ecosystem**: Primarily MIT/Apache-2.0 dual licensed crates
 - **shadcn-vue**: MIT license
 - **Tailwind CSS**: MIT license
-- **FFmpeg**: LGPL v2.1+ (process-separated)
+- **FFmpeg**: LGPL v2.1+ (process-separated, not linked)
 
 ### Distribution Requirements
 
-When distributing Honeymelon (commercially or otherwise), include:
+Distribution of Honeymelon requires explicit written permission from the copyright holder. When authorized distribution occurs, the following must be included:
 
-1. ✅ **LICENSE** file (MIT license for Honeymelon source code)
-2. ✅ **LICENSES/FFMPEG-LGPL.txt** (FFmpeg LGPL license)
-3. ✅ **THIRD_PARTY_NOTICES.md** (all dependency attributions)
-4. ✅ Link to FFmpeg source code: https://ffmpeg.org/download.html
+1. **LICENSE** file (Proprietary license for Honeymelon)
+2. **LICENSES/FFMPEG-LGPL.txt** (FFmpeg LGPL license)
+3. **THIRD_PARTY_NOTICES.md** (all dependency attributions)
+4. Link to FFmpeg source code: https://ffmpeg.org/download.html
 
-**This approach is legally sound for commercial sale.**
-
-For technical implementation details, see [LICENSE_COMPLIANCE.md](LICENSE_COMPLIANCE.md).
+For licensing inquiries, contact: tjthavarshan@gmail.com
 
 ---
 
@@ -1053,29 +1055,29 @@ For technical implementation details, see [LICENSE_COMPLIANCE.md](LICENSE_COMPLI
 
 **Maximize conversion speed**:
 
-- ✅ Use **Fast tier** (prioritizes remux/copy when possible)
-- ✅ Ensure source and target codecs match (enables stream copy)
-- ✅ Increase concurrent job limit if system has available CPU/RAM
-- ✅ Use MKV as target container (accepts any codec → more remux opportunities)
-- ✅ Ensure sufficient free disk space (temp files can be large)
-- ✅ Close resource-intensive applications during conversion
+- Use **Fast tier** (prioritizes remux/copy when possible)
+- Ensure source and target codecs match (enables stream copy)
+- Increase concurrent job limit if system has available CPU/RAM
+- Use MKV as target container (accepts any codec → more remux opportunities)
+- Ensure sufficient free disk space (temp files can be large)
+- Close resource-intensive applications during conversion
 
 **Reduce memory usage**:
 
-- ✅ Decrease concurrent job limit to 1-2
-- ✅ Process files sequentially rather than in large batches
-- ✅ Clear completed jobs regularly
-- ✅ Restart application periodically for long batch jobs
+- Decrease concurrent job limit to 1-2
+- Process files sequentially rather than in large batches
+- Clear completed jobs regularly
+- Restart application periodically for long batch jobs
 
 ### Getting Help
 
 **Before reporting issues**:
 
-1. ✅ Check this Troubleshooting section
-2. ✅ Review [GitHub Discussions](../../discussions) for similar questions
-3. ✅ Verify FFmpeg installation: `ffmpeg -version`
-4. ✅ Check encoder availability: `ffmpeg -encoders`
-5. ✅ Review Console.app logs (filter: "Honeymelon")
+1. Check this Troubleshooting section
+2. Review [GitHub Discussions](../../discussions) for similar questions
+3. Verify FFmpeg installation: `ffmpeg -version`
+4. Check encoder availability: `ffmpeg -encoders`
+5. Review Console.app logs (filter: "Honeymelon")
 
 **Bug reports**:
 
@@ -1098,7 +1100,7 @@ For technical implementation details, see [LICENSE_COMPLIANCE.md](LICENSE_COMPLI
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on:
+Contributions are welcome! Please read [CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for detailed guidelines on:
 
 - Code of conduct
 - Development setup
@@ -1136,7 +1138,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for de
 - **Rust**: Idiomatic Rust, `Result`-based error handling, async/await
 - **Testing**: Unit tests for pure logic, integration tests for Rust commands
 
-See [AGENTS.md](AGENTS.md) for commit message conventions and PR workflow.
+See [AGENTS.md](docs/development/AGENTS.md) for commit message conventions and PR workflow.
 
 ---
 
@@ -1159,13 +1161,13 @@ Special thanks to everyone who has contributed to making Honeymelon better.
 
 ### Honeymelon Application
 
-Licensed under the **MIT License**. See [LICENSE](LICENSE) file for complete terms.
+**Proprietary License** - All Rights Reserved. See [LICENSE](LICENSE) file for complete terms.
 
-Copyright (c) 2025 Honeymelon Contributors
+Copyright (c) 2025 Jerome Thayananthajothy <tjthavarshan@gmail.com>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+This software is proprietary and confidential. Unauthorized copying, distribution, modification, or use of this software, via any medium, is strictly prohibited without explicit written permission from the copyright holder.
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+For licensing inquiries, please contact: tjthavarshan@gmail.com
 
 ### FFmpeg
 
@@ -1175,7 +1177,7 @@ Copyright (c) 2000-2025 FFmpeg Developers
 
 ### Third-Party Dependencies
 
-All third-party software licenses and attributions are documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+All third-party software licenses and attributions are documented in [THIRD_PARTY_NOTICES.md](docs/legal/THIRD_PARTY_NOTICES.md).
 
 ---
 

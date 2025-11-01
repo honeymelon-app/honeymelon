@@ -1,16 +1,37 @@
-MIT License
+PROPRIETARY LICENSE
 
 Copyright (c) 2025 Jerome Thayananthajothy <tjthavarshan@gmail.com>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+All rights reserved.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+NOTICE: All information contained herein is, and remains the property of
+Jerome Thayananthajothy and his suppliers, if any. The intellectual and
+technical concepts contained herein are proprietary to Jerome Thayananthajothy
+and his suppliers and may be covered by patents, patents in process, and are
+protected by trade secret or copyright law.
+
+Dissemination of this information or reproduction of this material is strictly
+forbidden unless prior written permission is obtained from Jerome Thayananthajothy.
+
+RESTRICTIONS:
+
+1. This software and associated documentation files (the "Software") are
+   proprietary and confidential.
+
+2. You may not use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software without explicit written permission
+   from the copyright holder.
+
+3. You may not reverse engineer, decompile, or disassemble the Software.
+
+4. The Software is provided for evaluation purposes only, unless a separate
+   commercial license agreement has been executed.
+
+5. Any unauthorized use, reproduction, or distribution of the Software, or
+   any portion of it, may result in severe civil and criminal penalties, and
+   will be prosecuted to the maximum extent possible under law.
+
+DISCLAIMER:
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,3 +40,16 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+THIRD-PARTY SOFTWARE:
+
+This Software uses FFmpeg, which is licensed under the LGPL v2.1 or later.
+FFmpeg is executed as a separate process and is not linked to this Software.
+The FFmpeg license is available at LICENSES/FFMPEG-LGPL.txt.
+
+All other third-party dependencies and their respective licenses are documented
+in docs/legal/THIRD_PARTY_NOTICES.md.
+
+For commercial licensing inquiries, please contact:
+Jerome Thayananthajothy
+Email: tjthavarshan@gmail.com

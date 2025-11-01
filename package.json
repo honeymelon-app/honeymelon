@@ -2,8 +2,9 @@
   "name": "honeymelon",
   "version": "0.1.0",
   "description": "A beautiful, simple, and powerful media converter for macOS Apple Silicon",
-  "author": "Honeymelon Contributors",
-  "license": "MIT",
+  "author": "Jerome Thayananthajothy <tjthavarshan@gmail.com>",
+  "license": "UNLICENSED",
+  "private": true,
   "type": "module",
   "homepage": "https://github.com/YOUR_USERNAME/honeymelon",
   "repository": {

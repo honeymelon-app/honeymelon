@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - develop
+      - development
   pull_request:
     branches:
       - main
-      - develop
+      - development
 
 permissions:
   contents: read
@@ -207,6 +207,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
 
       - name: Install FFmpeg (for capability detection)
         run: brew install ffmpeg

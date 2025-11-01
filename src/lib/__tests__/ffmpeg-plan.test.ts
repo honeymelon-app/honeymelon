@@ -22,7 +22,7 @@ const emptyCapabilities: CapabilitySnapshot = {
 
 describe('ffmpeg-plan', () => {
   it('resolves presets by ID', () => {
-    const preset = resolvePreset('video-mp4-to-mkv');
+    const preset = resolvePreset('video-to-mkv');
     expect(preset).toBeDefined();
     expect(preset?.mediaKind).toBe('video');
   });
@@ -44,7 +44,7 @@ describe('ffmpeg-plan', () => {
 
   it('plans a remux when source and target codecs align', () => {
     const context: PlannerContext = {
-      presetId: 'video-mp4-to-mkv',
+      presetId: 'video-to-mkv',
       summary: baseSummary,
     };
     const decision = planJob(context);
@@ -55,7 +55,7 @@ describe('ffmpeg-plan', () => {
 
   it('plans a transcode when target container requires different codecs', () => {
     const context: PlannerContext = {
-      presetId: 'video-webm-to-mp4',
+      presetId: 'video-to-mp4',
       summary: { ...baseSummary, vcodec: 'vp9', acodec: 'opus' },
     };
     const decision = planJob(context);
@@ -67,7 +67,7 @@ describe('ffmpeg-plan', () => {
 
   it('builds the GIF pipeline for gif outputs', () => {
     const context: PlannerContext = {
-      presetId: 'video-mp4-to-gif',
+      presetId: 'video-to-gif',
       summary: baseSummary,
     };
     const decision = planJob(context);
@@ -79,7 +79,7 @@ describe('ffmpeg-plan', () => {
 
   it('handles audio conversions', () => {
     const context: PlannerContext = {
-      presetId: 'audio-flac-to-mp3',
+      presetId: 'audio-to-mp3',
       summary: {
         durationSec: 180,
         acodec: 'flac',

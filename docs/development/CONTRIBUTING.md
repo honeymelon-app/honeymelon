@@ -1,6 +1,19 @@
 # Contributing to Honeymelon
 
-Thank you for your interest in contributing to Honeymelon! We appreciate your time and effort in helping make this project better.
+Thank you for your interest in contributing to Honeymelon!
+
+## IMPORTANT: Proprietary Software Notice
+
+**Honeymelon is proprietary software.** By contributing to this project, you agree that:
+
+1. All contributions will become the property of Jerome Thayananthajothy
+2. Your contributions will be subject to Honeymelon's proprietary license
+3. You grant Jerome Thayananthajothy perpetual, irrevocable, worldwide rights to use, modify, and distribute your contributions
+4. You waive all rights to your contributions except for attribution
+
+**Contributor License Agreement**: By submitting a pull request, you certify that you have the right to grant these terms and that your contribution is your original work.
+
+---
 
 ## Table of Contents
 
