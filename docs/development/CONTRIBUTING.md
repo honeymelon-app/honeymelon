@@ -36,7 +36,7 @@ This project adheres to a Code of Conduct that all contributors are expected to 
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/honeymelon.git
+   git clone https://github.com/honeymelon-app/honeymelon.git
    cd honeymelon
    ```
 3. **Add the upstream repository**:

@@ -500,7 +500,7 @@ See [Building from Source](#building-from-source) section below.
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/honeymelon.git
+   git clone https://github.com/honeymelon-app/honeymelon.git
    cd honeymelon
    ```
 
@@ -1187,4 +1187,4 @@ All third-party software licenses and attributions are documented in [THIRD_PART
 
 **Maintained By**: Honeymelon Contributors
 
-**Repository**: <https://github.com/YOUR_USERNAME/honeymelon>
+**Repository**: <https://github.com/honeymelon-app/honeymelon>

@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: GitHub Discussions
-    url: https://github.com/YOUR_USERNAME/honeymelon/discussions
+    url: https://github.com/honeymelon-app/honeymelon/discussions
     about: Ask questions and discuss ideas with the community
   - name: Documentation
-    url: https://github.com/YOUR_USERNAME/honeymelon/blob/main/README.md
+    url: https://github.com/honeymelon-app/honeymelon/blob/main/README.md
     about: Read the project documentation

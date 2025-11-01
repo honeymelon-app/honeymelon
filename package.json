@@ -6,13 +6,13 @@
   "license": "UNLICENSED",
   "private": true,
   "type": "module",
-  "homepage": "https://github.com/YOUR_USERNAME/honeymelon",
+  "homepage": "https://github.com/honeymelon-app/honeymelon",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/honeymelon.git"
+    "url": "https://github.com/honeymelon-app/honeymelon.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/honeymelon/issues"
+    "url": "https://github.com/honeymelon-app/honeymelon/issues"
   },
   "scripts": {
     "dev": "vite",

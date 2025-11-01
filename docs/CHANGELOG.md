@@ -58,5 +58,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This is the initial public release. See [Unreleased] section for complete feature list.
 
-[Unreleased]: https://github.com/YOUR_USERNAME/honeymelon/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/YOUR_USERNAME/honeymelon/releases/tag/v0.1.0
+[Unreleased]: https://github.com/honeymelon-app/honeymelon/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/honeymelon-app/honeymelon/releases/tag/v0.1.0
