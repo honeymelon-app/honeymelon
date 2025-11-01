@@ -262,9 +262,13 @@ impl FfmpegRunner {
                         }),
                     );
                     process.push_log(&line);
+                    let progress = parse_progress_line(&line);
+                    if progress.is_some() {
+                        eprintln!("[ffmpeg-progress][{}] {:?}", job_id, progress);
+                    }
                     let payload = ProgressPayload {
                         job_id: job_id.clone(),
-                        progress: parse_progress_line(&line),
+                        progress,
                         raw: line,
                     };
                     let _ = app.emit(PROGRESS_EVENT, &payload);
@@ -449,7 +453,8 @@ fn extract_signal(status: &ExitStatus) -> Option<i32> {
 }
 
 fn parse_progress_line(line: &str) -> Option<ProgressMetrics> {
-    if line.trim().is_empty() {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
         return None;
     }
 
@@ -457,16 +462,27 @@ fn parse_progress_line(line: &str) -> Option<ProgressMetrics> {
     let mut fps: Option<f64> = None;
     let mut speed: Option<f64> = None;
 
-    for token in line.split_whitespace() {
-        if let Some(value) = token.strip_prefix("time=") {
-            processed_seconds = parse_timecode(value);
-        } else if let Some(value) = token.strip_prefix("out_time=") {
-            processed_seconds = parse_timecode(value);
-        } else if let Some(value) = token.strip_prefix("fps=") {
-            fps = value.parse::<f64>().ok();
-        } else if let Some(value) = token.strip_prefix("speed=") {
-            let cleaned = value.trim_end_matches('x');
-            speed = cleaned.parse::<f64>().ok();
+    // Check if this is a single-field line (e.g., "out_time=00:00:15.932583")
+    if let Some(value) = trimmed.strip_prefix("out_time=") {
+        processed_seconds = parse_timecode(value);
+    } else if let Some(value) = trimmed.strip_prefix("fps=") {
+        fps = value.parse::<f64>().ok();
+    } else if let Some(value) = trimmed.strip_prefix("speed=") {
+        let cleaned = value.trim_end_matches('x').trim();
+        speed = cleaned.parse::<f64>().ok();
+    } else {
+        // Parse multi-field lines (e.g., "frame=123 fps=45 time=00:00:05.12 speed=1.5x")
+        for token in trimmed.split_whitespace() {
+            if let Some(value) = token.strip_prefix("time=") {
+                processed_seconds = parse_timecode(value);
+            } else if let Some(value) = token.strip_prefix("out_time=") {
+                processed_seconds = parse_timecode(value);
+            } else if let Some(value) = token.strip_prefix("fps=") {
+                fps = value.parse::<f64>().ok();
+            } else if let Some(value) = token.strip_prefix("speed=") {
+                let cleaned = value.trim_end_matches('x').trim();
+                speed = cleaned.parse::<f64>().ok();
+            }
         }
     }
 

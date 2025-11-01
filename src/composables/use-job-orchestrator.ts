@@ -52,6 +52,8 @@ const PROGRESS_EVENT = 'ffmpeg://progress';
 const COMPLETION_EVENT = 'ffmpeg://completion';
 const STDERR_EVENT = 'ffmpeg://stderr';
 
+type ProgressMetrics = ProgressEventPayload['progress'];
+
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
@@ -114,21 +116,42 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     });
 
   if (!simulate) {
+    console.log('[orchestrator] Setting up progress event listener for:', PROGRESS_EVENT);
     listen<ProgressEventPayload>(PROGRESS_EVENT, (event) => {
       const payload = event.payload;
+      const rawFallback = parseProgressFromRaw(payload?.raw);
+      const mergedProgress = mergeProgressMetrics(payload?.progress, rawFallback);
       console.log('[orchestrator] Progress event received:', {
         jobId: payload?.jobId,
-        progress: payload?.progress,
+        progress: mergedProgress,
+        processedSeconds: mergedProgress?.processedSeconds,
+        fps: mergedProgress?.fps,
+        speed: mergedProgress?.speed,
+        hasProgress: !!mergedProgress,
+        usedFallback: !!rawFallback && !payload?.progress,
         raw: payload?.raw?.substring(0, 100),
       });
       if (!payload?.jobId) {
         return;
       }
-      jobs.updateProgress(payload.jobId, {
-        processedSeconds: payload.progress?.processedSeconds,
-        fps: payload.progress?.fps,
-        speed: payload.progress?.speed,
-      });
+      const progressUpdate: {
+        processedSeconds?: number;
+        fps?: number;
+        speed?: number;
+      } = {};
+      if (mergedProgress?.processedSeconds !== undefined) {
+        progressUpdate.processedSeconds = mergedProgress.processedSeconds;
+      }
+      if (mergedProgress?.fps !== undefined) {
+        progressUpdate.fps = mergedProgress.fps;
+      }
+      if (mergedProgress?.speed !== undefined) {
+        progressUpdate.speed = mergedProgress.speed;
+      }
+
+      if (Object.keys(progressUpdate).length > 0) {
+        jobs.updateProgress(payload.jobId, progressUpdate);
+      }
       if (payload.raw) {
         jobs.appendLog(payload.jobId, payload.raw);
       }
@@ -412,15 +435,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     const outputPath = buildOutputPath(job, decision);
     jobs.setOutputPath(jobId, outputPath);
 
-    const args = [
-      '-y',
-      '-nostdin',
-      '-progress',
-      'pipe:2',
-      '-i',
-      job?.path ?? '',
-      ...decision.ffmpegArgs,
-    ];
+    const args = ['-y', '-nostdin', '-i', job?.path ?? '', ...decision.ffmpegArgs];
 
     try {
       console.debug('[orchestrator] run -> start_job', { jobId, args, outputPath, exclusive });
@@ -601,4 +616,125 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     cancel,
     capabilities,
   };
+}
+
+function mergeProgressMetrics(
+  primary?: ProgressMetrics,
+  fallback?: ProgressMetrics | null,
+): ProgressMetrics | undefined {
+  if (!primary && !fallback) {
+    return undefined;
+  }
+
+  const merged: ProgressMetrics = {
+    processedSeconds: primary?.processedSeconds ?? fallback?.processedSeconds,
+    fps: primary?.fps ?? fallback?.fps,
+    speed: primary?.speed ?? fallback?.speed,
+  };
+
+  const hasValue =
+    merged.processedSeconds !== undefined || merged.fps !== undefined || merged.speed !== undefined;
+
+  return hasValue ? merged : undefined;
+}
+
+function parseProgressFromRaw(raw?: string | null): ProgressMetrics | null {
+  if (!raw) {
+    return null;
+  }
+
+  const trimmed = raw.trim();
+  if (!trimmed.length) {
+    return null;
+  }
+
+  const metrics: ProgressMetrics = {};
+  let matched = false;
+
+  const handlePair = (keyInput: string, valueInput: string) => {
+    const key = keyInput.trim();
+    const value = valueInput.trim();
+
+    switch (key) {
+      case 'out_time':
+      case 'time': {
+        const seconds = parseTimecode(value);
+        if (seconds !== null) {
+          metrics.processedSeconds = seconds;
+          matched = true;
+        }
+        break;
+      }
+      case 'out_time_ms': {
+        const numeric = Number.parseFloat(value);
+        if (Number.isFinite(numeric)) {
+          metrics.processedSeconds = numeric / 1000;
+          matched = true;
+        }
+        break;
+      }
+      case 'fps': {
+        const numeric = Number.parseFloat(value);
+        if (Number.isFinite(numeric)) {
+          metrics.fps = numeric;
+          matched = true;
+        }
+        break;
+      }
+      case 'speed': {
+        const cleaned = value.replace(/x$/i, '');
+        const numeric = Number.parseFloat(cleaned);
+        if (Number.isFinite(numeric)) {
+          metrics.speed = numeric;
+          matched = true;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
+  const singleField = trimmed.match(/^([^=]+)=(.+)$/);
+  if (singleField) {
+    handlePair(singleField[1], singleField[2]);
+  } else {
+    const tokens = trimmed.split(/\s+/);
+    for (const token of tokens) {
+      if (!token.includes('=')) {
+        continue;
+      }
+      const [key, value = ''] = token.split('=');
+      handlePair(key, value);
+    }
+  }
+
+  return matched ? metrics : null;
+}
+
+function parseTimecode(input: string): number | null {
+  if (!input.length) {
+    return null;
+  }
+
+  if (/^\d+(?:\.\d+)?$/.test(input)) {
+    const numeric = Number.parseFloat(input);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  const parts = input.split(':');
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const [hoursRaw, minutesRaw, secondsRaw] = parts;
+  const hours = Number.parseInt(hoursRaw, 10);
+  const minutes = Number.parseInt(minutesRaw, 10);
+  const seconds = Number.parseFloat(secondsRaw);
+
+  if ([hours, minutes, seconds].some((value) => Number.isNaN(value))) {
+    return null;
+  }
+
+  return hours * 3600 + minutes * 60 + seconds;
 }

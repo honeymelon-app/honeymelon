@@ -74,7 +74,7 @@ export function planJob(context: PlannerContext): PlannerDecision {
   const desiredTier: Tier = context.requestedTier ?? 'balanced';
   const notes: string[] = [];
   const warnings: string[] = [];
-  const args: string[] = [];
+  const args: string[] = ['-progress', 'pipe:2', '-nostats'];
 
   const containerRule = CONTAINER_RULES[preset.container];
 
@@ -324,6 +324,9 @@ function planGifJob(context: PlannerContext, preset: Preset): PlannerDecision {
     '[s0]palettegen=stats_mode=single[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3[out]';
 
   const args = [
+    '-progress',
+    'pipe:2',
+    '-nostats',
     '-filter_complex',
     filter,
     '-map',
