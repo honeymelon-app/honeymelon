@@ -1,15 +1,16 @@
 import { CONTAINER_RULES } from './container-rules';
 import type { ContainerRule } from './container-rules';
-import { PRESETS } from './presets';
+import { DEFAULT_PRESET_ID, PRESETS } from './presets';
 import type { CapabilitySnapshot, ACodec, Preset, ProbeSummary, Tier, VCodec } from './types';
 
 const VIDEO_ENCODERS: Record<VCodec, string | null> = {
   copy: 'copy',
   none: null,
-  h264: 'h264_videotoolbox',
-  hevc: 'hevc_videotoolbox',
+  h264: 'libx264',
+  hevc: 'libx265',
   vp9: 'libvpx-vp9',
   av1: 'libaom-av1',
+  gif: 'gif',
   prores: 'prores_ks',
 };
 
@@ -48,50 +49,18 @@ export function resolvePreset(id: string): Preset | undefined {
   return PRESETS.find((preset) => preset.id === id);
 }
 
-export function listSupportedPresets(capabilities?: CapabilitySnapshot): Preset[] {
-  if (!capabilities) {
-    return PRESETS;
-  }
-
-  return PRESETS.filter((preset) => {
-    if (preset.remuxOnly) {
-      return true;
-    }
-
-    const containerRule = CONTAINER_RULES[preset.container];
-
-    if (!containerRule) {
-      return false;
-    }
-
-    const requiredVideoEncoder = VIDEO_ENCODERS[preset.video.codec];
-    if (
-      preset.video.codec !== 'copy' &&
-      preset.video.codec !== 'none' &&
-      requiredVideoEncoder &&
-      !capabilities.videoEncoders.has(requiredVideoEncoder)
-    ) {
-      return false;
-    }
-
-    const requiredAudioEncoder = AUDIO_ENCODERS[preset.audio.codec];
-    if (
-      preset.audio.codec !== 'copy' &&
-      preset.audio.codec !== 'none' &&
-      requiredAudioEncoder &&
-      !capabilities.audioEncoders.has(requiredAudioEncoder)
-    ) {
-      return false;
-    }
-
-    return true;
-  });
+export function listSupportedPresets(_capabilities?: CapabilitySnapshot): Preset[] {
+  return PRESETS;
 }
 
 export function planJob(context: PlannerContext): PlannerDecision {
   const preset =
     resolvePreset(context.presetId) ??
-    PRESETS.find((candidate) => candidate.id === 'mp4-h264-aac-balanced')!;
+    PRESETS.find((candidate) => candidate.id === DEFAULT_PRESET_ID)!;
+
+  if (preset.container === 'gif') {
+    return planGifJob(context, preset);
+  }
 
   const desiredTier: Tier = context.requestedTier ?? 'balanced';
   const notes: string[] = [];
@@ -227,7 +196,10 @@ export function planJob(context: PlannerContext): PlannerDecision {
         args.push('-crf', tierDefaults.crf.toString());
       }
       if (tierDefaults.profile) {
-        args.push('-profile:v', tierDefaults.profile);
+        const profile = resolveVideoProfile(preset.video.codec, tierDefaults.profile);
+        if (profile) {
+          args.push('-profile:v', profile);
+        }
       }
       notes.push(`Video tier ${videoTier.tier} applied.`);
     }
@@ -293,6 +265,69 @@ export function planJob(context: PlannerContext): PlannerDecision {
     preset,
     ffmpegArgs: args,
     remuxOnly,
+    notes,
+    warnings,
+  };
+}
+
+function planGifJob(context: PlannerContext, preset: Preset): PlannerDecision {
+  const notes: string[] = [];
+  const warnings: string[] = [];
+  const fallbackWidth = 480;
+  const maxWidth = 640;
+
+  if (context.summary.durationSec > 20) {
+    warnings.push(
+      'GIF preset performs best on clips under ~20 seconds; consider trimming the source.',
+    );
+  }
+
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+  const sourceFps = context.summary.fps ?? 0;
+  const targetFps = clamp(Math.round(sourceFps) || 12, 2, 20);
+  if (!context.summary.fps) {
+    notes.push('Video: using default 12 fps for GIF output.');
+  } else if (Math.abs(targetFps - sourceFps) >= 1) {
+    notes.push(`Video: fps clamped from ${Math.round(sourceFps)} → ${targetFps} for GIF output.`);
+  }
+
+  const measuredWidth =
+    context.summary.width && context.summary.width > 0 ? context.summary.width : fallbackWidth;
+  const limitedWidth = clamp(measuredWidth, 2, maxWidth);
+  const evenWidth = limitedWidth % 2 === 0 ? limitedWidth : limitedWidth - 1;
+  const finalWidth = evenWidth >= 2 ? evenWidth : fallbackWidth;
+  if (context.summary.width && context.summary.width > maxWidth) {
+    notes.push(`Video: width limited to ${finalWidth}px to keep GIF size manageable.`);
+  }
+
+  const filter =
+    `[0:v]fps=${targetFps},scale=${finalWidth}:-2:flags=lanczos,split[s0][s1];` +
+    '[s0]palettegen=stats_mode=single[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3[out]';
+
+  const args = [
+    '-filter_complex',
+    filter,
+    '-map',
+    '[out]',
+    '-gifflags',
+    '-transdiff',
+    '-loop',
+    '0',
+    '-c:v',
+    'gif',
+    '-an',
+    '-sn',
+  ];
+
+  notes.push(`Video: transcode to GIF at ${targetFps} fps with palette optimisation.`);
+  notes.push('Audio: dropped for GIF export.');
+  notes.push('Subtitles: drop for GIF export.');
+
+  return {
+    preset,
+    ffmpegArgs: args,
+    remuxOnly: false,
     notes,
     warnings,
   };
@@ -416,6 +451,33 @@ function validatePresetAvailability(
 
 function normalizeCodec(value: string | undefined): string | undefined {
   return value?.toLowerCase();
+}
+
+function resolveVideoProfile(codec: VCodec, profile: string): string | undefined {
+  if (codec !== 'prores') {
+    return profile;
+  }
+
+  const normalized = profile.trim().toLowerCase();
+  switch (normalized) {
+    case '422':
+    case 'standard':
+      return 'standard';
+    case '422hq':
+    case 'hq':
+      return 'hq';
+    case '4444':
+      return '4444';
+    case '4444xq':
+      return '4444xq';
+    case 'proxy':
+      return 'proxy';
+    case 'lt':
+    case '422lt':
+      return 'lt';
+    default:
+      return profile;
+  }
 }
 
 function codecAllowed(

@@ -15,6 +15,7 @@ import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
 import type { CapabilitySnapshot } from '@/lib/types';
 import { Upload, XCircle } from 'lucide-vue-next';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
 
 const capabilities = ref<CapabilitySnapshot>();
 const defaultPresetId = ref(DEFAULT_PRESET_ID);
@@ -58,6 +59,28 @@ const hasCompletedJobs = computed(() => completedJobs.value.length > 0);
 
 function isPresetAvailable(id: string) {
   return presetOptions.value.some((p) => p.id === id);
+}
+
+function presetsForPath(path: string) {
+  const container = inferContainerFromPath(path);
+  if (!container) {
+    return presetOptions.value;
+  }
+
+  const kind = mediaKindForContainer(container);
+  return presetOptions.value.filter(
+    (preset) =>
+      preset.mediaKind === kind &&
+      (preset.sourceContainers.length === 0 || preset.sourceContainers.includes(container)),
+  );
+}
+
+function selectDefaultPresetForPath(path: string): string | null {
+  const candidates = presetsForPath(path);
+  if (candidates.length > 0) {
+    return candidates[0].id;
+  }
+  return presetOptions.value[0]?.id ?? null;
 }
 
 function ensureUsablePresetId(prefId: string): string | null {
@@ -116,14 +139,22 @@ async function addFiles(fileList: FileList) {
     }
 
     // choose a usable preset (fallback to first)
-    const presetId = ensureUsablePresetId(defaultPresetId.value);
-    if (!presetId) {
-      console.error('[app] No presets available yet.');
-      return;
+    const jobIds: string[] = [];
+    for (const path of paths) {
+      const presetId =
+        selectDefaultPresetForPath(path) ?? ensureUsablePresetId(defaultPresetId.value);
+      if (!presetId) {
+        continue;
+      }
+      const jobId = jobsStore.enqueue(path, presetId);
+      if (jobId) {
+        jobIds.push(jobId);
+      }
     }
 
-    const jobIds = jobsStore.enqueueMany(paths, presetId);
-    console.log('[app] Enqueued job IDs:', jobIds);
+    if (jobIds.length) {
+      console.log('[app] Enqueued job IDs:', jobIds);
+    }
   } catch (error) {
     console.error('[app] Failed to add files:', error);
   }
@@ -145,14 +176,22 @@ async function addFilesFromPaths(paths: string[]) {
     }
     if (!expanded.length) return;
 
-    const presetId = ensureUsablePresetId(defaultPresetId.value);
-    if (!presetId) {
-      console.error('[app] No presets available yet.');
-      return;
+    const jobIds: string[] = [];
+    for (const path of expanded) {
+      const presetId =
+        selectDefaultPresetForPath(path) ?? ensureUsablePresetId(defaultPresetId.value);
+      if (!presetId) {
+        continue;
+      }
+      const jobId = jobsStore.enqueue(path, presetId);
+      if (jobId) {
+        jobIds.push(jobId);
+      }
     }
 
-    const jobIds = jobsStore.enqueueMany(expanded, presetId);
-    console.log('[app] Enqueued job IDs:', jobIds);
+    if (jobIds.length) {
+      console.log('[app] Enqueued job IDs:', jobIds);
+    }
   } catch (error) {
     console.error('[app] Failed to add files from paths:', error);
   }
@@ -193,14 +232,24 @@ function handleCancelJob(jobId: string) {
 }
 
 function handleUpdatePreset(jobId: string, presetId: string) {
-  const usable = ensureUsablePresetId(presetId);
-  if (!usable) {
-    console.warn('[app] No usable preset right now.');
+  const job = jobsStore.getJob(jobId);
+  if (!job || job.state.status !== 'queued') {
     return;
   }
-  const job = jobsStore.getJob(jobId);
-  if (job && job.state.status === 'queued') {
-    jobsStore.updateJobPreset(jobId, usable);
+
+  const allowedPresets = presetsForPath(job.path);
+  const requested = allowedPresets.find((preset) => preset.id === presetId);
+  if (requested) {
+    jobsStore.updateJobPreset(jobId, requested.id);
+    return;
+  }
+
+  const fallback =
+    selectDefaultPresetForPath(job.path) ?? ensureUsablePresetId(defaultPresetId.value);
+  if (fallback) {
+    jobsStore.updateJobPreset(jobId, fallback);
+  } else {
+    console.warn('[app] No compatible preset available for job:', jobId);
   }
 }
 
@@ -344,7 +393,12 @@ onUnmounted(() => {
               <h2 class="text-xl font-semibold">Drop your media files here</h2>
               <p class="text-sm text-muted-foreground">or click to browse your computer</p>
             </div>
-            <Button size="lg" :disabled="!presetsReady" @click="browseForFiles">
+            <Button
+              size="lg"
+              :disabled="!presetsReady"
+              @click="browseForFiles"
+              class="cursor-pointer"
+            >
               Choose Files
             </Button>
           </div>
@@ -367,7 +421,13 @@ onUnmounted(() => {
           <div class="flex items-center gap-3">
             <Upload :class="['h-5 w-5 text-muted-foreground']" />
             <span class="text-sm text-muted-foreground"> Drop more files here or </span>
-            <Button variant="outline" size="sm" :disabled="!presetsReady" @click="browseForFiles">
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="!presetsReady"
+              class="cursor-pointer"
+              @click="browseForFiles"
+            >
               Browse
             </Button>
           </div>
@@ -467,7 +527,7 @@ onUnmounted(() => {
           <span>{{ activeJobs.length }} file{{ activeJobs.length !== 1 ? 's' : '' }} in queue</span>
         </div>
         <div class="flex items-center gap-3">
-          <Button variant="outline" size="lg" @click="cancelAll">
+          <Button variant="outline" size="lg" @click="cancelAll" class="cursor-pointer">
             <XCircle class="mr-2 h-5 w-5" />
             Cancel All
           </Button>

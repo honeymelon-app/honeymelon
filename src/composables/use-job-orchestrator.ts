@@ -11,6 +11,7 @@ import { joinPath, pathBasename, pathDirname, stripExtension } from '@/lib/utils
 import { useJobsStore } from '@/stores/jobs';
 import { usePrefsStore } from '@/stores/prefs';
 import { storeToRefs } from 'pinia';
+import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
 
 interface StartJobOptions {
   jobId: string;
@@ -228,7 +229,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       const summary = await probe(job.path);
       jobs.markPlanning(job.id, summary);
 
-      const decision = await plan(summary, job.presetId, job.tier);
+      const decision = await plan(summary, job.presetId, job.tier, job.path);
       const exclusive = requiresExclusive(decision);
       const otherActive = activeJobs.value.filter(
         (active) => active.id !== job.id && active.state.status === 'running',
@@ -282,7 +283,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       const summary = await probe(path);
       jobs.markPlanning(jobId, summary);
 
-      const decision = await plan(summary, presetId, tier);
+      const decision = await plan(summary, presetId, tier, path);
       const exclusive = requiresExclusive(decision);
       const otherActive = activeJobs.value.filter(
         (active) => active.id !== jobId && active.state.status === 'running',
@@ -337,12 +338,30 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     summary: ProbeSummary,
     presetId: string,
     tier: Tier,
+    sourcePath: string,
   ): Promise<PlannerDecision> {
     const snapshot = capabilities.value;
     const allowedPresets = availablePresets(snapshot);
     const preset = allowedPresets.find((candidate) => candidate.id === presetId);
     if (!preset) {
       throw new Error(`Preset ${presetId} is not available with current capabilities.`);
+    }
+
+    const sourceContainer = inferContainerFromPath(sourcePath);
+    if (sourceContainer) {
+      if (
+        preset.sourceContainers.length > 0 &&
+        !preset.sourceContainers.includes(sourceContainer)
+      ) {
+        throw new Error(`Preset ${presetId} is not valid for source container ${sourceContainer}.`);
+      }
+
+      const sourceKind = mediaKindForContainer(sourceContainer);
+      if (preset.mediaKind !== sourceKind) {
+        throw new Error(
+          `Preset ${presetId} targets ${preset.mediaKind} media but source is ${sourceKind}.`,
+        );
+      }
     }
 
     return planJob({

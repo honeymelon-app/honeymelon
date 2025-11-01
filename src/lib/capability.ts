@@ -56,37 +56,10 @@ export function presetIsAvailable(
   preset: Preset,
   capabilities: CapabilitySnapshot | undefined,
 ): boolean {
-  if (!capabilities) {
-    return true;
-  }
-
-  if (preset.remuxOnly) {
-    return true;
-  }
-
-  if (
-    preset.video.codec !== 'copy' &&
-    preset.video.codec !== 'none' &&
-    !capabilities.videoEncoders.has(preset.video.codec)
-  ) {
-    return false;
-  }
-
-  if (
-    preset.audio.codec !== 'copy' &&
-    preset.audio.codec !== 'none' &&
-    !capabilities.audioEncoders.has(preset.audio.codec)
-  ) {
-    return false;
-  }
-
   return true;
 }
 
 export function availablePresets(capabilities: CapabilitySnapshot | undefined): Preset[] {
-  if (!capabilities) {
-    return PRESETS;
-  }
-
-  return PRESETS.filter((preset) => presetIsAvailable(preset, capabilities));
+  const _ = capabilities;
+  return PRESETS;
 }

@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { formatFileSize, formatDuration, pathBasename, getFileExtension } from '@/lib/utils';
+import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
 import type { JobState, Preset } from '@/lib/types';
 import { File, CheckCircle2, XCircle, Clock, Loader2, AlertCircle, X, Play } from 'lucide-vue-next';
 
@@ -35,7 +36,32 @@ const emit = defineEmits<{
 const fileName = computed(() => pathBasename(props.path));
 const fileExtension = computed(() => getFileExtension(props.path));
 
-const selectedPreset = computed(() => props.availablePresets.find((p) => p.id === props.presetId));
+const sourceContainer = computed(() => inferContainerFromPath(props.path));
+const sourceMediaKind = computed(() =>
+  sourceContainer.value ? mediaKindForContainer(sourceContainer.value) : undefined,
+);
+
+const filteredPresets = computed(() => {
+  return props.availablePresets.filter((preset) => {
+    if (sourceMediaKind.value && preset.mediaKind !== sourceMediaKind.value) {
+      return false;
+    }
+    if (
+      sourceContainer.value &&
+      preset.sourceContainers.length > 0 &&
+      !preset.sourceContainers.includes(sourceContainer.value)
+    ) {
+      return false;
+    }
+    return true;
+  });
+});
+
+const presetChoices = computed(() =>
+  filteredPresets.value.length ? filteredPresets.value : props.availablePresets,
+);
+
+const selectedPreset = computed(() => presetChoices.value.find((p) => p.id === props.presetId));
 
 const statusInfo = computed(() => {
   const state = props.state;
@@ -124,7 +150,7 @@ const eta = computed(() => {
 });
 
 const canChangePreset = computed(() => {
-  return props.state.status === 'queued';
+  return props.state.status === 'queued' && presetChoices.value.length > 0;
 });
 
 const canStart = computed(() => props.state.status === 'queued');
@@ -155,6 +181,10 @@ function handleCancel() {
 
 function handlePresetChange(newPresetId: unknown) {
   if (typeof newPresetId === 'string') {
+    const available = presetChoices.value.some((preset) => preset.id === newPresetId);
+    if (!available) {
+      return;
+    }
     emit('updatePreset', props.jobId, newPresetId);
   }
 }
@@ -209,7 +239,7 @@ async function handleOpenDiskAccessHelp() {
           </div>
 
           <div class="flex items-center gap-2">
-            <Button v-if="canStart" size="sm" class="h-8 px-3" @click="handleStart">
+            <Button v-if="canStart" size="sm" class="h-8 px-3 cursor-pointer" @click="handleStart">
               <Play class="mr-2 h-4 w-4" />
               Start
             </Button>
@@ -217,7 +247,7 @@ async function handleOpenDiskAccessHelp() {
               v-if="canCancel"
               variant="ghost"
               size="icon"
-              class="h-8 w-8 shrink-0"
+              class="h-8 w-8 shrink-0 cursor-pointer"
               @click="handleCancel"
             >
               <X class="h-4 w-4" />
@@ -237,14 +267,15 @@ async function handleOpenDiskAccessHelp() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="preset in availablePresets" :key="preset.id" :value="preset.id">
+              <SelectItem v-for="preset in presetChoices" :key="preset.id" :value="preset.id">
                 {{ preset.label }}
               </SelectItem>
             </SelectContent>
           </Select>
-          <Badge v-else variant="secondary" class="text-xs">
+          <Badge v-else-if="selectedPreset" variant="secondary" class="text-xs">
             {{ selectedPreset?.label || presetId }}
           </Badge>
+          <span v-else class="text-xs text-muted-foreground">No compatible outputs</span>
         </div>
 
         <!-- Progress Bar (only when running) -->
@@ -257,7 +288,7 @@ async function handleOpenDiskAccessHelp() {
         </div>
 
         <!-- Status Message -->
-        <div class="flex flex-wrap items-start gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
           <Badge
             :variant="
               state.status === 'completed'
@@ -276,7 +307,7 @@ async function handleOpenDiskAccessHelp() {
             v-if="isPermissionError"
             variant="link"
             size="sm"
-            class="px-0 text-xs"
+            class="px-0 text-xs cursor-pointer"
             @click="handleOpenDiskAccessHelp"
           >
             Open Settings

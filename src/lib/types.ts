@@ -1,6 +1,8 @@
 export type Container = 'mp4' | 'webm' | 'mov' | 'mkv' | 'gif' | 'm4a' | 'mp3' | 'flac' | 'wav';
 
-export type VCodec = 'copy' | 'h264' | 'hevc' | 'vp9' | 'av1' | 'prores' | 'none';
+export type MediaKind = 'video' | 'audio' | 'image';
+
+export type VCodec = 'copy' | 'h264' | 'hevc' | 'vp9' | 'av1' | 'prores' | 'gif' | 'none';
 
 export type ACodec =
   | 'copy'
@@ -35,6 +37,8 @@ export interface Preset {
   id: string;
   label: string;
   container: Container;
+  mediaKind: MediaKind;
+  sourceContainers: Container[];
   description?: string;
   video: {
     codec: VCodec;
