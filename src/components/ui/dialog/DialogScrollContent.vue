@@ -51,7 +51,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <DialogClose
           class="absolute top-4 right-4 p-0.5 transition-colors rounded-md hover:bg-secondary"
         >
-          <X class="w-4 h-4" />
+          <X class="w-4 h-4" aria-hidden="true" />
           <span class="sr-only">Close</span>
         </DialogClose>
       </DialogContent>

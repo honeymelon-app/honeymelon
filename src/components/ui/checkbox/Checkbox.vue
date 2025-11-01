@@ -30,7 +30,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       class="grid place-content-center text-current transition-none"
     >
       <slot>
-        <Check class="size-3.5" />
+        <Check class="size-3.5" aria-hidden="true" />
       </slot>
     </CheckboxIndicator>
   </CheckboxRoot>

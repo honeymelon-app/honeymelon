@@ -34,8 +34,16 @@ const eta = computed(() => {
 
 <template>
   <div v-if="state.status === 'running'" class="space-y-2">
-    <Progress :model-value="progress" class="h-1.5" />
-    <div class="flex items-center justify-between text-xs text-muted-foreground">
+    <Progress
+      :model-value="progress"
+      class="h-1.5"
+      :aria-label="`Conversion progress: ${Math.round(progress)}% complete`"
+    />
+    <div
+      class="flex items-center justify-between text-xs text-muted-foreground"
+      aria-live="polite"
+      aria-atomic="false"
+    >
       <span>{{ Math.round(progress) }}% complete</span>
       <span v-if="eta">{{ formatDuration(eta) }} remaining</span>
     </div>

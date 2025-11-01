@@ -69,21 +69,21 @@ function handleClearCompleted() {
     </div>
     <div class="flex min-h-0 flex-1">
       <ScrollArea class="flex-1 min-h-0 [&_[data-slot=scroll-area-viewport]]:pb-6">
-        <div class="flex flex-col gap-3 pr-3">
-          <JobQueueItem
-            v-for="job in jobs"
-            :key="job.id"
-            :job-id="job.id"
-            :path="job.path"
-            :state="job.state"
-            :preset-id="job.presetId"
-            :available-presets="availablePresets"
-            :duration="job.summary?.durationSec"
-            @cancel="handleCancel"
-            @update-preset="handleUpdatePreset"
-            @start="handleStart"
-          />
-        </div>
+        <ul class="flex flex-col gap-3 pr-3" role="list">
+          <li v-for="job in jobs" :key="job.id">
+            <JobQueueItem
+              :job-id="job.id"
+              :path="job.path"
+              :state="job.state"
+              :preset-id="job.presetId"
+              :available-presets="availablePresets"
+              :duration="job.summary?.durationSec"
+              @cancel="handleCancel"
+              @update-preset="handleUpdatePreset"
+              @start="handleStart"
+            />
+          </li>
+        </ul>
       </ScrollArea>
     </div>
   </section>

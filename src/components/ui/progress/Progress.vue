@@ -23,6 +23,7 @@ const percentage = computed(() => {
   <div
     :class="cn('relative h-2 w-full overflow-hidden rounded-full bg-muted', props.class)"
     role="progressbar"
+    :aria-valuemin="0"
     :aria-valuenow="modelValue"
     :aria-valuemax="max"
   >

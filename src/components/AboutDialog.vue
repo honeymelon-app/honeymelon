@@ -34,10 +34,10 @@ async function openLicense() {
       <div
         class="flex h-12 w-12 items-center justify-center rounded-md border border-border bg-muted"
       >
-        <Info class="h-5 w-5 text-primary" />
+        <Info class="h-5 w-5 text-primary" aria-hidden="true" />
       </div>
       <div class="space-y-1">
-        <h2 class="text-xl font-semibold">Honeymelon</h2>
+        <h2 id="about-dialog-title" class="text-xl font-semibold">Honeymelon</h2>
         <p class="text-sm text-muted-foreground">Media converter for macOS</p>
         <Badge variant="secondary">Version {{ version }}</Badge>
         <p class="text-xs text-muted-foreground">Built {{ buildDate }}</p>
@@ -84,7 +84,7 @@ async function openLicense() {
       <div class="flex gap-2">
         <Button variant="outline" size="sm" @click="openLicense">License</Button>
         <Button size="sm" @click="openWebsite">
-          <ExternalLink class="mr-2 h-4 w-4" /> Website
+          <ExternalLink class="mr-2 h-4 w-4" aria-hidden="true" /> Website
         </Button>
       </div>
     </div>

@@ -159,8 +159,14 @@ async function handleOpenDiskAccessHelp() {
           </div>
 
           <div class="flex items-center gap-2">
-            <Button v-if="canStart" size="sm" class="h-8 px-3 cursor-pointer" @click="handleStart">
-              <Play class="mr-2 h-4 w-4" />
+            <Button
+              v-if="canStart"
+              size="sm"
+              class="h-8 px-3 cursor-pointer"
+              aria-label="Start conversion job"
+              @click="handleStart"
+            >
+              <Play class="mr-2 h-4 w-4" aria-hidden="true" />
               Start
             </Button>
             <Button
@@ -168,9 +174,10 @@ async function handleOpenDiskAccessHelp() {
               variant="ghost"
               size="icon"
               class="h-8 w-8 shrink-0 cursor-pointer"
+              aria-label="Cancel job"
               @click="handleCancel"
             >
-              <X class="h-4 w-4" />
+              <X class="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -187,11 +194,19 @@ async function handleOpenDiskAccessHelp() {
         <JobProgressBar :state="state" :duration="duration" />
 
         <!-- Status Message -->
-        <div class="flex flex-wrap items-center gap-2 text-xs">
+        <div
+          class="flex flex-wrap items-center gap-2 text-xs"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <Badge :variant="statusVariant">
             {{ statusLabel }}
           </Badge>
-          <span v-if="state.status === 'failed' && 'error' in state" class="text-red-500">
+          <span
+            v-if="state.status === 'failed' && 'error' in state"
+            class="text-red-500"
+            role="alert"
+          >
             {{ state.error }}
           </span>
           <Button

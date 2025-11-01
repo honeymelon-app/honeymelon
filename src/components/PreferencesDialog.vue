@@ -68,7 +68,7 @@ function clearOutputDirectory() {
           <Settings2 class="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h2 class="text-lg font-semibold">Preferences</h2>
+          <h2 id="preferences-dialog-title" class="text-lg font-semibold">Preferences</h2>
           <p class="text-xs text-muted-foreground">Adjust conversion defaults for this machine.</p>
         </div>
       </div>
@@ -94,6 +94,10 @@ function clearOutputDirectory() {
           max="4"
           step="1"
           class="w-full accent-primary"
+          :aria-valuemin="1"
+          :aria-valuenow="localConcurrency"
+          :aria-valuemax="4"
+          :aria-valuetext="`${localConcurrency} concurrent ${localConcurrency === 1 ? 'conversion' : 'conversions'}`"
         />
         <p class="text-xs text-muted-foreground">Recommended: 2 for most MacBooks.</p>
       </CardContent>
@@ -113,8 +117,13 @@ function clearOutputDirectory() {
           >
             {{ localOutputDir || 'Same as source file' }}
           </div>
-          <Button variant="outline" size="sm" @click="selectOutputDirectory">
-            <Folder class="h-4 w-4" />
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label="Select output directory"
+            @click="selectOutputDirectory"
+          >
+            <Folder class="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
         <Button

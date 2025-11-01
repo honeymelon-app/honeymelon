@@ -67,14 +67,14 @@ const {
 
   <!-- About Dialog -->
   <Dialog v-model:open="isAboutOpen" modal>
-    <DialogContent class="sm:max-w-md">
+    <DialogContent class="sm:max-w-md" aria-labelledby="about-dialog-title">
       <AboutDialog />
     </DialogContent>
   </Dialog>
 
   <!-- Preferences Dialog -->
   <Dialog v-model:open="isPreferencesOpen" modal>
-    <DialogContent class="sm:max-w-2xl pt-12">
+    <DialogContent class="sm:max-w-2xl pt-12" aria-labelledby="preferences-dialog-title">
       <ScrollArea class="max-h-[70vh] overflow-y-auto pr-2">
         <PreferencesDialog />
       </ScrollArea>

@@ -53,13 +53,19 @@ const uploadIconClasses = computed(() => [
   >
     <div class="flex flex-col items-center gap-4 text-center">
       <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-        <Upload :class="uploadIconClasses" />
+        <Upload :class="uploadIconClasses" aria-hidden="true" />
       </div>
       <div class="space-y-2">
         <h2 class="text-xl font-semibold">Drop your media files here</h2>
         <p class="text-sm text-muted-foreground">or click to browse your computer</p>
       </div>
-      <Button size="lg" :disabled="!presetsReady" @click="handleBrowse" class="cursor-pointer">
+      <Button
+        size="lg"
+        :disabled="!presetsReady"
+        @click="handleBrowse"
+        class="cursor-pointer"
+        aria-label="Choose media files to convert"
+      >
         Choose Files
       </Button>
     </div>
@@ -69,6 +75,7 @@ const uploadIconClasses = computed(() => [
       multiple
       type="file"
       accept="video/*,audio/*"
+      aria-label="Upload media files"
       @change="handleFileInput"
     />
   </div>
@@ -80,13 +87,14 @@ const uploadIconClasses = computed(() => [
     :class="compactDropZoneClasses"
   >
     <div class="flex items-center gap-3">
-      <Upload class="h-5 w-5 text-muted-foreground" />
+      <Upload class="h-5 w-5 text-muted-foreground" aria-hidden="true" />
       <span class="text-sm text-muted-foreground"> Drop more files here or </span>
       <Button
         variant="outline"
         size="sm"
         :disabled="!presetsReady"
         class="cursor-pointer"
+        aria-label="Browse for more media files"
         @click="handleBrowse"
       >
         Browse
@@ -98,6 +106,7 @@ const uploadIconClasses = computed(() => [
       multiple
       type="file"
       accept="video/*,audio/*"
+      aria-label="Upload more media files"
       @change="handleFileInput"
     />
   </div>

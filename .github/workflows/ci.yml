@@ -40,7 +40,12 @@ jobs:
       - name: Run ESLint (if configured)
         run: |
           if [ -f ".eslintrc.json" ] || [ -f ".eslintrc.js" ] || [ -f "eslint.config.js" ]; then
-            npm run lint:js || echo "No lint script found"
+            if npm run | grep -q "^  lint:js"; then
+              npm run lint:js
+            else
+              # Allow warnings for console.log and test files
+              npx eslint . --ext .js,.ts,.vue --max-warnings=50
+            fi
           else
             echo "ESLint not configured, skipping"
           fi
@@ -49,7 +54,11 @@ jobs:
       - name: Check Prettier formatting (if configured)
         run: |
           if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ] || [ -f "prettier.config.js" ]; then
-            npm run format:check:js || echo "Prettier check failed or not configured"
+            if npm run | grep -q "^  format:check:js"; then
+              npm run format:check:js
+            else
+              npx prettier . --check
+            fi
           else
             echo "Prettier not configured, skipping"
           fi
@@ -85,7 +94,7 @@ jobs:
         run: cd src-tauri && cargo test --all-features --lib
 
       - name: Run Rust integration tests
-        run: cd src-tauri && cargo test --test '*' --all-features 2>&1 || true
+        run: cd src-tauri && cargo test --test '*' --all-features
         continue-on-error: true
 
   # Job 3: Build Application
@@ -173,7 +182,7 @@ jobs:
       - name: Run Vitest frontend tests
         run: |
           if grep -q '"vitest"' package.json || [ -f "vitest.config.ts" ] || [ -f "vitest.config.js" ]; then
-            npm run test 2>&1 || npm run test:ui 2>&1 || echo "Vitest tests not configured yet, skipping"
+            npm run test:unit
           else
             echo "Vitest not configured, skipping frontend tests"
           fi
@@ -183,7 +192,12 @@ jobs:
   test-e2e:
     name: E2E Tests
     runs-on: macos-14
-    needs: lint
+    needs: build
+    env:
+      # ensure we don’t skip browser downloads
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "0"
+      # pin the cache location so cache hits are consistent
+      PLAYWRIGHT_BROWSERS_PATH: $HOME/Library/Caches/ms-playwright
 
     steps:
       - name: Checkout repository
@@ -208,24 +222,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Resolve Playwright version
+        id: pwv
+        run: echo "ver=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: ${{ runner.os }}-playwright-${{ steps.pwv.outputs.ver }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-${{ steps.pwv.outputs.ver }}-
+            ${{ runner.os }}-playwright-
+
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
       - name: Install FFmpeg (for capability detection)
         run: brew install ffmpeg
 
-      - name: Build application for E2E
-        run: npm run tauri dev &
-        continue-on-error: true
+      - name: Build frontend for E2E
+        run: npm run build
 
       - name: Run E2E tests
         run: |
-          if grep -q '"e2e"' package.json || [ -f "playwright.config.ts" ] || [ -d "e2e" ]; then
-            npm run test:e2e 2>&1 || echo "E2E tests not configured yet, skipping"
+          if [ -f "e2e/playwright.config.ts" ] || [ -d "e2e" ]; then
+            echo "Running Tauri E2E tests..."
+            npm run test:e2e
           else
-            echo "E2E tests not configured, skipping"
+            echo "E2E not configured, skipping"
           fi
         continue-on-error: true
+        env:
+          # Tauri E2E tests run the app internally
+          CI: true
 
   # Job 6: Security Audit
   security-audit:
