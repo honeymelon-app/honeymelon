@@ -2,6 +2,7 @@ use crate::{error::AppError, ffmpeg_capabilities::candidate_ffmpeg_paths};
 
 use once_cell::sync::Lazy;
 use serde::Serialize;
+use serde_json::json;
 use std::{
     collections::{HashMap, VecDeque},
     ffi::OsString,
@@ -18,6 +19,7 @@ use tauri::{AppHandle, Emitter};
 
 pub const PROGRESS_EVENT: &str = "ffmpeg://progress";
 pub const COMPLETION_EVENT: &str = "ffmpeg://completion";
+pub const STDERR_EVENT: &str = "ffmpeg://stderr";
 
 static RUNNER: Lazy<FfmpegRunner> = Lazy::new(FfmpegRunner::new);
 
@@ -230,6 +232,14 @@ impl FfmpegRunner {
                         Ok(value) => value,
                         Err(_) => break,
                     };
+                    eprintln!("[ffmpeg][{}] {}", job_id, line);
+                    let _ = app.emit(
+                        STDERR_EVENT,
+                        json!({
+                            "jobId": job_id.clone(),
+                            "line": line.clone(),
+                        }),
+                    );
                     process.push_log(&line);
                     let payload = ProgressPayload {
                         job_id: job_id.clone(),
@@ -438,6 +448,8 @@ fn parse_progress_line(line: &str) -> Option<ProgressMetrics> {
 
     for token in line.split_whitespace() {
         if let Some(value) = token.strip_prefix("time=") {
+            processed_seconds = parse_timecode(value);
+        } else if let Some(value) = token.strip_prefix("out_time=") {
             processed_seconds = parse_timecode(value);
         } else if let Some(value) = token.strip_prefix("fps=") {
             fps = value.parse::<f64>().ok();

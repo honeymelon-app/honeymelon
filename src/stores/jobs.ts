@@ -225,14 +225,43 @@ export const useJobsStore = defineStore('jobs', () => {
       if (job.state.status !== 'running') {
         return job;
       }
+      let nextProgress = {
+        ...job.state.progress,
+        ...progress,
+      };
+
+      if (
+        nextProgress.processedSeconds !== undefined &&
+        job.summary?.durationSec &&
+        job.summary.durationSec > 0
+      ) {
+        const ratio = Math.min(
+          Math.max(nextProgress.processedSeconds / job.summary.durationSec, 0),
+          1,
+        );
+        nextProgress = {
+          ...nextProgress,
+          ratio,
+        };
+
+        if (progress.speed === undefined && ratio > 0) {
+          const elapsed = performance.now() - job.state.startedAt;
+          if (elapsed > 0) {
+            const processedSeconds = nextProgress.processedSeconds;
+            const speed = (processedSeconds ?? 0) / (elapsed / 1000);
+            nextProgress = {
+              ...nextProgress,
+              speed,
+            };
+          }
+        }
+      }
+
       return {
         ...job,
         state: {
           ...job.state,
-          progress: {
-            ...job.state.progress,
-            ...progress,
-          },
+          progress: nextProgress,
         },
       };
     });

@@ -50,6 +50,7 @@ interface CompletionEventPayload {
 
 const PROGRESS_EVENT = 'ffmpeg://progress';
 const COMPLETION_EVENT = 'ffmpeg://completion';
+const STDERR_EVENT = 'ffmpeg://stderr';
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -77,6 +78,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   // Store unlisten functions for cleanup
   const unlistenProgress = ref<UnlistenFn | null>(null);
   const unlistenCompletion = ref<UnlistenFn | null>(null);
+  const unlistenStderr = ref<UnlistenFn | null>(null);
 
   if (typeof options.concurrency === 'number') {
     prefs.setPreferredConcurrency(options.concurrency);
@@ -133,6 +135,21 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         console.error('[orchestrator] Failed to setup progress listener:', error);
       });
 
+    listen<{ jobId: string; line: string }>(STDERR_EVENT, (event) => {
+      const payload = event.payload;
+      if (!payload?.jobId || typeof payload.line !== 'string') {
+        return;
+      }
+      console.error(`[ffmpeg][${payload.jobId}] ${payload.line}`);
+      jobs.appendLog(payload.jobId, payload.line);
+    })
+      .then((unlisten) => {
+        unlistenStderr.value = unlisten;
+      })
+      .catch((error) => {
+        console.error('[orchestrator] Failed to setup stderr listener:', error);
+      });
+
     listen<CompletionEventPayload>(COMPLETION_EVENT, (event) => {
       const payload = event.payload;
       if (!payload?.jobId) {
@@ -184,6 +201,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     // Clean up Tauri event listeners
     unlistenProgress.value?.();
     unlistenCompletion.value?.();
+    unlistenStderr.value?.();
 
     // Clean up any running simulation timers
     simulatedJobs.forEach((timer) => {
@@ -389,7 +407,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     const outputPath = buildOutputPath(job, decision);
     jobs.setOutputPath(jobId, outputPath);
 
-    const args = ['-y', '-i', job?.path ?? '', ...decision.ffmpegArgs];
+    const args = ['-y', '-nostdin', '-progress', 'pipe:2', '-i', job?.path ?? '', ...decision.ffmpegArgs];
 
     try {
       console.debug('[orchestrator] run -> start_job', { jobId, args, outputPath, exclusive });
@@ -429,17 +447,22 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
 
     const rawBaseName = sourcePath ? stripExtension(pathBasename(sourcePath)) : preset.id;
 
-    const segments: string[] = [rawBaseName || 'output'];
-    const separator = filenameSeparator.value || '-';
+    let fileName = `${rawBaseName || 'output'}.${extension}`;
 
-    if (includePresetInName.value) {
-      segments.push(slugify(preset.id));
-    }
-    if (includeTierInName.value && job?.tier) {
-      segments.push(job.tier);
+    if (includePresetInName.value || includeTierInName.value) {
+      const segments: string[] = [rawBaseName || 'output'];
+      const separator = filenameSeparator.value || '-';
+
+      if (includePresetInName.value) {
+        segments.push(slugify(preset.id));
+      }
+      if (includeTierInName.value && job?.tier) {
+        segments.push(job.tier);
+      }
+
+      fileName = `${segments.filter(Boolean).join(separator)}.${extension}`;
     }
 
-    const fileName = `${segments.filter(Boolean).join(separator)}.${extension}`;
     return baseDir ? joinPath(baseDir, fileName) : fileName;
   }
 

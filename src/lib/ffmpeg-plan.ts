@@ -1,7 +1,7 @@
 import { CONTAINER_RULES } from './container-rules';
 import type { ContainerRule } from './container-rules';
 import { DEFAULT_PRESET_ID, PRESETS } from './presets';
-import type { CapabilitySnapshot, ACodec, Preset, ProbeSummary, Tier, VCodec } from './types';
+import type { CapabilitySnapshot, ACodec, Container, Preset, ProbeSummary, Tier, VCodec } from './types';
 
 const VIDEO_ENCODERS: Record<VCodec, string | null> = {
   copy: 'copy',
@@ -258,6 +258,11 @@ export function planJob(context: PlannerContext): PlannerDecision {
     notes.push('Applied faststart for fragmented MP4/MOV.');
   }
 
+  const muxer = muxerForContainer(preset.container);
+  if (muxer) {
+    args.push('-f', muxer);
+  }
+
   const remuxOnly =
     videoAction === 'copy' && audioAction === 'copy' && subtitlePlan.mode === 'copy';
 
@@ -320,6 +325,11 @@ function planGifJob(context: PlannerContext, preset: Preset): PlannerDecision {
     '-sn',
   ];
 
+  const muxer = muxerForContainer(preset.container);
+  if (muxer) {
+    args.push('-f', muxer);
+  }
+
   notes.push(`Video: transcode to GIF at ${targetFps} fps with palette optimisation.`);
   notes.push('Audio: dropped for GIF export.');
   notes.push('Subtitles: drop for GIF export.');
@@ -331,6 +341,29 @@ function planGifJob(context: PlannerContext, preset: Preset): PlannerDecision {
     notes,
     warnings,
   };
+}
+
+function muxerForContainer(container: Container): string | undefined {
+  switch (container) {
+    case 'mp4':
+    case 'mov':
+    case 'm4a':
+      return 'mp4';
+    case 'mkv':
+      return 'matroska';
+    case 'webm':
+      return 'webm';
+    case 'gif':
+      return 'gif';
+    case 'mp3':
+      return 'mp3';
+    case 'flac':
+      return 'flac';
+    case 'wav':
+      return 'wav';
+    default:
+      return undefined;
+  }
 }
 
 interface SubtitlePlanDecision {
