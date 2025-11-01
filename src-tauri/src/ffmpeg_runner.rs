@@ -121,28 +121,49 @@ impl FfmpegRunner {
             ));
         }
 
-        if self.contains(&job_id) {
-            return Err(AppError::new(
-                "job_already_running",
-                format!("Job {job_id} is already running."),
-            ));
+        // Validate arguments for security - prevent command injection
+        for arg in &args {
+            if arg.contains(';')
+                || arg.contains('|')
+                || arg.contains('&')
+                || arg.starts_with("$(")
+                || arg.contains("`")
+            {
+                return Err(AppError::new(
+                    "job_invalid_args",
+                    format!("Unsafe argument detected: {}", arg),
+                ));
+            }
         }
 
-        let current_active = self.active_count()?;
+        // Atomic check-and-reserve: acquire lock once for all validation
+        {
+            let guard = self.processes.lock().expect("process mutex poisoned");
 
-        if exclusive && current_active > 0 {
-            return Err(AppError::new(
-                "job_exclusive_blocked",
-                "Exclusive job requested while other jobs are active.",
-            ));
-        }
+            if guard.contains_key(&job_id) {
+                return Err(AppError::new(
+                    "job_already_running",
+                    format!("Job {job_id} is already running."),
+                ));
+            }
 
-        let limit = self.max_concurrency.load(Ordering::SeqCst).max(1);
-        if current_active >= limit {
-            return Err(AppError::new(
-                "job_concurrency_limit",
-                format!("Concurrency limit reached ({limit}); defer job start."),
-            ));
+            let current_active = guard.len();
+
+            if exclusive && current_active > 0 {
+                return Err(AppError::new(
+                    "job_exclusive_blocked",
+                    "Exclusive job requested while other jobs are active.",
+                ));
+            }
+
+            let limit = self.max_concurrency.load(Ordering::SeqCst).max(1);
+            if current_active >= limit {
+                return Err(AppError::new(
+                    "job_concurrency_limit",
+                    format!("Concurrency limit reached ({limit}); defer job start."),
+                ));
+            }
+            // Lock released here - validation complete, proceed to spawn
         }
 
         let ffmpeg_path = self.resolve_ffmpeg_path(&app).ok_or_else(|| {
@@ -300,8 +321,11 @@ impl FfmpegRunner {
                     let detail = format!("Failed to finalize output file: {err}");
                     message = Some(detail.clone());
                     process.push_log(&detail);
+                    // Clean up temp file on rename failure
+                    let _ = fs::remove_file(&temp_capture);
                 }
             } else {
+                // Clean up temp file on failure or cancellation
                 let _ = fs::remove_file(&temp_capture);
             }
 
@@ -357,19 +381,6 @@ impl FfmpegRunner {
         }
 
         Ok(false)
-    }
-
-    fn contains(&self, job_id: &str) -> bool {
-        let guard = self.processes.lock().expect("process mutex poisoned");
-        guard.contains_key(job_id)
-    }
-
-    fn active_count(&self) -> Result<usize, AppError> {
-        let guard = self
-            .processes
-            .lock()
-            .map_err(|_| AppError::new("job_registry_poisoned", "process mutex poisoned"))?;
-        Ok(guard.len())
     }
 
     fn remove(&self, job_id: &str) {
@@ -638,7 +649,8 @@ mod tests {
         let runner = FfmpegRunner::new();
 
         // Should start with 0 active jobs
-        assert_eq!(runner.active_count().unwrap(), 0);
+        let guard = runner.processes.lock().unwrap();
+        assert_eq!(guard.len(), 0);
     }
 
     #[test]

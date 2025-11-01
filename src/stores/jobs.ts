@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
+import { LIMITS } from '@/lib/constants';
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
 import type { JobProgress, JobState, ProbeSummary, Tier } from '@/lib/types';
 
@@ -203,8 +204,8 @@ export const useJobsStore = defineStore('jobs', () => {
     updateJob(id, (job) => {
       const logs = job.logs ?? [];
       const newLogs = [...logs, line];
-      if (newLogs.length > 500) {
-        newLogs.splice(0, newLogs.length - 500);
+      if (newLogs.length > LIMITS.JOB_LOG_MAX_LINES) {
+        newLogs.splice(0, newLogs.length - LIMITS.JOB_LOG_MAX_LINES);
       }
       return {
         ...job,

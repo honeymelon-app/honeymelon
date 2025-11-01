@@ -2,18 +2,13 @@
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import JobStatusBadge from '@/components/JobStatusBadge.vue';
+import JobProgressBar from '@/components/JobProgressBar.vue';
+import PresetSelector from '@/components/PresetSelector.vue';
 import { formatFileSize, formatDuration, pathBasename, getFileExtension } from '@/lib/utils';
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
 import type { JobState, Preset } from '@/lib/types';
-import { File, CheckCircle2, XCircle, Clock, Loader2, AlertCircle, X, Play } from 'lucide-vue-next';
+import { X, Play } from 'lucide-vue-next';
 
 interface JobQueueItemProps {
   jobId: string;
@@ -61,92 +56,33 @@ const presetChoices = computed(() =>
   filteredPresets.value.length ? filteredPresets.value : props.availablePresets,
 );
 
-const selectedPreset = computed(() => presetChoices.value.find((p) => p.id === props.presetId));
-
-const statusInfo = computed(() => {
+const statusLabel = computed(() => {
   const state = props.state;
-
   switch (state.status) {
     case 'queued':
-      return {
-        label: 'Waiting',
-        icon: Clock,
-        color: 'text-muted-foreground',
-        bgColor: 'bg-muted',
-      };
+      return 'Waiting';
     case 'probing':
-      return {
-        label: 'Analyzing',
-        icon: Loader2,
-        color: 'text-blue-500',
-        bgColor: 'bg-blue-500/10',
-        spin: true,
-      };
+      return 'Analyzing';
     case 'planning':
-      return {
-        label: 'Planning',
-        icon: Loader2,
-        color: 'text-blue-500',
-        bgColor: 'bg-blue-500/10',
-        spin: true,
-      };
+      return 'Planning';
     case 'running':
-      return {
-        label: 'Converting',
-        icon: Loader2,
-        color: 'text-primary',
-        bgColor: 'bg-primary/10',
-        spin: true,
-      };
+      return 'Converting';
     case 'completed':
-      return {
-        label: 'Done',
-        icon: CheckCircle2,
-        color: 'text-green-500',
-        bgColor: 'bg-green-500/10',
-      };
+      return 'Done';
     case 'failed':
-      return {
-        label: 'Failed',
-        icon: AlertCircle,
-        color: 'text-red-500',
-        bgColor: 'bg-red-500/10',
-      };
+      return 'Failed';
     case 'cancelled':
-      return {
-        label: 'Cancelled',
-        icon: XCircle,
-        color: 'text-orange-500',
-        bgColor: 'bg-orange-500/10',
-      };
+      return 'Cancelled';
     default:
-      return {
-        label: 'Unknown',
-        icon: File,
-        color: 'text-muted-foreground',
-        bgColor: 'bg-muted',
-      };
+      return 'Unknown';
   }
 });
 
-const progress = computed(() => {
-  if (props.state.status !== 'running') return 0;
-  const processed = props.state.progress.processedSeconds ?? 0;
-  const total = props.duration ?? 0;
-  if (total <= 0) return 0;
-  return Math.min((processed / total) * 100, 100);
-});
-
-const eta = computed(() => {
-  if (props.state.status !== 'running') return null;
-  const processed = props.state.progress.processedSeconds ?? 0;
-  const total = props.duration ?? 0;
-  const speed = props.state.progress.speed ?? 0;
-
-  if (total <= 0 || speed <= 0 || processed <= 0) return null;
-
-  const remaining = total - processed;
-  return Math.ceil(remaining / speed);
+const statusVariant = computed(() => {
+  const state = props.state;
+  if (state.status === 'completed') return 'default';
+  if (state.status === 'failed') return 'destructive';
+  return 'secondary';
 });
 
 const canChangePreset = computed(() => {
@@ -179,14 +115,8 @@ function handleCancel() {
   emit('cancel', props.jobId);
 }
 
-function handlePresetChange(newPresetId: unknown) {
-  if (typeof newPresetId === 'string') {
-    const available = presetChoices.value.some((preset) => preset.id === newPresetId);
-    if (!available) {
-      return;
-    }
-    emit('updatePreset', props.jobId, newPresetId);
-  }
+function handlePresetChange(newPresetId: string) {
+  emit('updatePreset', props.jobId, newPresetId);
 }
 
 function handleStart() {
@@ -209,17 +139,7 @@ async function handleOpenDiskAccessHelp() {
   >
     <div class="flex items-start gap-4">
       <!-- Status Icon -->
-      <div
-        :class="[
-          'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-          statusInfo.bgColor,
-        ]"
-      >
-        <component
-          :is="statusInfo.icon"
-          :class="['h-5 w-5', statusInfo.color, statusInfo.spin && 'animate-spin']"
-        />
-      </div>
+      <JobStatusBadge :state="state" />
 
       <!-- Content -->
       <div class="flex-1 space-y-3">
@@ -255,50 +175,21 @@ async function handleOpenDiskAccessHelp() {
           </div>
         </div>
 
-        <!-- Format Selector or Display -->
-        <div class="flex items-center gap-3">
-          <span class="text-xs text-muted-foreground">Convert to:</span>
-          <Select
-            v-if="canChangePreset"
-            :model-value="presetId"
-            @update:model-value="handlePresetChange"
-          >
-            <SelectTrigger class="h-8 w-auto min-w-[180px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="preset in presetChoices" :key="preset.id" :value="preset.id">
-                {{ preset.label }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Badge v-else-if="selectedPreset" variant="secondary" class="text-xs">
-            {{ selectedPreset?.label || presetId }}
-          </Badge>
-          <span v-else class="text-xs text-muted-foreground">No compatible outputs</span>
-        </div>
+        <!-- Preset Selector -->
+        <PresetSelector
+          :preset-id="presetId"
+          :available-presets="presetChoices"
+          :editable="canChangePreset"
+          @update="handlePresetChange"
+        />
 
-        <!-- Progress Bar (only when running) -->
-        <div v-if="state.status === 'running'" class="space-y-2">
-          <Progress :model-value="progress" class="h-1.5" />
-          <div class="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{{ Math.round(progress) }}% complete</span>
-            <span v-if="eta">{{ formatDuration(eta) }} remaining</span>
-          </div>
-        </div>
+        <!-- Progress Bar -->
+        <JobProgressBar :state="state" :duration="duration" />
 
         <!-- Status Message -->
         <div class="flex flex-wrap items-center gap-2 text-xs">
-          <Badge
-            :variant="
-              state.status === 'completed'
-                ? 'default'
-                : state.status === 'failed'
-                  ? 'destructive'
-                  : 'secondary'
-            "
-          >
-            {{ statusInfo.label }}
+          <Badge :variant="statusVariant">
+            {{ statusLabel }}
           </Badge>
           <span v-if="state.status === 'failed' && 'error' in state" class="text-red-500">
             {{ state.error }}

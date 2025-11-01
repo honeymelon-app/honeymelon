@@ -1,11 +1,11 @@
 import { computed, ref } from 'vue';
 
 import { defineStore } from 'pinia';
+import { LIMITS, DEFAULTS } from '@/lib/constants';
 
-const MIN_CONCURRENCY = 1;
-const DEFAULT_CONCURRENCY = 2;
-
-const DEFAULT_FILENAME_SEPARATOR = '-';
+const MIN_CONCURRENCY = LIMITS.MIN_CONCURRENCY;
+const DEFAULT_CONCURRENCY = LIMITS.DEFAULT_CONCURRENCY;
+const DEFAULT_FILENAME_SEPARATOR = DEFAULTS.FILENAME_SEPARATOR;
 
 export const usePrefsStore = defineStore('prefs', () => {
   const preferredConcurrency = ref<number>(DEFAULT_CONCURRENCY);

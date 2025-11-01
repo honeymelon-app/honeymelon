@@ -1,5 +1,6 @@
 import { CONTAINER_RULES } from './container-rules';
 import type { ContainerRule } from './container-rules';
+import { LIMITS, DEFAULTS } from './constants';
 import { DEFAULT_PRESET_ID, PRESETS } from './presets';
 import type {
   CapabilitySnapshot,
@@ -286,31 +287,35 @@ export function planJob(context: PlannerContext): PlannerDecision {
 function planGifJob(context: PlannerContext, preset: Preset): PlannerDecision {
   const notes: string[] = [];
   const warnings: string[] = [];
-  const fallbackWidth = 480;
-  const maxWidth = 640;
 
-  if (context.summary.durationSec > 20) {
+  if (context.summary.durationSec > LIMITS.GIF_MAX_DURATION_SEC) {
     warnings.push(
-      'GIF preset performs best on clips under ~20 seconds; consider trimming the source.',
+      `GIF preset performs best on clips under ~${LIMITS.GIF_MAX_DURATION_SEC} seconds; consider trimming the source.`,
     );
   }
 
   const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
   const sourceFps = context.summary.fps ?? 0;
-  const targetFps = clamp(Math.round(sourceFps) || 12, 2, 20);
+  const targetFps = clamp(
+    Math.round(sourceFps) || DEFAULTS.GIF_DEFAULT_FPS,
+    LIMITS.GIF_MIN_FPS,
+    LIMITS.GIF_MAX_FPS,
+  );
   if (!context.summary.fps) {
-    notes.push('Video: using default 12 fps for GIF output.');
+    notes.push(`Video: using default ${DEFAULTS.GIF_DEFAULT_FPS} fps for GIF output.`);
   } else if (Math.abs(targetFps - sourceFps) >= 1) {
     notes.push(`Video: fps clamped from ${Math.round(sourceFps)} → ${targetFps} for GIF output.`);
   }
 
   const measuredWidth =
-    context.summary.width && context.summary.width > 0 ? context.summary.width : fallbackWidth;
-  const limitedWidth = clamp(measuredWidth, 2, maxWidth);
+    context.summary.width && context.summary.width > 0
+      ? context.summary.width
+      : DEFAULTS.GIF_FALLBACK_WIDTH;
+  const limitedWidth = clamp(measuredWidth, LIMITS.GIF_MIN_WIDTH, LIMITS.GIF_MAX_WIDTH);
   const evenWidth = limitedWidth % 2 === 0 ? limitedWidth : limitedWidth - 1;
-  const finalWidth = evenWidth >= 2 ? evenWidth : fallbackWidth;
-  if (context.summary.width && context.summary.width > maxWidth) {
+  const finalWidth = evenWidth >= LIMITS.GIF_MIN_WIDTH ? evenWidth : DEFAULTS.GIF_FALLBACK_WIDTH;
+  if (context.summary.width && context.summary.width > LIMITS.GIF_MAX_WIDTH) {
     notes.push(`Video: width limited to ${finalWidth}px to keep GIF size manageable.`);
   }
 
@@ -351,27 +356,20 @@ function planGifJob(context: PlannerContext, preset: Preset): PlannerDecision {
   };
 }
 
+const CONTAINER_TO_MUXER: Partial<Record<Container, string>> = {
+  mp4: 'mp4',
+  mov: 'mp4',
+  m4a: 'mp4',
+  mkv: 'matroska',
+  webm: 'webm',
+  gif: 'gif',
+  mp3: 'mp3',
+  flac: 'flac',
+  wav: 'wav',
+};
+
 function muxerForContainer(container: Container): string | undefined {
-  switch (container) {
-    case 'mp4':
-    case 'mov':
-    case 'm4a':
-      return 'mp4';
-    case 'mkv':
-      return 'matroska';
-    case 'webm':
-      return 'webm';
-    case 'gif':
-      return 'gif';
-    case 'mp3':
-      return 'mp3';
-    case 'flac':
-      return 'flac';
-    case 'wav':
-      return 'wav';
-    default:
-      return undefined;
-  }
+  return CONTAINER_TO_MUXER[container];
 }
 
 interface SubtitlePlanDecision {
