@@ -15,6 +15,12 @@ const progress = computed(() => {
   if (props.state.status !== 'running') return 0;
   const processed = props.state.progress.processedSeconds ?? 0;
   const total = props.duration ?? 0;
+  console.debug('[JobProgressBar] Computing progress:', {
+    status: props.state.status,
+    processed,
+    total,
+    progressPercent: total > 0 ? (processed / total) * 100 : 0,
+  });
   if (total <= 0) return 0;
   return Math.min((processed / total) * 100, 100);
 });

@@ -222,8 +222,15 @@ export const useJobsStore = defineStore('jobs', () => {
   }
 
   function updateProgress(id: JobId, progress: JobProgress) {
+    console.debug('[JobStore] updateProgress called:', {
+      jobId: id,
+      progress,
+      currentJobState: jobs.value.find((j) => j.id === id)?.state.status,
+      currentSummary: jobs.value.find((j) => j.id === id)?.summary,
+    });
     updateJob(id, (job) => {
       if (job.state.status !== 'running') {
+        console.debug('[JobStore] Skipping progress update - job not running:', job.state.status);
         return job;
       }
       let nextProgress = {

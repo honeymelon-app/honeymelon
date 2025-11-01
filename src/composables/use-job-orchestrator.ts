@@ -30,7 +30,7 @@ interface OrchestratorOptions {
 interface ProgressEventPayload {
   jobId: string;
   progress?: {
-    processed_seconds?: number;
+    processedSeconds?: number;
     fps?: number;
     speed?: number;
   };
@@ -125,7 +125,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         return;
       }
       jobs.updateProgress(payload.jobId, {
-        processedSeconds: payload.progress?.processed_seconds,
+        processedSeconds: payload.progress?.processedSeconds,
         fps: payload.progress?.fps,
         speed: payload.progress?.speed,
       });
