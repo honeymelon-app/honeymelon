@@ -1,7 +1,7 @@
 import type { Container, MediaKind } from './types';
 
-export const VIDEO_CONTAINERS: Container[] = ['mp4', 'mov', 'mkv', 'webm', 'gif'];
-export const AUDIO_CONTAINERS: Container[] = ['m4a', 'mp3', 'flac', 'wav'];
+export const VIDEO_CONTAINERS = ['mp4', 'mov', 'mkv', 'webm', 'gif'] as const;
+export const AUDIO_CONTAINERS = ['m4a', 'mp3', 'flac', 'wav'] as const;
 
 const EXTENSION_TO_CONTAINER: Record<string, Container> = {
   mp4: 'mp4',
@@ -29,17 +29,17 @@ export function inferContainerFromPath(path: string): Container | undefined {
 }
 
 export function mediaKindForContainer(container: Container): MediaKind {
-  if (VIDEO_CONTAINERS.includes(container)) {
+  if ((VIDEO_CONTAINERS as readonly Container[]).includes(container)) {
     return 'video';
   }
-  if (AUDIO_CONTAINERS.includes(container)) {
+  if ((AUDIO_CONTAINERS as readonly Container[]).includes(container)) {
     return 'audio';
   }
   // Treat anything else as video by default to avoid hard failures.
   return 'video';
 }
 
-export function listTargetContainers(kind: MediaKind): Container[] {
+export function listTargetContainers(kind: MediaKind): readonly Container[] {
   if (kind === 'audio') {
     return AUDIO_CONTAINERS;
   }

@@ -64,6 +64,7 @@ export default [
         prompt: 'readonly',
         alert: 'readonly',
         confirm: 'readonly',
+        performance: 'readonly',
       },
     },
     plugins: {
@@ -144,6 +145,7 @@ export default [
         prompt: 'readonly',
         alert: 'readonly',
         confirm: 'readonly',
+        performance: 'readonly',
       },
     },
     plugins: {

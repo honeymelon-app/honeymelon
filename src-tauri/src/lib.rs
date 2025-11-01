@@ -272,12 +272,14 @@ pub fn run() {
                         }
                     },
                     "toggle_devtools" => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            if window.is_devtools_open() {
-                                window.close_devtools();
-                            } else {
-                                window.open_devtools();
-                            }
+                        // Note: In Tauri v2, devtools access has changed.
+                        // For macOS, you can right-click in the app and select "Inspect Element"
+                        // or use Safari's developer tools to debug the webview.
+                        #[cfg(debug_assertions)]
+                        {
+                            eprintln!(
+                                "DevTools: Right-click in the app and select 'Inspect Element'"
+                            );
                         }
                     },
                     _ => {

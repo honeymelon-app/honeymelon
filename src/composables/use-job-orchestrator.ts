@@ -407,7 +407,15 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     const outputPath = buildOutputPath(job, decision);
     jobs.setOutputPath(jobId, outputPath);
 
-    const args = ['-y', '-nostdin', '-progress', 'pipe:2', '-i', job?.path ?? '', ...decision.ffmpegArgs];
+    const args = [
+      '-y',
+      '-nostdin',
+      '-progress',
+      'pipe:2',
+      '-i',
+      job?.path ?? '',
+      ...decision.ffmpegArgs,
+    ];
 
     try {
       console.debug('[orchestrator] run -> start_job', { jobId, args, outputPath, exclusive });

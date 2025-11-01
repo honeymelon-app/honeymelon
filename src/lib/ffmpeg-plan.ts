@@ -1,7 +1,15 @@
 import { CONTAINER_RULES } from './container-rules';
 import type { ContainerRule } from './container-rules';
 import { DEFAULT_PRESET_ID, PRESETS } from './presets';
-import type { CapabilitySnapshot, ACodec, Container, Preset, ProbeSummary, Tier, VCodec } from './types';
+import type {
+  CapabilitySnapshot,
+  ACodec,
+  Container,
+  Preset,
+  ProbeSummary,
+  Tier,
+  VCodec,
+} from './types';
 
 const VIDEO_ENCODERS: Record<VCodec, string | null> = {
   copy: 'copy',

@@ -53,13 +53,12 @@ export function loadCapabilities(): Promise<CapabilitySnapshot> {
 }
 
 export function presetIsAvailable(
-  preset: Preset,
-  capabilities: CapabilitySnapshot | undefined,
+  _preset: Preset,
+  _capabilities: CapabilitySnapshot | undefined,
 ): boolean {
   return true;
 }
 
-export function availablePresets(capabilities: CapabilitySnapshot | undefined): Preset[] {
-  const _ = capabilities;
+export function availablePresets(_capabilities: CapabilitySnapshot | undefined): Preset[] {
   return PRESETS;
 }
