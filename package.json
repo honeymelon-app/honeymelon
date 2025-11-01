@@ -48,7 +48,10 @@
     "test:e2e:ui": "playwright test -c e2e/playwright.config.ts --ui",
     "test:e2e:debug": "playwright test -c e2e/playwright.config.ts --debug",
     "lint-staged": "lint-staged",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.16",
@@ -96,6 +99,7 @@
     "typescript": "~5.6.2",
     "vite": "^6.0.3",
     "vite-tsconfig-paths": "^5.1.4",
+    "vitepress": "^2.0.0-alpha.12",
     "vitest": "^4.0.5",
     "vue-eslint-parser": "^9.4.3",
     "vue-tsc": "^2.1.10"

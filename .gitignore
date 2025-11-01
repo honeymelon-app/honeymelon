@@ -114,3 +114,6 @@ src-tauri/tauri.conf.json.backup
 # yarn.lock
 # pnpm-lock.yaml
 # Cargo.lock
+
+docs/.vitepress/dist
+docs/.vitepress/cache

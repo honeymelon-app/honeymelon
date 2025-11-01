@@ -14,8 +14,34 @@ A professional media converter application designed exclusively for macOS Apple 
 
 ---
 
+## Documentation
+
+**[View Full Documentation](./docs/)**
+
+Comprehensive documentation is available in the `docs/` directory, built with VitePress:
+
+- **[User Guide](./docs/guide/)** - Getting started, converting files, presets, batch processing, and more
+- **[Architecture](./docs/architecture/)** - Technical deep-dive into the conversion pipeline, FFmpeg integration, and state management
+- **[Development](./docs/development/)** - Contributing guidelines, building from source, and testing
+- **[Legal](./docs/legal/)** - License compliance and third-party notices
+
+### Quick Start
+
+```bash
+# View documentation locally
+npm run docs:dev
+
+# Build documentation
+npm run docs:build
+```
+
+Visit <http://localhost:5173> when running the dev server.
+
+---
+
 ## Table of Contents
 
+- [Documentation](#documentation)
 - [Overview](#overview)
 - [System Requirements](#system-requirements)
 - [Supported Formats](#supported-formats)
@@ -221,10 +247,12 @@ Honeymelon implements a three-stage conversion pipeline optimized for quality an
 **Special Cases**:
 
 - **GIF output**: Uses complex filter chain for palette generation:
+
   ```
   [0:v]fps=<fps>,scale=<width>:-2:flags=lanczos,split[s0][s1];
   [s0]palettegen=stats_mode=single[p];[s1][p]paletteuse[out]
   ```
+
 - **Color metadata**: Copied when transcoding and `copyColorMetadata: true`
 - **Subtitle conversion**: Text subs → mov_text for MP4, kept as-is for MKV
 
@@ -533,11 +561,14 @@ See [Building from Source](#building-from-source) section below.
 **Target Architectures**:
 
 - **Apple Silicon only** (default):
+
   ```bash
   npm run tauri:build
   # or: npm run tauri:build -- --target aarch64-apple-darwin
   ```
+
 - **Universal binary** (Apple Silicon + Intel):
+
   ```bash
   npm run tauri:build:universal
   # or: npm run tauri:build -- --target universal-apple-darwin
@@ -887,7 +918,7 @@ cd src-tauri && cargo fmt --all
 
 **Honeymelon is proprietary software**. All rights are reserved by the copyright holder. The source code, binaries, and documentation are confidential and may not be used, copied, modified, or distributed without explicit written permission from Jerome Thayananthajothy.
 
-For commercial licensing inquiries, please contact tjthavarshan@gmail.com.
+For commercial licensing inquiries, please contact <tjthavarshan@gmail.com>.
 
 ### FFmpeg Licensing
 
@@ -964,9 +995,9 @@ Distribution of Honeymelon requires explicit written permission from the copyrig
 1. **LICENSE** file (Proprietary license for Honeymelon)
 2. **LICENSES/FFMPEG-LGPL.txt** (FFmpeg LGPL license)
 3. **THIRD_PARTY_NOTICES.md** (all dependency attributions)
-4. Link to FFmpeg source code: https://ffmpeg.org/download.html
+4. Link to FFmpeg source code: <https://ffmpeg.org/download.html>
 
-For licensing inquiries, contact: tjthavarshan@gmail.com
+For licensing inquiries, contact: <tjthavarshan@gmail.com>
 
 ---
 
@@ -977,15 +1008,19 @@ For licensing inquiries, contact: tjthavarshan@gmail.com
 **Conversion fails immediately with error**
 
 - **Check FFmpeg availability**:
+
   ```bash
   which ffmpeg
   ffmpeg -version
   ```
+
 - **Verify encoder support**:
+
   ```bash
   ffmpeg -encoders | grep <encoder_name>
   # Example: ffmpeg -encoders | grep libx264
   ```
+
 - **Check application logs**: Open Console.app, filter by "Honeymelon", look for error messages
 
 **Progress stuck at 0%**
@@ -1167,7 +1202,7 @@ Copyright (c) 2025 Jerome Thayananthajothy <tjthavarshan@gmail.com>
 
 This software is proprietary and confidential. Unauthorized copying, distribution, modification, or use of this software, via any medium, is strictly prohibited without explicit written permission from the copyright holder.
 
-For licensing inquiries, please contact: tjthavarshan@gmail.com
+For licensing inquiries, please contact: <tjthavarshan@gmail.com>
 
 ### FFmpeg
 

@@ -1,209 +1,86 @@
 # Contributing to Honeymelon
 
-Thank you for your interest in contributing to Honeymelon!
-
-## IMPORTANT: Proprietary Software Notice
-
-**Honeymelon is proprietary software.** By contributing to this project, you agree that:
-
-1. All contributions will become the property of Jerome Thayananthajothy
-2. Your contributions will be subject to Honeymelon's proprietary license
-3. You grant Jerome Thayananthajothy perpetual, irrevocable, worldwide rights to use, modify, and distribute your contributions
-4. You waive all rights to your contributions except for attribution
-
-**Contributor License Agreement**: By submitting a pull request, you certify that you have the right to grant these terms and that your contribution is your original work.
-
----
-
-## Table of Contents
-
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [How to Contribute](#how-to-contribute)
-- [Pull Request Process](#pull-request-process)
-- [Coding Standards](#coding-standards)
-- [Commit Guidelines](#commit-guidelines)
-- [Testing](#testing)
-- [Documentation](#documentation)
+Thank you for your interest in contributing to Honeymelon! This guide will help you get started with development and explain our contribution workflow.
 
 ## Code of Conduct
 
-This project adheres to a Code of Conduct that all contributors are expected to follow. Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
+We are committed to providing a welcoming and inclusive environment. Please be respectful and constructive in all interactions.
 
 ## Getting Started
 
+### Prerequisites
+
+Before you begin, ensure you have:
+
+- **macOS 13.0+** (Ventura or later)
+- **Apple Silicon Mac** (M1, M2, M3, M4)
+- **Node.js 18+** and npm
+- **Rust** (latest stable)
+- **Xcode Command Line Tools**
+
+### Initial Setup
+
 1. **Fork the repository** on GitHub
-2. **Clone your fork** locally:
+
+2. **Clone your fork**:
+
    ```bash
    git clone https://github.com/honeymelon-app/honeymelon.git
    cd honeymelon
    ```
-3. **Add the upstream repository**:
-   ```bash
-   git remote add upstream https://github.com/ORIGINAL_OWNER/honeymelon.git
-   ```
 
-## Development Setup
-
-### Prerequisites
-
-- macOS 13.0 (Ventura) or later
-- Apple Silicon (M1, M2, M3, etc.)
-- Xcode and Command Line Tools
-- Rust (install via [rustup](https://rustup.rs/))
-- Node.js 18+ and npm
-- FFmpeg installed on your system
-
-### Installation
-
-1. **Install dependencies**:
+3. **Install dependencies**:
 
    ```bash
    npm install
    ```
 
-2. **Set up pre-commit hooks** (recommended):
-
-   ```bash
-   npm run prepare
-   ```
-
-   This installs git hooks that automatically lint and format your code before each commit.
-
-3. **Run in development mode**:
-
+4. **Verify setup**:
    ```bash
    npm run tauri:dev
    ```
 
-4. **Build for production**:
-   ```bash
-   npm run tauri:build
-   ```
+The app should launch successfully.
 
-For detailed build instructions, see [BUILD.md](BUILD.md).
+## Development Workflow
 
-## How to Contribute
+### Branch Strategy
 
-### Reporting Bugs
+- `main`: Stable, production-ready code
+- `develop`: Integration branch for features (if used)
+- `feature/feature-name`: Individual features
+- `fix/bug-description`: Bug fixes
 
-Before creating a bug report, please check existing issues to avoid duplicates. When creating a bug report, include:
+### Creating a Feature
 
-- **Clear title and description**
-- **Steps to reproduce** the issue
-- **Expected behavior** vs **actual behavior**
-- **Screenshots** if applicable
-- **Environment details**: macOS version, chip type (M1/M2/M3), app version
-- **Log files** if available
-
-Use the [Bug Report template](.github/ISSUE_TEMPLATE/bug_report.md) when creating an issue.
-
-### Suggesting Enhancements
-
-Enhancement suggestions are tracked as GitHub issues. When creating an enhancement suggestion, include:
-
-- **Clear title and description**
-- **Use cases** for the enhancement
-- **Expected behavior** if implemented
-- **Mockups or examples** if applicable
-
-Use the [Feature Request template](.github/ISSUE_TEMPLATE/feature_request.md) when creating an issue.
-
-### Contributing Code
-
-We welcome code contributions! Here are some areas where you can help:
-
-- **Bug fixes**: Fix reported bugs or issues you discover
-- **Features**: Implement new features (discuss in an issue first for large changes)
-- **Performance**: Optimize existing code
-- **Documentation**: Improve or add documentation
-- **UI/UX**: Enhance the user interface and experience
-- **Tests**: Add or improve test coverage
-
-## Pull Request Process
-
-1. **Create a branch** for your work:
+1. **Create a branch**:
 
    ```bash
    git checkout -b feature/your-feature-name
-   # or
-   git checkout -b fix/bug-description
    ```
 
-2. **Make your changes** following our [Coding Standards](#coding-standards)
-
-3. **Test your changes** thoroughly:
+2. **Make changes** with frequent commits:
 
    ```bash
-   npm run tauri:dev
-   npm run build
+   git add .
+   git commit -m "feat: add new feature"
    ```
 
-4. **Commit your changes** following our [Commit Guidelines](#commit-guidelines)
+3. **Keep updated**:
 
-5. **Push to your fork**:
+   ```bash
+   git fetch origin
+   git rebase origin/main
+   ```
 
+4. **Push and create PR**:
    ```bash
    git push origin feature/your-feature-name
    ```
 
-6. **Open a Pull Request** on GitHub with:
-   - Clear title describing the change
-   - Description of what changed and why
-   - Reference to any related issues (e.g., "Fixes #123")
-   - Screenshots for UI changes
+### Commit Messages
 
-7. **Respond to feedback** from maintainers
-
-8. **Ensure CI passes** - all checks must be green
-
-### Pull Request Guidelines
-
-- Keep PRs focused on a single feature or fix
-- Update documentation for new features
-- Add tests for new functionality
-- Ensure backward compatibility when possible
-- Keep the PR description up to date with changes
-- Be responsive to review feedback
-
-## Coding Standards
-
-### TypeScript
-
-- Use **TypeScript strict mode**
-- Follow existing code style
-- Use **meaningful variable and function names**
-- Add **JSDoc comments** for complex functions
-- Prefer **composition over inheritance**
-- Use **Vue 3 Composition API** with `<script setup>`
-
-### Vue Components
-
-- Use **single-file components** (.vue)
-- Follow **Vue 3 style guide**
-- Use **TypeScript** for script sections
-- Use **scoped styles** when appropriate
-- Keep components **small and focused**
-
-### Rust
-
-- Follow **Rust conventions** and idioms
-- Use **clippy** for linting
-- Keep Tauri commands **minimal and auditable**
-- Handle errors properly with `Result` types
-- Document public APIs
-
-### CSS/Styling
-
-- Use **Tailwind CSS** utility classes
-- Follow existing design patterns
-- Ensure **accessibility** (WCAG 2.1 AA)
-- Test on different screen sizes
-
-## Commit Guidelines
-
-We follow [Conventional Commits](https://www.conventionalcommits.org/) specification:
+We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 <type>(<scope>): <subject>
@@ -213,166 +90,414 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/) specifica
 <footer>
 ```
 
-### Types
+**Types**:
 
-- **feat**: New feature
-- **fix**: Bug fix
-- **docs**: Documentation changes
-- **style**: Code style changes (formatting, no logic change)
-- **refactor**: Code refactoring
-- **perf**: Performance improvements
-- **test**: Adding or updating tests
-- **chore**: Maintenance tasks, dependency updates
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `style`: Formatting, no code change
+- `refactor`: Code change without adding feature or fixing bug
+- `perf`: Performance improvement
+- `test`: Adding tests
+- `chore`: Maintenance tasks
 
-### Examples
+**Examples**:
 
-```
-feat(ui): add dark mode toggle to preferences
-
-Adds a dark/light/auto theme selector in the preferences window.
-Users can now choose their preferred theme.
-
-Closes #42
+```bash
+feat(jobs): add pause/resume functionality
+fix(ffmpeg): handle spaces in file paths
+docs(architecture): update pipeline diagram
+test(stores): add job state transition tests
 ```
 
+## Project Structure
+
 ```
-fix(conversion): handle files with spaces in path
+honeymelon/
+├── src/                    # Vue frontend
+│   ├── app.vue            # Root component
+│   ├── lib/               # Core logic
+│   ├── stores/            # Pinia stores
+│   ├── composables/       # Vue composables
+│   └── components/        # Vue components
+│
+├── src-tauri/             # Rust backend
+│   ├── src/
+│   │   ├── lib.rs        # Main entry
+│   │   ├── ffmpeg_*.rs   # FFmpeg integration
+│   │   └── ...
+│   └── Cargo.toml        # Rust dependencies
+│
+├── docs/                  # Documentation
+├── e2e/                   # E2E tests
+└── public/                # Static assets
+```
 
-Properly escape file paths with spaces when passing to FFmpeg.
-Previously, conversions would fail for such files.
+## Code Style
 
-Fixes #89
+### TypeScript/Vue
+
+We use ESLint and Prettier:
+
+```bash
+# Check linting
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Format code
+npm run format
+```
+
+**Key conventions**:
+
+- Use `<script setup lang="ts">` for components
+- Prefer `const` over `let`
+- Use type inference when possible
+- Name components in PascalCase
+- Use kebab-case for file names
+
+**Example**:
+
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+
+interface Props {
+  title: string;
+  count?: number;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  count: 0,
+});
+
+const doubled = computed(() => props.count * 2);
+</script>
+```
+
+### Rust
+
+We use Clippy and rustfmt:
+
+```bash
+# Check Rust code
+npm run lint:rust
+
+# Format Rust code
+npm run format:rust
+```
+
+**Key conventions**:
+
+- Follow Rust API guidelines
+- Use `Result<T, E>` for error handling
+- Prefer `async/await` over callbacks
+- Document public APIs with `///` comments
+
+**Example**:
+
+```rust
+/// Probes a media file using FFprobe
+///
+/// # Arguments
+///
+/// * `file_path` - Path to the media file
+///
+/// # Returns
+///
+/// * `Ok(ProbeResult)` - Parsed metadata
+/// * `Err(String)` - Error message
+pub async fn probe_media(file_path: &str) -> Result<ProbeResult, String> {
+    // Implementation
+}
 ```
 
 ## Testing
 
-### Automated Testing
+### Frontend Tests
 
-We use both unit tests and E2E tests:
-
-#### Unit Tests
-
-Unit tests are written using [Vitest](https://vitest.dev/) and test individual functions and components.
+**Run unit tests**:
 
 ```bash
-# Run unit tests once
 npm run test:unit
+```
 
-# Run unit tests in watch mode
+**Watch mode**:
+
+```bash
 npm run test:unit:watch
+```
 
-# Run unit tests with UI
-npm run test:unit:ui
+**Coverage**:
 
-# Run unit tests with coverage
+```bash
 npm run test:unit:coverage
 ```
 
-When adding unit tests:
+**Writing tests**:
 
-- Write tests for utility functions in `src/lib/`
-- Test complex business logic (planning, probing, etc.)
-- Mock external dependencies (FFmpeg, Tauri commands)
-- Keep tests fast and deterministic
+```typescript
+import { describe, it, expect } from 'vitest';
+import { mount } from '@vue/test-utils';
+import JobQueueItem from '@/components/JobQueueItem.vue';
 
-#### E2E Tests
+describe('JobQueueItem', () => {
+  it('renders job information', () => {
+    const wrapper = mount(JobQueueItem, {
+      props: {
+        job: {
+          id: '1',
+          status: 'queued',
+          sourceFile: '/path/to/file.mp4',
+        },
+      },
+    });
 
-E2E tests are written using [Playwright](https://playwright.dev/) and test the complete application workflow.
+    expect(wrapper.text()).toContain('file.mp4');
+  });
+});
+```
+
+### Backend Tests
+
+**Run Rust tests**:
 
 ```bash
-# Run E2E tests
+cd src-tauri
+cargo test
+```
+
+**Writing tests**:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_ffprobe_output() {
+        let json = r#"{"format": {"duration": "10.5"}}"#;
+        let result = parse_probe_result(json).unwrap();
+        assert_eq!(result.duration, 10.5);
+    }
+
+    #[tokio::test]
+    async fn test_async_function() {
+        let result = probe_media("test.mp4").await;
+        assert!(result.is_ok());
+    }
+}
+```
+
+### E2E Tests
+
+**Run E2E tests**:
+
+```bash
 npm run test:e2e
+```
 
-# Run E2E tests with UI
+**UI mode**:
+
+```bash
 npm run test:e2e:ui
-
-# Debug E2E tests
-npm run test:e2e:debug
 ```
 
-See [e2e/README.md](e2e/README.md) for more details on writing E2E tests.
+**Writing E2E tests**:
 
-#### Running All Tests
+```typescript
+import { test, expect } from '@playwright/test';
+
+test('converts a video file', async ({ page }) => {
+  await page.goto('http://localhost:1420');
+
+  // Add file to queue
+  await page.click('[data-testid="add-file"]');
+  // ... interact with app
+
+  await expect(page.locator('.job-completed')).toBeVisible();
+});
+```
+
+## Pull Request Process
+
+### Before Submitting
+
+1. **Update tests**: Add/update tests for your changes
+2. **Run linters**: `npm run lint` and `npm run lint:rust`
+3. **Run tests**: `npm run test`
+4. **Update docs**: Document new features or API changes
+5. **Test manually**: Ensure the app works as expected
+
+### PR Checklist
+
+- [ ] Code follows style guidelines
+- [ ] Tests pass locally
+- [ ] New features have tests
+- [ ] Documentation is updated
+- [ ] Commit messages follow convention
+- [ ] No console errors or warnings
+- [ ] PR description explains changes
+
+### PR Template
+
+```markdown
+## Description
+
+Brief description of changes
+
+## Type of Change
+
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+
+How was this tested?
+
+## Screenshots
+
+If applicable
+
+## Related Issues
+
+Closes #123
+```
+
+### Review Process
+
+1. **Automated checks** must pass (linting, tests)
+2. **Code review** by maintainer(s)
+3. **Changes requested** (if needed)
+4. **Approval** from maintainer
+5. **Merge** to main branch
+
+## Development Guidelines
+
+### Adding a New Feature
+
+1. **Plan**: Discuss the feature in an issue first
+2. **Design**: Consider architecture and user experience
+3. **Implement**: Write code with tests
+4. **Document**: Update relevant documentation
+5. **Review**: Submit PR for review
+
+### Fixing a Bug
+
+1. **Reproduce**: Ensure you can reproduce the bug
+2. **Write test**: Create a failing test that demonstrates the bug
+3. **Fix**: Implement the fix
+4. **Verify**: Ensure the test passes
+5. **Submit**: Create PR with fix
+
+### Refactoring
+
+1. **Tests first**: Ensure existing tests pass
+2. **Small changes**: Make incremental refactorings
+3. **Test coverage**: Maintain or improve test coverage
+4. **Document**: Explain why the refactor was needed
+
+## Common Tasks
+
+### Adding a New Preset
+
+1. Edit [src/lib/presets.ts](../../src/lib/presets.ts)
+2. Add preset definition
+3. Add tests for the preset
+4. Update documentation
+
+### Adding a New Codec
+
+1. Update [src/lib/container-rules.ts](../../src/lib/container-rules.ts)
+2. Add codec compatibility rules
+3. Update capability detection if needed
+4. Add tests
+5. Update supported formats documentation
+
+### Updating Dependencies
+
+**Frontend**:
 
 ```bash
-npm test
+npm update
+npm audit fix
 ```
 
-This runs both unit and E2E tests.
-
-### Manual Testing
-
-Before submitting a PR, please also test manually:
-
-1. **Basic functionality**: Drag and drop files, select presets, convert
-2. **Edge cases**: Large files, special characters in filenames, various formats
-3. **UI responsiveness**: Different window sizes, user interactions
-4. **Error handling**: Invalid files, canceled operations
-
-### Pre-commit Hooks
-
-We use [Husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged) to automatically check your code before commits.
-
-The pre-commit hook runs:
-
-- **ESLint** on JavaScript/TypeScript/Vue files (with auto-fix)
-- **Prettier** on all supported file types (with auto-format)
-- **Rust fmt** on Rust files
-
-To set up pre-commit hooks:
+**Backend**:
 
 ```bash
-npm run prepare
+cd src-tauri
+cargo update
+cargo audit
 ```
 
-After setup, the hooks will run automatically on every `git commit`. If there are issues, the commit will be blocked until they're fixed.
-
-To bypass hooks (not recommended):
+**Verify**:
 
 ```bash
-git commit --no-verify
+npm run test
+npm run build
 ```
 
-#### Manual Linting and Formatting
+## Debugging
 
-You can also run these checks manually:
+### Frontend Debugging
+
+**Browser DevTools**:
+
+- Press `Cmd + Option + I` in the app
+- Use Vue DevTools extension
+- Check console for errors
+
+**VS Code**:
+
+```json
+{
+  "type": "chrome",
+  "request": "launch",
+  "name": "Debug Honeymelon",
+  "url": "http://localhost:1420",
+  "webRoot": "${workspaceFolder}/src"
+}
+```
+
+### Backend Debugging
+
+**Rust debugging**:
+
+```rust
+// Add debug prints
+println!("Debug: {:?}", value);
+
+// Or use dbg! macro
+dbg!(value);
+```
+
+**Logs**:
 
 ```bash
-# Lint and fix all code
-npm run lint:fix
-
-# Format all code
-npm run format
-
-# Check formatting without changes
-npm run format:check
-
-# Type-check TypeScript
-npm run type-check
+# Run with debug logging
+RUST_LOG=debug npm run tauri:dev
 ```
 
-## Documentation
+## Getting Help
 
-Good documentation helps everyone:
+- **Documentation**: Check our [docs](https://docs.honeymelon.app)
+- **Issues**: Search existing issues on GitHub
+- **Discussions**: Start a discussion for questions
+- **Email**: tjthavarshan@gmail.com
 
-- **Code comments**: Explain "why" not "what"
-- **README.md**: Keep it up to date with changes
-- **CLAUDE.md**: Update for architectural changes
-- **Inline docs**: Add JSDoc/rustdoc for public APIs
-- **Examples**: Provide examples for complex features
+## Resources
 
-## Questions?
-
-If you have questions about contributing:
-
-- Check existing [GitHub Discussions](../../discussions)
-- Open a new discussion
-- Ask in the relevant issue thread
+- [Tauri Documentation](https://tauri.app/v1/guides/)
+- [Vue 3 Documentation](https://vuejs.org/)
+- [Rust Book](https://doc.rust-lang.org/book/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [FFmpeg Documentation](https://ffmpeg.org/documentation.html)
 
 ## License
 
-By contributing to Honeymelon, you agree that your contributions will be licensed under the MIT License.
-
----
-
-Thank you for contributing to Honeymelon!
+By contributing, you agree that your contributions will be licensed under the same license as the project (Proprietary).

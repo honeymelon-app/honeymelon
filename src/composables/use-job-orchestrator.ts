@@ -116,6 +116,11 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   if (!simulate) {
     listen<ProgressEventPayload>(PROGRESS_EVENT, (event) => {
       const payload = event.payload;
+      console.log('[orchestrator] Progress event received:', {
+        jobId: payload?.jobId,
+        progress: payload?.progress,
+        raw: payload?.raw?.substring(0, 100),
+      });
       if (!payload?.jobId) {
         return;
       }

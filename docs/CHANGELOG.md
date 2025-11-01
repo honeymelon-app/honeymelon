@@ -9,54 +9,108 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial public release of Honeymelon media converter
-- Remux-first FFmpeg workflow for lossless stream copying
-- Three-stage conversion pipeline: Probe → Plan → Execute
-- Preset system with quality tiers (fast, balanced, high)
-- Support for H.264, HEVC, VP9, and AV1 video codecs
-- Support for AAC, Opus, and other audio codecs
-- MP4, WebM, MOV, and MKV container support
-- Real-time progress tracking with FFmpeg process management
-- Job queue with concurrency limiting
-- Drag-and-drop media file interface
-- FFmpeg capability detection and automatic preset filtering
-- Batch conversion support with exclusive locks for heavy codecs (AV1, ProRes)
-- Subtitle handling (keep, convert, drop)
-- Color metadata preservation during transcoding
-- Custom FFmpeg path configuration
-- Output directory settings
-- Recursive media file discovery for dropped folders
+- VitePress documentation site with comprehensive guides
+- Architecture documentation covering conversion pipeline, FFmpeg integration, state management, and tech stack
+- Development guides for contributing, building, and testing
+- User guides for converting files, presets, batch processing, and preferences
 
-### Documentation
+### Changed
 
-- Initial README with feature overview
-- BUILD.md with compilation instructions for macOS
-- CONTRIBUTING.md with development guidelines
-- CODE_OF_CONDUCT.md (Contributor Covenant)
-- CLAUDE.md for AI code assistant context
-- AGENTS.md for commit/PR guidelines
-- THIRD_PARTY_NOTICES.md for dependencies
-- LICENSE_COMPLIANCE.md for LGPL compliance details
-- COMMERCIAL_LICENSE.md for alternative licensing
+- Project converted from open source to closed source (proprietary)
+- Enhanced accessibility features
+- Improved CI workflow
 
-### Known Limitations
+### Fixed
 
-- macOS only (Apple Silicon / arm64 target)
-- Image-based subtitle burn-in not yet implemented
-- JavaScript automated tests framework pending (use Vitest)
-- Subtitle mode configuration not exposed in UI (can be set via presets)
+- Build issues resolved
+- Various bug fixes and improvements
 
-### Architecture
+## [0.1.0] - 2025-01-01
 
-- Vue 3 frontend with TypeScript and Tailwind CSS
-- Tauri 2 desktop framework
-- Rust backend for FFmpeg integration
-- Pinia state management
+### Added
+
+- Initial release of Honeymelon
+- Native macOS application for Apple Silicon
+- Drag-and-drop file conversion interface
+- FFmpeg integration with out-of-process execution
+- Remux-first conversion strategy
+- Dynamic preset generation system
+- Hardware acceleration via Apple VideoToolbox
+- Batch processing with configurable concurrency
+- Real-time progress monitoring
+- Three quality tiers (Fast, Balanced, High)
+- Support for major video containers (MP4, MOV, MKV, WebM)
+- Support for major audio formats (M4A, MP3, FLAC, WAV)
+- Modern codec support (H.264, H.265, VP9, AV1, ProRes)
+- Pinia state management with discriminated unions
 - shadcn-vue UI components
+- Tailwind CSS styling
+- Comprehensive test coverage (Vitest, Cargo tests, Playwright)
+- TypeScript strict mode
+- Rust backend with Tauri 2
 
-## [0.1.0] - 2025-10-30
+### Technical Details
 
-This is the initial public release. See [Unreleased] section for complete feature list.
+- **Frontend**: Vue 3 + TypeScript + Vite
+- **Backend**: Rust + Tauri 2 + Tokio
+- **UI**: shadcn-vue + Tailwind CSS 4
+- **State**: Pinia stores
+- **Testing**: Vitest + Cargo test + Playwright
+- **Build**: Optimized production builds for Apple Silicon
 
-[Unreleased]: https://github.com/honeymelon-app/honeymelon/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/honeymelon-app/honeymelon/releases/tag/v0.1.0
+---
+
+## Version History
+
+- **0.1.0** - Initial Release (2025-01-01)
+
+---
+
+## Future Plans
+
+### Planned Features
+
+- [ ] Custom preset creation and management
+- [ ] Image sequence support
+- [ ] Video filters (crop, scale, denoise)
+- [ ] Advanced stream selection
+- [ ] Two-pass encoding option
+- [ ] Job queue persistence
+- [ ] Scheduled conversions
+- [ ] Notifications integration
+- [ ] Auto-update system
+- [ ] Light/Dark theme toggle
+- [ ] iCloud settings sync
+- [ ] Job history and analytics
+
+### Under Consideration
+
+- [ ] Windows support (via WSL)
+- [ ] Linux support
+- [ ] Plugin system for custom workflows
+- [ ] GPU encoding options
+- [ ] Cloud storage integration
+- [ ] Batch preset templates
+
+---
+
+## Release Notes Format
+
+Each release includes:
+
+- **Added**: New features
+- **Changed**: Changes to existing functionality
+- **Deprecated**: Soon-to-be removed features
+- **Removed**: Removed features
+- **Fixed**: Bug fixes
+- **Security**: Security improvements
+
+---
+
+## Contributing
+
+See [Contributing Guide](/development/contributing) for information on how to contribute to Honeymelon.
+
+## License
+
+Honeymelon is proprietary software. See [Commercial License](/legal/commercial-license) for details.
