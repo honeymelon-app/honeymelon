@@ -123,9 +123,10 @@ pub fn run() {
 
             // App menu (Honeymelon)
             let about_item = MenuItemBuilder::with_id("about", "About Honeymelon").build(app)?;
-            let preferences_item = MenuItemBuilder::with_id("preferences", "Preferences...")
-                .accelerator("CmdOrCtrl+,")
-                .build(app)?;
+            // Preferences menu item removed per user requirements
+            // let preferences_item = MenuItemBuilder::with_id("preferences", "Preferences...")
+            //     .accelerator("CmdOrCtrl+,")
+            //     .build(app)?;
             let hide_item = MenuItemBuilder::with_id("hide", "Hide Honeymelon")
                 .accelerator("CmdOrCtrl+H")
                 .build(app)?;
@@ -140,8 +141,9 @@ pub fn run() {
             let app_menu = SubmenuBuilder::new(app, "Honeymelon")
                 .item(&about_item)
                 .separator()
-                .item(&preferences_item)
-                .separator()
+                // Preferences menu item removed
+                // .item(&preferences_item)
+                // .separator()
                 .item(&hide_item)
                 .item(&hide_others_item)
                 .item(&show_all_item)
@@ -236,9 +238,10 @@ pub fn run() {
                     "about" => {
                         let _ = app.emit("menu:about", ());
                     },
-                    "preferences" => {
-                        let _ = app.emit("menu:preferences", ());
-                    },
+                    // Preferences menu handler removed per user requirements
+                    // "preferences" => {
+                    //     let _ = app.emit("menu:preferences", ());
+                    // },
                     "quit" => {
                         app.exit(0);
                     },

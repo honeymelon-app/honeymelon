@@ -50,7 +50,7 @@ function handleClearCompleted() {
 </script>
 
 <template>
-  <section v-if="jobs.length > 0" class="flex flex-1 min-h-0 flex-col space-y-4">
+  <section v-if="jobs.length > 0" class="space-y-4">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <h2 class="text-lg font-semibold">{{ title }}</h2>
@@ -67,24 +67,23 @@ function handleClearCompleted() {
         Clear All
       </Button>
     </div>
-    <div class="flex min-h-0 flex-1">
-      <ScrollArea class="flex-1 min-h-0 [&_[data-slot=scroll-area-viewport]]:pb-6">
-        <ul class="flex flex-col gap-3 pr-3" role="list">
-          <li v-for="job in jobs" :key="job.id">
-            <JobQueueItem
-              :job-id="job.id"
-              :path="job.path"
-              :state="job.state"
-              :preset-id="job.presetId"
-              :available-presets="availablePresets"
-              :duration="job.summary?.durationSec"
-              @cancel="handleCancel"
-              @update-preset="handleUpdatePreset"
-              @start="handleStart"
-            />
-          </li>
-        </ul>
-      </ScrollArea>
-    </div>
+    <ScrollArea class="h-[350px] w-full">
+      <div class="divide-y divide-muted -my-3">
+        <JobQueueItem
+          v-for="job in jobs"
+          :key="job.id"
+          :job-id="job.id"
+          :path="job.path"
+          :state="job.state"
+          :preset-id="job.presetId"
+          :available-presets="availablePresets"
+          :duration="job.summary?.durationSec"
+          @cancel="handleCancel"
+          @update-preset="handleUpdatePreset"
+          @start="handleStart"
+        />
+      </div>
+      <div class="h-14">&nbsp;</div>
+    </ScrollArea>
   </section>
 </template>

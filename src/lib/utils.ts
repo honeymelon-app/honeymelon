@@ -102,3 +102,21 @@ export function getFileExtension(filename: string): string {
   if (dotIndex <= 0) return '';
   return basename.slice(dotIndex + 1).toUpperCase();
 }
+
+export function formatPath(path?: string): string {
+  if (!path) return '';
+
+  let formatted = path.replace(/\\/g, '/').replace(/^\//, '').replace(/\//g, ' → ');
+
+  if (formatted.length > 40) {
+    formatted = formatted.slice(formatted.lastIndexOf('→') + 2);
+  }
+
+  return formatted;
+}
+
+export function extractFileName(name: string): string {
+  const lastDot = name.lastIndexOf('.');
+  if (lastDot === -1) return name;
+  return name.slice(0, lastDot);
+}

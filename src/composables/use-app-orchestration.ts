@@ -25,7 +25,6 @@ export function useAppOrchestration() {
   const defaultPresetId = ref(DEFAULT_PRESET_ID);
   const isDragOver = ref(false);
   const isAboutOpen = ref(false);
-  const isPreferencesOpen = ref(false);
 
   const jobsStore = useJobsStore();
   const { jobs } = storeToRefs(jobsStore);
@@ -148,10 +147,6 @@ export function useAppOrchestration() {
     isAboutOpen.value = true;
   }
 
-  function openPreferences() {
-    isPreferencesOpen.value = true;
-  }
-
   useTauriEvents({
     onDrop: handleFileDrop,
     onDragEnter: () => {
@@ -162,7 +157,6 @@ export function useAppOrchestration() {
     },
     onMenuOpen: handleBrowse,
     onMenuAbout: openAbout,
-    onMenuPreferences: openPreferences,
   });
 
   onMounted(async () => {
@@ -195,7 +189,6 @@ export function useAppOrchestration() {
     hasNoJobs,
     presetOptions,
     isAboutOpen,
-    isPreferencesOpen,
 
     // Handlers
     handleFileInput,
@@ -207,6 +200,5 @@ export function useAppOrchestration() {
     cancelAll,
     clearCompleted,
     openAbout,
-    openPreferences,
   };
 }

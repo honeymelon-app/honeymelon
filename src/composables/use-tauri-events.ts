@@ -7,18 +7,16 @@ interface UseTauriEventsOptions {
   onDragLeave?: () => void;
   onMenuOpen?: () => void | Promise<void>;
   onMenuAbout?: () => void;
-  onMenuPreferences?: () => void;
 }
 
 export function useTauriEvents(options: UseTauriEventsOptions = {}) {
-  const { onDrop, onDragEnter, onDragLeave, onMenuOpen, onMenuAbout, onMenuPreferences } = options;
+  const { onDrop, onDragEnter, onDragLeave, onMenuOpen, onMenuAbout } = options;
 
   const unlistenDrop = ref<UnlistenFn | null>(null);
   const unlistenEnter = ref<UnlistenFn | null>(null);
   const unlistenLeave = ref<UnlistenFn | null>(null);
   const unlistenMenuOpen = ref<UnlistenFn | null>(null);
   const unlistenMenuAbout = ref<UnlistenFn | null>(null);
-  const unlistenMenuPreferences = ref<UnlistenFn | null>(null);
 
   function isTauriRuntime(): boolean {
     return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -63,12 +61,6 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
         onMenuAbout();
       });
     }
-
-    if (onMenuPreferences) {
-      unlistenMenuPreferences.value = await listen('menu:preferences', () => {
-        onMenuPreferences();
-      });
-    }
   }
 
   function cleanupEventListeners() {
@@ -77,7 +69,6 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
     unlistenLeave.value?.();
     unlistenMenuOpen.value?.();
     unlistenMenuAbout.value?.();
-    unlistenMenuPreferences.value?.();
   }
 
   onMounted(() => {

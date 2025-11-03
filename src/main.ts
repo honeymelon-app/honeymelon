@@ -4,6 +4,7 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 
 import App from './app.vue';
+import { i18n } from '@/lib/i18n';
 
 const app = createApp(App);
 
@@ -32,6 +33,7 @@ if (import.meta.env.DEV) {
 }
 
 app.use(createPinia());
+app.use(i18n);
 app.mount('#app');
 
 // Global error handler for unhandled promise rejections
