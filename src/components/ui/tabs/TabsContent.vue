@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { type HTMLAttributes, computed } from 'vue';
-import {
-  TabsContent,
-  type TabsContentProps,
-  useForwardProps,
-} from 'reka-ui';
+import { TabsContent, type TabsContentProps, useForwardProps } from 'reka-ui';
 import { cn } from '@/lib/utils';
 
 const props = defineProps<TabsContentProps & { class?: HTMLAttributes['class'] }>();
 
 const delegatedProps = computed(() => {
+  // eslint-disable-next-line no-unused-vars
   const { class: _, ...delegated } = props;
 
   return delegated;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { Preset, JobState } from '@/lib/types';
 import JobQueueSection from '@/components/JobQueueSection.vue';
 
@@ -28,29 +29,20 @@ interface JobQueueProps {
 }
 
 const props = defineProps<JobQueueProps>();
+
+// Merge active and completed jobs into a single list
+const allJobs = computed(() => [...props.activeJobs, ...props.completedJobs]);
 </script>
 
 <template>
-  <!-- Active Queue -->
+  <!-- Unified Queue -->
   <JobQueueSection
-    v-if="props.hasActiveJobs"
-    :jobs="props.activeJobs"
-    title="Converting"
-    variant="active"
+    v-if="!props.hasNoJobs"
+    :jobs="allJobs"
+    title="Queue"
+    variant="unified"
     :available-presets="props.presetOptions"
-    @cancel="props.onCancelJob"
-    @update-preset="props.onUpdatePreset"
-    @start="props.onStartJob"
-  />
-
-  <!-- Completed Jobs -->
-  <JobQueueSection
-    v-if="props.hasCompletedJobs"
-    :jobs="props.completedJobs"
-    title="Completed"
-    variant="completed"
-    :available-presets="props.presetOptions"
-    :show-clear-button="true"
+    :show-clear-button="props.hasCompletedJobs"
     @cancel="props.onCancelJob"
     @update-preset="props.onUpdatePreset"
     @start="props.onStartJob"
@@ -58,7 +50,7 @@ const props = defineProps<JobQueueProps>();
   />
 
   <!-- Empty State -->
-  <div v-if="props.hasNoJobs" class="flex flex-1 items-center justify-center py-12">
+  <div v-if="props.hasNoJobs" class="flex items-center justify-center py-24">
     <div class="text-center text-muted-foreground">
       <p class="text-sm">No files in queue</p>
     </div>

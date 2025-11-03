@@ -53,6 +53,11 @@ const COMPLETION_EVENT = 'ffmpeg://completion';
 const STDERR_EVENT = 'ffmpeg://stderr';
 
 type ProgressMetrics = ProgressEventPayload['progress'];
+interface NotificationModule {
+  isPermissionGranted: () => Promise<boolean>;
+  requestPermission: () => Promise<'granted' | 'denied' | 'default'>;
+  sendNotification: (options: { title: string; body: string }) => Promise<void>;
+}
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -76,6 +81,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   const capabilities = ref<CapabilitySnapshot>();
   const simulatedJobs = new Map<string, number>();
   const simulate = options.simulate ?? !isTauriRuntime();
+  let notificationModulePromise: Promise<NotificationModule | null> | null = null;
 
   // Store unlisten functions for cleanup
   const unlistenProgress = ref<UnlistenFn | null>(null);
@@ -116,21 +122,11 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     });
 
   if (!simulate) {
-    console.log('[orchestrator] Setting up progress event listener for:', PROGRESS_EVENT);
     listen<ProgressEventPayload>(PROGRESS_EVENT, (event) => {
       const payload = event.payload;
       const rawFallback = parseProgressFromRaw(payload?.raw);
       const mergedProgress = mergeProgressMetrics(payload?.progress, rawFallback);
-      console.log('[orchestrator] Progress event received:', {
-        jobId: payload?.jobId,
-        progress: mergedProgress,
-        processedSeconds: mergedProgress?.processedSeconds,
-        fps: mergedProgress?.fps,
-        speed: mergedProgress?.speed,
-        hasProgress: !!mergedProgress,
-        usedFallback: !!rawFallback && !payload?.progress,
-        raw: payload?.raw?.substring(0, 100),
-      });
+
       if (!payload?.jobId) {
         return;
       }
@@ -201,6 +197,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       if (payload.success) {
         const job = jobs.getJob(payload.jobId);
         jobs.markCompleted(payload.jobId, job?.outputPath ?? '');
+        void notifyJobResult(payload);
       } else {
         const errorMessage =
           payload.message ??
@@ -208,6 +205,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
             ? `FFmpeg exited with code ${payload.exitCode}`
             : 'FFmpeg process terminated unexpectedly.');
         jobs.markFailed(payload.jobId, errorMessage, payload.code ?? undefined);
+        void notifyJobResult(payload);
       }
 
       if (autoStartNext) {
@@ -266,11 +264,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       return;
     }
 
-    console.debug('[orchestrator] startNextAvailable -> starting job', {
-      jobId: job.id,
-      presetId: job.presetId,
-    });
-
     try {
       const summary = await probe(job.path);
       jobs.markPlanning(job.id, summary);
@@ -286,11 +279,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         return;
       }
 
-      console.debug('[orchestrator] startNextAvailable -> invoking run', {
-        jobId: job.id,
-        presetId: decision.preset.id,
-        exclusive,
-      });
       jobs.setExclusive(job.id, exclusive);
       jobs.markRunning(job.id, decision);
 
@@ -322,7 +310,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       return;
     }
 
-    console.debug('[orchestrator] startJob requested', { jobId, path, presetId, tier });
     jobs.markProbing(jobId);
 
     try {
@@ -340,11 +327,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         return;
       }
 
-      console.debug('[orchestrator] startJob -> invoking run', {
-        jobId,
-        presetId: decision.preset.id,
-        exclusive,
-      });
       jobs.setExclusive(jobId, exclusive);
       jobs.markRunning(jobId, decision);
 
@@ -438,14 +420,12 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     const args = ['-y', '-nostdin', '-i', job?.path ?? '', ...decision.ffmpegArgs];
 
     try {
-      console.debug('[orchestrator] run -> start_job', { jobId, args, outputPath, exclusive });
       await invokeStartJob({
         jobId: jobId,
         args,
         outputPath: outputPath,
         exclusive,
       });
-      console.debug('[orchestrator] run -> start_job dispatched', jobId);
       return true;
     } catch (error) {
       const details = parseErrorDetails(error);
@@ -531,7 +511,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         fps: 30,
         speed: 1,
       });
-      console.debug('[orchestrator] simulated progress tick', { jobId, elapsed, totalDuration });
 
       if (elapsed >= totalDuration) {
         window.clearInterval(timer);
@@ -588,6 +567,85 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  async function prepareNotificationModule(): Promise<NotificationModule | null> {
+    if (simulate || !isTauriRuntime()) {
+      return null;
+    }
+    if (notificationModulePromise) {
+      return notificationModulePromise;
+    }
+
+    notificationModulePromise = (async () => {
+      try {
+        const module = await import('@tauri-apps/plugin-notification');
+        let granted = await module.isPermissionGranted();
+        if (!granted) {
+          const permission = await module.requestPermission();
+          granted = permission === 'granted';
+        }
+        if (!granted) {
+          return null;
+        }
+        return module;
+      } catch (error) {
+        console.warn('[orchestrator] Notification module unavailable:', error);
+        return null;
+      }
+    })();
+
+    return notificationModulePromise;
+  }
+
+  async function notifyJobResult(payload: CompletionEventPayload) {
+    if (simulate || payload.cancelled) {
+      return;
+    }
+
+    const module = await prepareNotificationModule();
+    if (!module) {
+      return;
+    }
+
+    const job = jobs.getJob(payload.jobId);
+    const nameSource =
+      job?.outputPath && job.outputPath.length > 0
+        ? job.outputPath
+        : job?.path && job.path.length > 0
+          ? job.path
+          : payload.jobId;
+    const displayName = pathBasename(nameSource);
+
+    const truncate = (input: string): string =>
+      input.length > 160 ? `${input.slice(0, 157)}…` : input;
+
+    if (payload.success) {
+      try {
+        await module.sendNotification({
+          title: 'Conversion complete',
+          body: truncate(`${displayName} finished successfully.`),
+        });
+      } catch (error) {
+        console.warn('[orchestrator] Failed to send success notification:', error);
+      }
+      return;
+    }
+
+    const reason =
+      payload.message ??
+      (payload.exitCode !== null && payload.exitCode !== undefined
+        ? `FFmpeg exited with code ${payload.exitCode}`
+        : 'Conversion failed. Check logs for details.');
+
+    try {
+      await module.sendNotification({
+        title: 'Conversion failed',
+        body: truncate(`${displayName}: ${reason}`),
+      });
+    } catch (error) {
+      console.warn('[orchestrator] Failed to send failure notification:', error);
+    }
+  }
+
   async function cancel(jobId: string) {
     if (simulate) {
       const timer = simulatedJobs.get(jobId);
@@ -601,12 +659,10 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
           console.error('[orchestrator] Failed to start next job after cancellation:', error);
         });
       }
-      console.debug('[orchestrator] cancel -> simulated job cancelled', jobId);
       return;
     }
 
     const { invoke } = await import('@tauri-apps/api/core');
-    console.debug('[orchestrator] cancel -> invoking cancel_job', jobId);
     await invoke<boolean>('cancel_job', { jobId: jobId });
   }
 

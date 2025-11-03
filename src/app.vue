@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -8,6 +8,7 @@ import FileUploader from '@/components/FileUploader.vue';
 import JobQueue from '@/components/JobQueue.vue';
 import AppLoadingSkeleton from '@/components/AppLoadingSkeleton.vue';
 import AboutDialog from '@/components/AboutDialog.vue';
+import DestinationChooser from '@/components/DestinationChooser.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import { useAppOrchestration } from '@/composables/use-app-orchestration';
@@ -33,6 +34,9 @@ const {
   cancelAll,
   clearCompleted,
 } = app;
+
+// Track active tab
+const activeTab = ref<MediaKind>('video');
 
 // Filter jobs by media type
 function getJobMediaKind(presetId: string): MediaKind | null {
@@ -67,6 +71,27 @@ const hasImageCompletedJobs = computed(() => imageCompletedJobs.value.length > 0
 const hasNoImageJobs = computed(
   () => imageActiveJobs.value.length === 0 && imageCompletedJobs.value.length === 0,
 );
+
+// Create media-kind-specific file input handlers
+const handleVideoFileInput = (event: Event) => {
+  activeTab.value = 'video';
+  handleFileInput(event);
+};
+
+const handleAudioFileInput = (event: Event) => {
+  activeTab.value = 'audio';
+  handleFileInput(event);
+};
+
+const handleImageFileInput = (event: Event) => {
+  activeTab.value = 'image';
+  handleFileInput(event);
+};
+
+// Create media-kind-specific browse handlers
+const handleVideoBrowse = () => handleBrowse('video');
+const handleAudioBrowse = () => handleBrowse('audio');
+const handleImageBrowse = () => handleBrowse('image');
 </script>
 
 <template>
@@ -84,13 +109,14 @@ const hasNoImageJobs = computed(
     <div class="relative flex flex-col flex-1">
       <!-- Top-right controls -->
       <div class="absolute right-0 top-0 z-10 flex items-center gap-x-3">
+        <DestinationChooser />
         <LanguageSwitcher />
         <ThemeSwitcher />
       </div>
 
       <!-- Tabs for media type filtering -->
-      <Tabs default-value="video" class="flex flex-col flex-1">
-        <TabsList aria-label="Media type filter">
+      <Tabs v-model="activeTab" default-value="video" class="flex flex-col flex-1">
+        <TabsList aria-label="Media type filter" class="w-fit">
           <TabsTrigger value="video" aria-label="Video files">
             {{ t('media.video') }}
           </TabsTrigger>
@@ -107,13 +133,14 @@ const hasNoImageJobs = computed(
             <!-- Video Tab -->
             <TabsContent
               value="video"
-              class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden"
+              class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
             >
               <FileUploader
                 :is-drag-over="isDragOver"
                 :has-active-jobs="hasVideoActiveJobs"
-                :on-file-input="handleFileInput"
-                :on-browse="handleBrowse"
+                :media-kind="'video'"
+                :on-file-input="handleVideoFileInput"
+                :on-browse="handleVideoBrowse"
               />
               <JobQueue
                 :active-jobs="videoActiveJobs"
@@ -132,13 +159,14 @@ const hasNoImageJobs = computed(
             <!-- Audio Tab -->
             <TabsContent
               value="audio"
-              class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden"
+              class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
             >
               <FileUploader
                 :is-drag-over="isDragOver"
                 :has-active-jobs="hasAudioActiveJobs"
-                :on-file-input="handleFileInput"
-                :on-browse="handleBrowse"
+                :media-kind="'audio'"
+                :on-file-input="handleAudioFileInput"
+                :on-browse="handleAudioBrowse"
               />
               <JobQueue
                 :active-jobs="audioActiveJobs"
@@ -157,13 +185,14 @@ const hasNoImageJobs = computed(
             <!-- Image Tab -->
             <TabsContent
               value="image"
-              class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden"
+              class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
             >
               <FileUploader
                 :is-drag-over="isDragOver"
                 :has-active-jobs="hasImageActiveJobs"
-                :on-file-input="handleFileInput"
-                :on-browse="handleBrowse"
+                :media-kind="'image'"
+                :on-file-input="handleImageFileInput"
+                :on-browse="handleImageBrowse"
               />
               <JobQueue
                 :active-jobs="imageActiveJobs"

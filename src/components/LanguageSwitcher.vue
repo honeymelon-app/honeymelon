@@ -22,7 +22,7 @@ const props = defineProps<{
   <div :class="cn(props.class)">
     <DropdownMenu>
       <DropdownMenuTrigger as-child>
-        <Button variant="outline" @click.stop class="capitalize">
+        <Button variant="outline" @click.stop class="capitalize cursor-pointer">
           <Earth class="size-4 mr-2" />
           {{ currentLocale }}
         </Button>

@@ -28,6 +28,10 @@ export const MEDIA_EXTENSIONS = [
   'opus',
   'wma',
   'alac',
+  'png',
+  'jpg',
+  'jpeg',
+  'webp',
 ];
 
 const MEDIA_EXTENSION_SET = new Set(MEDIA_EXTENSIONS);

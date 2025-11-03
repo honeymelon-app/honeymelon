@@ -16,11 +16,6 @@ const props = withDefaults(defineProps<ProgressProps>(), {
 const percentage = computed(() => {
   const value = Math.min(Math.max(props.modelValue, 0), props.max);
   const result = (value / props.max) * 100;
-  console.debug('[Progress] Computing percentage:', {
-    modelValue: props.modelValue,
-    max: props.max,
-    percentage: result,
-  });
   return result;
 });
 </script>

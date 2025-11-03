@@ -120,6 +120,7 @@ function clearOutputDirectory() {
           <Button
             variant="outline"
             size="sm"
+            class="cursor-pointer"
             aria-label="Select output directory"
             @click="selectOutputDirectory"
           >
@@ -130,7 +131,7 @@ function clearOutputDirectory() {
           v-if="localOutputDir"
           variant="ghost"
           size="sm"
-          class="text-xs"
+          class="text-xs cursor-pointer"
           @click="clearOutputDirectory"
         >
           Reset to source directory
@@ -145,7 +146,7 @@ function clearOutputDirectory() {
           Keep exports organised with optional suffixes.
         </CardDescription>
       </CardHeader>
-      <CardContent class="space-y-4">
+      <CardContent class="space-y-3">
         <label class="flex items-center justify-between gap-4 text-sm">
           <div>
             <span class="font-medium">Include preset name</span>

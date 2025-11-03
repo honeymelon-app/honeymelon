@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   VIDEO_CONTAINERS,
   AUDIO_CONTAINERS,
+  IMAGE_CONTAINERS,
   inferContainerFromPath,
   mediaKindForContainer,
   listTargetContainers,
@@ -74,6 +75,13 @@ describe('media-formats', () => {
       expect(inferContainerFromPath('/path/to/audio.wav')).toBe('wav');
     });
 
+    it('should infer image containers', () => {
+      expect(inferContainerFromPath('/path/to/image.png')).toBe('png');
+      expect(inferContainerFromPath('/path/to/photo.jpg')).toBe('jpg');
+      expect(inferContainerFromPath('/path/to/photo.jpeg')).toBe('jpg');
+      expect(inferContainerFromPath('/path/to/graphic.webp')).toBe('webp');
+    });
+
     it('should return undefined for unknown extensions', () => {
       expect(inferContainerFromPath('/path/to/file.txt')).toBeUndefined();
       expect(inferContainerFromPath('/path/to/file.unknown')).toBeUndefined();
@@ -123,6 +131,12 @@ describe('media-formats', () => {
       expect(mediaKindForContainer('wav')).toBe('audio');
     });
 
+    it('should return "image" for image containers', () => {
+      expect(mediaKindForContainer('png')).toBe('image');
+      expect(mediaKindForContainer('jpg')).toBe('image');
+      expect(mediaKindForContainer('webp')).toBe('image');
+    });
+
     it('should return "video" for unknown containers (default)', () => {
       // The implementation treats unknown containers as video by default
       expect(mediaKindForContainer('unknown' as Container)).toBe('video');
@@ -149,6 +163,15 @@ describe('media-formats', () => {
       expect(result).toContain('mkv');
       expect(result).toContain('webm');
       expect(result).toContain('gif');
+    });
+
+    it('should return image containers for "image" kind', () => {
+      const result = listTargetContainers('image');
+      expect(result).toEqual(IMAGE_CONTAINERS);
+      expect(result.length).toBe(3);
+      expect(result).toContain('png');
+      expect(result).toContain('jpg');
+      expect(result).toContain('webp');
     });
 
     it('should return empty array for unknown kind', () => {
@@ -196,6 +219,17 @@ describe('media-formats', () => {
       expect(targetOptions).toContain('mp4');
       expect(targetOptions).toContain('mkv');
       expect(targetOptions).not.toContain('mp3');
+    });
+  });
+
+  describe('image integration', () => {
+    it('should correctly identify and categorize image files', () => {
+      const imagePath = '/images/picture.webp';
+      const container = inferContainerFromPath(imagePath);
+
+      expect(container).toBe('webp');
+      expect(mediaKindForContainer(container!)).toBe('image');
+      expect(listTargetContainers('image')).toContain(container);
     });
   });
 });

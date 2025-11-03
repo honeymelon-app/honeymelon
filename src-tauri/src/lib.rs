@@ -7,10 +7,21 @@ mod fs_utils;
 use error::AppError;
 use tauri::{Emitter, Manager};
 
-const MEDIA_DIALOG_EXTENSIONS: &[&str] = &[
+const VIDEO_EXTENSIONS: &[&str] = &[
+    "mp4", "m4v", "mov", "mkv", "webm", "avi", "mpg", "mpeg", "ts", "m2ts", "mxf", "hevc", "h265",
+    "h264", "flv", "ogv", "wmv", "gif",
+];
+
+const AUDIO_EXTENSIONS: &[&str] = &[
+    "mp3", "aac", "m4a", "flac", "wav", "aiff", "aif", "ogg", "opus", "wma", "alac", "wave",
+];
+
+const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp"];
+
+const ALL_MEDIA_EXTENSIONS: &[&str] = &[
     "mp4", "m4v", "mov", "mkv", "webm", "avi", "mpg", "mpeg", "ts", "m2ts", "mxf", "hevc", "h265",
     "h264", "flv", "ogv", "wmv", "gif", "mp3", "aac", "m4a", "flac", "wav", "aiff", "aif", "ogg",
-    "opus", "wma", "alac",
+    "opus", "wma", "alac", "wave", "png", "jpg", "jpeg", "webp",
 ];
 
 #[tauri::command]
@@ -61,11 +72,25 @@ async fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError>
 }
 
 #[tauri::command]
-async fn pick_media_files() -> Result<Vec<String>, AppError> {
-    let selection = tauri::async_runtime::spawn_blocking(|| {
+async fn pick_media_files(media_kind: Option<String>) -> Result<Vec<String>, AppError> {
+    let extensions = match media_kind.as_deref() {
+        Some("video") => VIDEO_EXTENSIONS,
+        Some("audio") => AUDIO_EXTENSIONS,
+        Some("image") => IMAGE_EXTENSIONS,
+        _ => ALL_MEDIA_EXTENSIONS,
+    };
+
+    let filter_name = match media_kind.as_deref() {
+        Some("video") => "Video Files",
+        Some("audio") => "Audio Files",
+        Some("image") => "Image Files",
+        _ => "Media Files",
+    };
+
+    let selection = tauri::async_runtime::spawn_blocking(move || {
         rfd::FileDialog::new()
             .set_title("Choose media files")
-            .add_filter("Media", MEDIA_DIALOG_EXTENSIONS)
+            .add_filter(filter_name, extensions)
             .pick_files()
     })
     .await
@@ -108,6 +133,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             load_capabilities,
             probe_media,

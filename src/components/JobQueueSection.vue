@@ -18,7 +18,7 @@ interface JobRecord {
 interface JobQueueSectionProps {
   jobs: JobRecord[];
   title: string;
-  variant: 'active' | 'completed';
+  variant: 'active' | 'completed' | 'unified';
   availablePresets: Preset[];
   showClearButton?: boolean;
 }
@@ -54,21 +54,22 @@ function handleClearCompleted() {
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <h2 class="text-lg font-semibold">{{ title }}</h2>
-        <Badge :variant="variant === 'active' ? 'secondary' : 'outline'">
+        <Badge :variant="variant === 'completed' ? 'outline' : 'secondary'">
           {{ jobs.length }} file{{ jobs.length !== 1 ? 's' : '' }}
         </Badge>
       </div>
       <Button
-        v-if="showClearButton && variant === 'completed'"
+        v-if="showClearButton"
         variant="ghost"
         size="sm"
+        class="cursor-pointer"
         @click="handleClearCompleted"
       >
-        Clear All
+        Clear Completed
       </Button>
     </div>
-    <ScrollArea class="h-[350px] w-full">
-      <div class="divide-y divide-muted -my-3">
+    <ScrollArea class="h-[400px] w-full">
+      <div class="divide-y divide-muted space-y-3 h-full">
         <JobQueueItem
           v-for="job in jobs"
           :key="job.id"

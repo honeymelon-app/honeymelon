@@ -13,14 +13,8 @@ const props = defineProps<JobProgressBarProps>();
 
 watch(
   () => props.state,
-  (newState) => {
-    if (newState.status === 'running') {
-      console.debug('[JobProgressBar] State changed:', {
-        status: newState.status,
-        processedSeconds: newState.progress.processedSeconds,
-        progressObject: newState.progress,
-      });
-    }
+  () => {
+    // State changed - progress will be recomputed automatically
   },
   { deep: true },
 );
@@ -31,19 +25,12 @@ const progress = computed(() => {
 
   if (typeof ratio === 'number' && Number.isFinite(ratio)) {
     const percent = Math.min(Math.max(ratio * 100, 0), 100);
-    console.debug('[JobProgressBar] Computing progress (ratio):', { ratio, percent });
     return percent;
   }
 
   const processed = props.state.progress?.processedSeconds ?? 0;
   const total = props.duration ?? 0;
   const percent = total > 0 ? Math.min(Math.max((processed / total) * 100, 0), 100) : 0;
-  console.debug('[JobProgressBar] Computing progress (duration):', {
-    status: props.state.status,
-    processed,
-    total,
-    percent,
-  });
   return percent;
 });
 

@@ -43,11 +43,16 @@ describe('file-discovery', () => {
       expect(MEDIA_EXTENSIONS).toContain('gif');
     });
 
+    it('should include common image formats', () => {
+      expect(MEDIA_EXTENSIONS).toContain('jpg');
+      expect(MEDIA_EXTENSIONS).toContain('jpeg');
+      expect(MEDIA_EXTENSIONS).toContain('png');
+      expect(MEDIA_EXTENSIONS).toContain('webp');
+    });
+
     it('should not include non-media extensions', () => {
       expect(MEDIA_EXTENSIONS).not.toContain('txt');
       expect(MEDIA_EXTENSIONS).not.toContain('pdf');
-      expect(MEDIA_EXTENSIONS).not.toContain('jpg');
-      expect(MEDIA_EXTENSIONS).not.toContain('png');
     });
 
     it('should have unique extensions', () => {

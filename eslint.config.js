@@ -20,6 +20,11 @@ export default [
       '**/.vite/**',
       '**/.vitepress/**',
       '**/scripts/**',
+      '**/__tests__/**',
+      '**/*.test.ts',
+      '**/*.test.js',
+      '**/*.spec.ts',
+      '**/*.spec.js',
     ],
   },
 
@@ -66,6 +71,7 @@ export default [
         alert: 'readonly',
         confirm: 'readonly',
         performance: 'readonly',
+        localStorage: 'readonly',
       },
     },
     plugins: {
@@ -147,6 +153,7 @@ export default [
         alert: 'readonly',
         confirm: 'readonly',
         performance: 'readonly',
+        localStorage: 'readonly',
       },
     },
     plugins: {

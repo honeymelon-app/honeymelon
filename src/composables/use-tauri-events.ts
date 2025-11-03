@@ -27,10 +27,8 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
 
     if (onDrop) {
       unlistenDrop.value = await listen<string[]>('tauri://drag-drop', async (event) => {
-        console.log('[tauri-events] Drag-drop event:', event);
         const paths = event.payload;
         if (Array.isArray(paths) && paths.length > 0) {
-          console.log('[tauri-events] Files from drop:', paths);
           await onDrop(paths);
         }
       });
@@ -38,14 +36,12 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
 
     if (onDragEnter) {
       unlistenEnter.value = await listen('tauri://drag-enter', () => {
-        console.log('[tauri-events] Drag enter');
         onDragEnter();
       });
     }
 
     if (onDragLeave) {
       unlistenLeave.value = await listen('tauri://drag-leave', () => {
-        console.log('[tauri-events] Drag leave');
         onDragLeave();
       });
     }

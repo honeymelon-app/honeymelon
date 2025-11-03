@@ -100,4 +100,21 @@ describe('ffmpeg-plan', () => {
     });
     expect(decision.preset.id).toBe(fallback.id);
   });
+
+  it('builds image conversion plans', () => {
+    const context: PlannerContext = {
+      presetId: 'image-to-png',
+      summary: { ...baseSummary, vcodec: 'jpg', acodec: undefined },
+      capabilities: {
+        ...emptyCapabilities,
+        videoEncoders: new Set(['png']),
+      },
+    };
+    const decision = planJob(context);
+    expect(decision.preset.mediaKind).toBe('image');
+    expect(decision.ffmpegArgs).toContain('-c:v');
+    expect(decision.ffmpegArgs).toContain('png');
+    expect(decision.ffmpegArgs).toContain('-frames:v');
+    expect(decision.ffmpegArgs).toContain('1');
+  });
 });

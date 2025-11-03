@@ -1,6 +1,6 @@
 {
   "name": "honeymelon",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A beautiful, simple, and powerful media converter for macOS Apple Silicon",
   "author": "Jerome Thayananthajothy <tjthavarshan@gmail.com>",
   "license": "UNLICENSED",
@@ -57,6 +57,7 @@
     "@tailwindcss/vite": "^4.1.16",
     "@tanstack/vue-table": "^8.21.3",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-notification": "^2.3.3",
     "@tauri-apps/plugin-opener": "^2",
     "@unovis/ts": "^1.6.1",
     "@unovis/vue": "^1.6.1",

@@ -1,8 +1,31 @@
-export type Container = 'mp4' | 'webm' | 'mov' | 'mkv' | 'gif' | 'm4a' | 'mp3' | 'flac' | 'wav';
+export type Container =
+  | 'mp4'
+  | 'webm'
+  | 'mov'
+  | 'mkv'
+  | 'gif'
+  | 'm4a'
+  | 'mp3'
+  | 'flac'
+  | 'wav'
+  | 'png'
+  | 'jpg'
+  | 'webp';
 
 export type MediaKind = 'video' | 'audio' | 'image';
 
-export type VCodec = 'copy' | 'h264' | 'hevc' | 'vp9' | 'av1' | 'prores' | 'gif' | 'none';
+export type VCodec =
+  | 'copy'
+  | 'h264'
+  | 'hevc'
+  | 'vp9'
+  | 'av1'
+  | 'prores'
+  | 'gif'
+  | 'png'
+  | 'mjpeg'
+  | 'webp'
+  | 'none';
 
 export type ACodec =
   | 'copy'

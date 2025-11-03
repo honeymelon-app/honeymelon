@@ -84,9 +84,7 @@ export function useFileHandler(options: UseFileHandlerOptions) {
         }
       }
 
-      if (jobIds.length) {
-        console.log('[file-handler] Enqueued job IDs:', jobIds);
-      }
+      // Successfully enqueued jobs
     } catch (error) {
       console.error('[file-handler] Failed to add files:', error);
     }
@@ -121,20 +119,20 @@ export function useFileHandler(options: UseFileHandlerOptions) {
         }
       }
 
-      if (jobIds.length) {
-        console.log('[file-handler] Enqueued job IDs:', jobIds);
-      }
+      // Successfully enqueued jobs
     } catch (error) {
       console.error('[file-handler] Failed to add files from paths:', error);
     }
   }
 
-  async function browseForFiles() {
+  async function browseForFiles(mediaKind?: string) {
     if (!(await ensurePresetsReady())) return;
     if (isTauriRuntime()) {
       try {
         const { invoke } = await import('@tauri-apps/api/core');
-        const selection = await invoke<string[]>('pick_media_files');
+        const selection = await invoke<string[]>('pick_media_files', {
+          mediaKind: mediaKind || null,
+        });
         if (Array.isArray(selection) && selection.length > 0) {
           await addFilesFromPaths(selection);
         }

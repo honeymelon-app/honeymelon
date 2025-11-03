@@ -1,4 +1,4 @@
-import { AUDIO_CONTAINERS, VIDEO_CONTAINERS } from './media-formats';
+import { AUDIO_CONTAINERS, IMAGE_CONTAINERS, VIDEO_CONTAINERS } from './media-formats';
 import type { ACodec, Container, Preset, SubMode, VCodec } from './types';
 
 interface VideoTargetProfile {
@@ -15,6 +15,13 @@ interface AudioTargetProfile {
   label: string;
   codecLabel: string;
   audioCodec: ACodec;
+  supportedSources?: readonly Container[];
+}
+
+interface ImageTargetProfile {
+  label: string;
+  codecLabel: string;
+  videoCodec: VCodec;
   supportedSources?: readonly Container[];
 }
 
@@ -92,6 +99,27 @@ const AUDIO_TARGET_PROFILES: Record<(typeof AUDIO_CONTAINERS)[number], AudioTarg
   },
 };
 
+const IMAGE_TARGET_PROFILES: Record<(typeof IMAGE_CONTAINERS)[number], ImageTargetProfile> = {
+  png: {
+    label: 'PNG',
+    codecLabel: 'PNG',
+    videoCodec: 'png',
+    supportedSources: IMAGE_CONTAINERS.filter((c) => c !== 'png'),
+  },
+  jpg: {
+    label: 'JPEG',
+    codecLabel: 'JPEG',
+    videoCodec: 'mjpeg',
+    supportedSources: IMAGE_CONTAINERS.filter((c) => c !== 'jpg'),
+  },
+  webp: {
+    label: 'WebP',
+    codecLabel: 'WebP',
+    videoCodec: 'webp',
+    supportedSources: IMAGE_CONTAINERS.filter((c) => c !== 'webp'),
+  },
+};
+
 function buildVideoPresets(): Preset[] {
   const presets: Preset[] = [];
 
@@ -158,6 +186,42 @@ function buildAudioPresets(): Preset[] {
   return presets;
 }
 
-export const PRESETS: Preset[] = [...buildVideoPresets(), ...buildAudioPresets()];
+function buildImagePresets(): Preset[] {
+  const presets: Preset[] = [];
+
+  for (const target of IMAGE_CONTAINERS) {
+    const targetProfile = IMAGE_TARGET_PROFILES[target];
+    const id = `image-to-${target}`;
+
+    const preset: Preset = {
+      id,
+      label: `${targetProfile.label} (${targetProfile.codecLabel})`,
+      mediaKind: 'image',
+      sourceContainers: [...(targetProfile.supportedSources ?? [])],
+      container: target,
+      description: `Convert image to ${targetProfile.label} format.`,
+      video: {
+        codec: targetProfile.videoCodec,
+      },
+      audio: {
+        codec: 'none',
+      },
+      subs: {
+        mode: 'drop',
+      },
+      outputExtension: target,
+    };
+
+    presets.push(preset);
+  }
+
+  return presets;
+}
+
+export const PRESETS: Preset[] = [
+  ...buildVideoPresets(),
+  ...buildAudioPresets(),
+  ...buildImagePresets(),
+];
 
 export const DEFAULT_PRESET_ID = PRESETS[0]?.id ?? '';

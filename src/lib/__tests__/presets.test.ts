@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { AUDIO_CONTAINERS, VIDEO_CONTAINERS } from '../media-formats';
+import { AUDIO_CONTAINERS, IMAGE_CONTAINERS, VIDEO_CONTAINERS } from '../media-formats';
 import { PRESETS, DEFAULT_PRESET_ID } from '../presets';
 
 describe('generated presets', () => {
@@ -21,8 +21,9 @@ describe('generated presets', () => {
   });
 
   it('declares media kind and source containers for every preset', () => {
+    const allowedKinds = new Set(['video', 'audio', 'image']);
     PRESETS.forEach((preset) => {
-      expect(preset.mediaKind).toMatch(/^(video|audio)$/);
+      expect(allowedKinds.has(preset.mediaKind)).toBe(true);
       expect(preset.sourceContainers.length).toBeGreaterThan(0);
     });
   });
@@ -64,6 +65,22 @@ describe('generated presets', () => {
         expect(preset?.video.codec).toBe('none');
         // Each preset should support all other containers except itself
         const expectedSources = AUDIO_CONTAINERS.filter((c) => c !== target);
+        expect(preset?.sourceContainers.sort()).toEqual(expectedSources.sort());
+      });
+    });
+  });
+
+  describe('image presets', () => {
+    it('provides a preset for each image container target', () => {
+      IMAGE_CONTAINERS.forEach((target) => {
+        const id = `image-to-${target}`;
+        const preset = PRESETS.find((item) => item.id === id);
+        expect(preset).toBeDefined();
+        expect(preset?.mediaKind).toBe('image');
+        expect(preset?.container).toBe(target);
+        expect(preset?.audio.codec).toBe('none');
+        expect(preset?.video.codec).not.toBe('none');
+        const expectedSources = IMAGE_CONTAINERS.filter((c) => c !== target);
         expect(preset?.sourceContainers.sort()).toEqual(expectedSources.sort());
       });
     });

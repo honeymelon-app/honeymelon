@@ -86,4 +86,22 @@ export const CONTAINER_RULES: Record<Container, ContainerRule> = {
     video: [],
     audio: ['pcm_s16le'],
   },
+  png: {
+    label: 'PNG',
+    video: ['png'],
+    audio: [],
+    notes: 'Still image output; audio and subtitles are not supported.',
+  },
+  jpg: {
+    label: 'JPEG',
+    video: ['mjpeg'],
+    audio: [],
+    notes: 'Still image output; audio and subtitles are not supported.',
+  },
+  webp: {
+    label: 'WebP',
+    video: ['webp'],
+    audio: [],
+    notes: 'Still image output; audio and subtitles are not supported.',
+  },
 };

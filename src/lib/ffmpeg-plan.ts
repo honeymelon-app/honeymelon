@@ -21,6 +21,9 @@ const VIDEO_ENCODERS: Record<VCodec, string | null> = {
   av1: 'libaom-av1',
   gif: 'gif',
   prores: 'prores_ks',
+  png: 'png',
+  mjpeg: 'mjpeg',
+  webp: 'libwebp',
 };
 
 const AUDIO_ENCODERS: Record<ACodec, string | null> = {
@@ -69,6 +72,10 @@ export function planJob(context: PlannerContext): PlannerDecision {
 
   if (preset.container === 'gif') {
     return planGifJob(context, preset);
+  }
+
+  if (preset.mediaKind === 'image') {
+    return planImageJob(context, preset);
   }
 
   const desiredTier: Tier = context.requestedTier ?? 'balanced';
@@ -279,6 +286,57 @@ export function planJob(context: PlannerContext): PlannerDecision {
     preset,
     ffmpegArgs: args,
     remuxOnly,
+    notes,
+    warnings,
+  };
+}
+
+function planImageJob(context: PlannerContext, preset: Preset): PlannerDecision {
+  const notes: string[] = [];
+  const warnings: string[] = [];
+  const args: string[] = ['-progress', 'pipe:2', '-nostats'];
+
+  const videoEncoder = VIDEO_ENCODERS[preset.video.codec];
+
+  if (!videoEncoder) {
+    warnings.push(`Unknown image codec: ${preset.video.codec}`);
+  } else if (context.capabilities && !context.capabilities.videoEncoders.has(videoEncoder)) {
+    warnings.push(`Encoder ${videoEncoder} not reported by FFmpeg; conversion may fail.`);
+  }
+
+  // Explicitly specify output format to handle .tmp extension
+  const formatMap: Record<string, string> = {
+    png: 'image2',
+    jpg: 'image2',
+    webp: 'image2',
+  };
+
+  const outputFormat = formatMap[preset.container];
+  if (outputFormat) {
+    args.push('-f', outputFormat);
+  }
+
+  // Image conversion: simple codec mapping
+  args.push('-c:v', videoEncoder || preset.video.codec);
+
+  // Quality settings for image formats
+  if (preset.video.codec === 'mjpeg') {
+    args.push('-q:v', '2'); // High quality JPEG (1-31, lower is better)
+  } else if (preset.video.codec === 'webp') {
+    args.push('-quality', '90'); // WebP quality (0-100)
+  }
+
+  // Ensure single frame output
+  args.push('-frames:v', '1');
+
+  notes.push(
+    `Image: converting to ${preset.container.toUpperCase()} format with ${preset.video.codec} codec.`,
+  );
+
+  return {
+    preset,
+    ffmpegArgs: args,
+    remuxOnly: false,
     notes,
     warnings,
   };

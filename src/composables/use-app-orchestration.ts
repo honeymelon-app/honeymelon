@@ -60,8 +60,8 @@ export function useAppOrchestration() {
     await fileHandler.addFilesFromPaths(paths);
   }
 
-  async function handleBrowse() {
-    await fileHandler.browseForFiles();
+  async function handleBrowse(mediaKind?: string) {
+    await fileHandler.browseForFiles(mediaKind);
   }
 
   function handleCancelJob(jobId: string) {
@@ -123,7 +123,6 @@ export function useAppOrchestration() {
       .catch((error) => {
         console.error('[app] Failed to start job:', jobId, error);
       });
-    console.debug('[app] startJob dispatched', { jobId, presetId: usablePreset });
   }
 
   function cancelAll() {
