@@ -1,6 +1,7 @@
 import { ref, watch, onUnmounted } from 'vue';
 
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type * as NotificationPlugin from '@tauri-apps/plugin-notification';
 
 import { availablePresets, loadCapabilities } from '@/lib/capability';
 import { planJob, resolvePreset } from '@/lib/ffmpeg-plan';
@@ -53,11 +54,7 @@ const COMPLETION_EVENT = 'ffmpeg://completion';
 const STDERR_EVENT = 'ffmpeg://stderr';
 
 type ProgressMetrics = ProgressEventPayload['progress'];
-interface NotificationModule {
-  isPermissionGranted: () => Promise<boolean>;
-  requestPermission: () => Promise<'granted' | 'denied' | 'default'>;
-  sendNotification: (options: { title: string; body: string }) => Promise<void>;
-}
+type NotificationModule = typeof NotificationPlugin;
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
