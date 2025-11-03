@@ -22,7 +22,7 @@ Each stage has specific responsibilities and can fail independently, allowing fo
 
 ### Implementation
 
-**Location**: [src/lib/ffmpeg-probe.ts](../../src/lib/ffmpeg-probe.ts) (frontend) and [src-tauri/src/ffmpeg_probe.rs](../../src-tauri/src/ffmpeg_probe.rs) (backend)
+**Location**: `src/lib/ffmpeg-probe.ts` (frontend) and `src-tauri/src/ffmpeg_probe.rs` (backend)
 
 **Process**:
 
@@ -78,7 +78,7 @@ Each error is caught and reported with a user-friendly message.
 
 ### Implementation
 
-**Location**: [src/lib/ffmpeg-plan.ts](../../src/lib/ffmpeg-plan.ts)
+**Location**: `src/lib/ffmpeg-plan.ts`
 
 **Process**:
 
@@ -88,7 +88,7 @@ function generatePlan(probe: ProbeResult, preset: Preset, quality: QualityTier):
 
 ### Container Compatibility Rules
 
-**Location**: [src/lib/container-rules.ts](../../src/lib/container-rules.ts)
+**Location**: `src/lib/container-rules.ts`
 
 Defines which codecs are compatible with which containers:
 
@@ -247,7 +247,7 @@ FFmpeg Command:
 
 ### Implementation
 
-**Location**: [src-tauri/src/ffmpeg_runner.rs](../../src-tauri/src/ffmpeg_runner.rs) (backend) and [src/composables/use-job-orchestrator.ts](../../src/composables/use-job-orchestrator.ts) (frontend)
+**Location**: `src-tauri/src/ffmpeg_runner.rs` (backend) and `src/composables/use-job-orchestrator.ts` (frontend)
 
 ### Process
 

@@ -66,7 +66,7 @@ npm run docs:preview
 
 ### Development Server
 
-The docs will be available at http://localhost:5173/
+The docs will be available at `http://localhost:5173/`
 
 ### Features
 
@@ -109,7 +109,7 @@ General information
 
 #### Code Groups
 
-````markdown
+`````markdown
 ::: code-group
 
 ````bash [npm]
@@ -121,7 +121,9 @@ pnpm install
 \```
 :::
 ````
-````
+`````
+
+`````
 
 #### Mermaid Diagrams
 
@@ -130,7 +132,7 @@ pnpm install
 graph LR
     A[Start] --> B[End]
 ```
-````
+`````
 
 ### Adding a New Page
 

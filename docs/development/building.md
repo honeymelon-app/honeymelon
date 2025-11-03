@@ -148,7 +148,7 @@ Universal builds are significantly larger and may not work correctly for Apple S
 
 ### Tauri Configuration
 
-**File**: [src-tauri/tauri.conf.json](../../src-tauri/tauri.conf.json)
+**File**: `src-tauri/tauri.conf.json`
 
 Key settings:
 
@@ -173,7 +173,7 @@ Key settings:
 
 ### Vite Configuration
 
-**File**: [vite.config.ts](../../vite.config.ts)
+**File**: `vite.config.ts`
 
 ```typescript
 export default defineConfig({
@@ -192,7 +192,7 @@ export default defineConfig({
 
 ### Rust Build Configuration
 
-**File**: [src-tauri/Cargo.toml](../../src-tauri/Cargo.toml)
+**File**: `src-tauri/Cargo.toml`
 
 ```toml
 [profile.release]

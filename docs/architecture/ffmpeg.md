@@ -72,7 +72,7 @@ Set in Preferences → FFmpeg Settings.
 
 ### Implementation
 
-**Location**: [src-tauri/src/ffmpeg_runner.rs](../../src-tauri/src/ffmpeg_runner.rs)
+**Location**: `src-tauri/src/ffmpeg_runner.rs`
 
 ```rust
 fn resolve_ffmpeg_path() -> Result<PathBuf> {
@@ -123,7 +123,7 @@ ffprobe \
 
 ### Output Parsing
 
-**Location**: [src-tauri/src/ffmpeg_probe.rs](../../src-tauri/src/ffmpeg_probe.rs)
+**Location**: `src-tauri/src/ffmpeg_probe.rs`
 
 ```rust
 #[derive(Deserialize)]
@@ -211,7 +211,7 @@ function buildFFmpegCommand(plan: FFmpegPlan): string[] {
 
 ### Process Spawning
 
-**Location**: [src-tauri/src/ffmpeg_runner.rs](../../src-tauri/src/ffmpeg_runner.rs)
+**Location**: `src-tauri/src/ffmpeg_runner.rs`
 
 ```rust
 use std::process::{Command, Stdio};
@@ -347,7 +347,7 @@ Detect which encoders are available in the user's FFmpeg installation.
 
 ### Implementation
 
-**Location**: [src-tauri/src/ffmpeg_capabilities.rs](../../src-tauri/src/ffmpeg_capabilities.rs)
+**Location**: `src-tauri/src/ffmpeg_capabilities.rs`
 
 **Command**:
 
@@ -519,7 +519,7 @@ match result {
 
 ### Unit Tests
 
-**Location**: [src-tauri/src/ffmpeg_probe.rs](../../src-tauri/src/ffmpeg_probe.rs)
+**Location**: `src-tauri/src/ffmpeg_probe.rs`
 
 ```rust
 #[cfg(test)]
