@@ -1,0 +1,78 @@
+name: Sync Docs to Separate Repository
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync-docs:
+    name: Sync Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout App Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git Configuration
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Clone Docs Repository
+        env:
+          DOCS_REPO_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+        run: |
+          git clone https://x-access-token:${DOCS_REPO_TOKEN}@github.com/honeymelon-app/docs.git docs-repo
+
+      - name: Sync Documentation Files
+        run: |
+          # Remove all existing files in docs repo (except .git)
+          cd docs-repo
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+
+          # Copy all documentation files (including hidden files)
+          rsync -a --delete --exclude='.git' ../docs/ ./
+
+          # Check if there are any changes
+          if [[ -z $(git status --porcelain) ]]; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          # Stage all changes
+          git add -A
+
+          # Commit with reference to source commit
+          SOURCE_COMMIT=$(cd .. && git rev-parse HEAD)
+          SOURCE_COMMIT_MSG=$(cd .. && git log -1 --pretty=%B)
+
+          git commit -m "$(cat <<EOF
+          docs: sync from honeymelon-app/honeymelon@${SOURCE_COMMIT:0:7}
+
+          ${SOURCE_COMMIT_MSG}
+
+          Synced from: https://github.com/honeymelon-app/honeymelon/commit/${SOURCE_COMMIT}
+          EOF
+          )"
+
+      - name: Push to Docs Repository
+        env:
+          DOCS_REPO_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+        run: |
+          cd docs-repo
+          git push https://x-access-token:${DOCS_REPO_TOKEN}@github.com/honeymelon-app/docs.git main
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "Documentation successfully synced to honeymelon-app/docs"
+          echo "View at: https://github.com/honeymelon-app/docs"

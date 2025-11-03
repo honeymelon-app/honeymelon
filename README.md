@@ -1,203 +1,205 @@
-# Honeymelon
+<h1 align="center">Honeymelon</h1>
 
-A professional media converter application designed exclusively for macOS Apple Silicon devices.
+<p align="center">
+  A professional media converter built for macOS Apple Silicon.<br />
+  Remux-first, privacy-minded, and tuned for post-production workflows.
+</p>
 
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](#license)
-[![macOS](https://img.shields.io/badge/macOS-13.0+-blue.svg)](https://www.apple.com/macos)
-[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-Native-brightgreen.svg)](https://www.apple.com/mac/)
-
-**Technology Stack**: Tauri 2.x, Vue 3, TypeScript, Rust, shadcn-vue UI components
-
-**Architecture**: FFmpeg out-of-process execution, LGPL compliant, Apple Silicon (ARM64) native
-
-**Core Philosophy**: Remux-first approach prioritizing lossless stream copying over re-encoding to preserve quality and maximize performance.
-
----
-
-## Documentation
-
-**[View Full Documentation](./docs/)**
-
-Comprehensive documentation is available in the `docs/` directory, built with VitePress:
-
-- **[User Guide](./docs/guide/)** - Getting started, converting files, presets, batch processing, and more
-- **[Architecture](./docs/architecture/)** - Technical deep-dive into the conversion pipeline, FFmpeg integration, and state management
-- **[Development](./docs/development/)** - Contributing guidelines, building from source, and testing
-- **[Legal](./docs/legal/)** - License compliance and third-party notices
-
-### Quick Start
-
-```bash
-# View documentation locally
-npm run docs:dev
-
-# Build documentation
-npm run docs:build
-```
-
-Visit <http://localhost:5173> when running the dev server.
+<p align="center">
+  <a href="#license"><img src="https://img.shields.io/badge/License-Proprietary-red.svg" alt="License: Proprietary"></a>
+  <a href="https://www.apple.com/macos"><img src="https://img.shields.io/badge/macOS-13.0+-blue.svg" alt="macOS 13+"></a>
+  <a href="https://www.apple.com/mac/"><img src="https://img.shields.io/badge/Apple%20Silicon-Native-brightgreen.svg" alt="Apple Silicon Native"></a>
+</p>
 
 ---
 
-## Table of Contents
-
-- [Documentation](#documentation)
 - [Overview](#overview)
+- [Feature Highlights](#feature-highlights)
 - [System Requirements](#system-requirements)
-- [Supported Formats](#supported-formats)
-- [Conversion Pipeline](#conversion-pipeline)
-- [Architecture](#architecture)
-- [Installation](#installation)
-- [Building from Source](#building-from-source)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Development](#development)
-- [Legal & Licensing](#legal--licensing)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+- [Install Honeymelon](#install-honeymelon)
+- [Development Quick Start](#development-quick-start)
+- [Command Reference](#command-reference)
+- [Architecture Notes](#architecture-notes)
+- [Testing & QA](#testing--qa)
+- [Release Checklist](#release-checklist)
+- [Documentation](#documentation)
 - [License](#license)
 
 ---
 
 ## Overview
 
-Honeymelon is a native macOS application that provides professional-grade media conversion capabilities through an intuitive drag-and-drop interface. Built specifically for Apple Silicon processors, the application leverages hardware acceleration and modern encoding technologies to deliver fast, reliable conversions while maintaining the highest possible quality.
+Honeymelon is a native desktop application that wraps FFmpeg with a thoughtful user experience tailored to editors and finishing teams. The app prioritises lossless remuxing, file privacy, and predictable render times. All conversions run locally on Apple Silicon and no media ever leaves the machine.
 
-### Key Features
+Key technology:
 
-#### Intelligent Conversion Engine
+- **Frontend**: Vue 3 + TypeScript, Pinia state, shadcn-vue components, Tailwind CSS.
+- **Backend**: Tauri 2.x with a Rust command layer that probes, plans, and executes FFmpeg jobs out of process.
+- **Processes**: FFmpeg and FFprobe binaries are bundled (LGPL compliant) and orchestrated with concurrency limits, exclusive locks, and streaming progress events.
 
-- **Remux-first strategy** preserves original quality by copying streams when possible (no re-encoding)
-- **Automatic detection** of optimal conversion path (copy vs. transcode)
-- **Dynamic preset generation** - all source-to-target container combinations automatically created
-- **Hardware-accelerated encoding** via Apple VideoToolbox for H.264/HEVC (when using libx264/libx265)
-- **Modern codec support** including VP9, AV1, and ProRes
-- **Configurable quality tiers**: Fast (copy-prioritized), Balanced (optimized bitrates), High (maximum quality)
+---
 
-#### User Experience
+## Feature Highlights
 
-- **Drag-and-drop** file interface with recursive folder discovery
-- **Batch processing** with automatic preset selection based on file type
-- **Real-time progress monitoring** with ETA calculation based on encoding speed
-- **Concurrent job processing** with configurable limits (default: 2 simultaneous conversions)
-- **Per-job management** - cancel, view logs, or change presets before starting
-- **Preset-based workflow** eliminates complex configuration
-- **Native macOS integration** with menu bar and keyboard shortcuts
+- **Remux-first conversion pipeline**  
+  Dynamically decides between stream copy or transcode based on container rules, capabilities, and preset tiers.
 
-#### Technical Excellence
+- **Preset library across media types**  
+  Ready-to-ship presets for video, audio, and stills (PNG/JPEG/WebP) with tiered quality defaults, subtitle handling policies, and colour metadata preservation.
 
-- **FFmpeg process isolation** ensuring LGPL compliance for commercial distribution
-- **Automatic encoder capability detection** with graceful preset filtering
-- **Native Apple Silicon binary** optimized for M-series processors
-- **Minimal disk footprint** (app bundle + optional FFmpeg binaries)
-- **No internet connectivity required** for operation
-- **Fully local processing** ensures media privacy
+- **Job queue designed for teams**  
+  Drag-and-drop folders, edit preset assignments before start, track ETA, view logs, and receive macOS notifications on completion or failure.
+
+- **FFmpeg capability awareness**  
+  Bundled FFmpeg binaries are interrogated at runtime so unsupported encoders are filtered automatically.
+
+- **Privacy by design**  
+  No telemetry, network access, or cloud dependencies. Output destination is configurable per machine with a dedicated chooser.
 
 ---
 
 ## System Requirements
 
-### Minimum Requirements
-
-- **Operating System**: macOS 13.0 (Ventura) or later
-- **Processor**: Apple Silicon (M1, M2, M3, M4, or later)
-- **Memory**: 4 GB RAM (8 GB recommended for 4K content)
-- **Disk Space**: ~50 MB for application + storage for FFmpeg binaries (if bundled)
-- **Additional Space**: Variable, depending on source media and temporary conversion files
-
-### Recommended Configuration
-
-- **Operating System**: macOS 14.0 (Sonoma) or later
-- **Processor**: Apple M2 or later for optimal performance
-- **Memory**: 16 GB RAM for concurrent 4K processing
-- **Disk Space**: 500 MB+ free for temporary conversion files
-
-### Network Requirements
-
-- **Internet**: Not required for conversion operations
-- **Optional**: Internet connectivity for future software updates (not yet implemented)
+| Requirement      | Minimum                          | Recommended                         |
+| ---------------- | -------------------------------- | ----------------------------------- |
+| Operating system | macOS 13 (Ventura)               | macOS 14 (Sonoma) or newer          |
+| Hardware         | Apple Silicon (M1/M2/M3/M4)      | M2 Pro/Max for heavy 4K+ workloads  |
+| Memory           | 4 GB                             | 16 GB for concurrent 4K conversions |
+| Disk space       | 50 MB app + headroom for outputs | ≥ 500 MB free for temporary files   |
+| Network          | Not required for day-to-day use  | Optional for future update channels |
 
 ---
 
-## Supported Formats
+## Install Honeymelon
 
-### Input Formats
+1. Download the latest signed DMG from the [Releases](../../releases) page.
+2. Drag `Honeymelon.app` into `/Applications`.
+3. On first launch, macOS Gatekeeper may prompt you to confirm the developer; choose **Open**.
+4. (Optional) Grant **Full Disk Access** if you intend to read or write media inside protected folders (Library, Photos, removable drives, etc.).
 
-Honeymelon accepts a wide variety of input formats through FFmpeg's comprehensive codec support:
-
-**Video Containers**: MP4, M4V, MOV, MKV, WebM, AVI, MPG, MPEG, TS, M2TS, MXF, FLV, OGV, WMV, and more
-
-**Audio Containers**: MP3, AAC, M4A, FLAC, WAV, AIFF, AIF, OGG, Opus, WMA, ALAC, and more
-
-### Output Presets
-
-Honeymelon **dynamically generates presets** for all valid source-to-target container combinations. This means:
-
-- **Video containers**: MP4, MOV, MKV, WebM, GIF
-- **Audio containers**: M4A, MP3, FLAC, WAV
-
-#### Example Video Presets (Dynamically Generated)
-
-The application creates presets like:
-
-- `video-mp4-to-mkv` - MP4 → MKV (copy video/audio when compatible)
-- `video-mov-to-mp4` - MOV → MP4 (copy or transcode based on codecs)
-- `video-webm-to-mov` - WebM → MOV (typically transcodes VP9→H.264, Opus→AAC)
-
-Each preset follows container-specific codec rules:
-
-**MP4 Presets**
-
-- Target codecs: H.264 (libx264), AAC
-- Subtitles: Converts text subs to mov_text, drops image subs
-- Container rules: Requires `-movflags +faststart` for web streaming
-
-**MOV Presets**
-
-- Target codecs: H.264 (libx264), AAC
-- Subtitles: Typically dropped (MOV subtitle support limited)
-- Use case: macOS/iOS compatibility
-
-**MKV Presets**
-
-- Target codecs: Copy (default), or any codec
-- Subtitles: Keeps all subtitle types unchanged
-- Container rules: Accepts any video/audio codec (most permissive)
-- Use case: Universal container for diverse codec combinations
-
-**WebM Presets**
-
-- Target codecs: VP9 (libvpx-vp9), Opus (libopus)
-- Subtitles: Typically burned in or dropped
-- Container rules: Only VP8/VP9 video, only Vorbis/Opus audio
-- Use case: Modern web browsers, YouTube
-
-**GIF Presets**
-
-- Special processing: Custom palette generation with 2-frame filter pipeline
-- Resolution: Automatically limited to max 640px width
-- Frame rate: Clamped to 2-20 fps range
-- Duration warning: Warns if source >20 seconds (GIF file size considerations)
-- Use case: Short clips, animations, memes
-
-#### Audio-Only Presets (Dynamically Generated)
-
-Examples:
-
-- `audio-flac-to-m4a` - FLAC → M4A/AAC
-- `audio-mp3-to-flac` - MP3 → FLAC (lossless conversion)
-- `audio-wav-to-mp3` - WAV → MP3
-
-**M4A (AAC)**: Lossy compression, good quality-to-size ratio
-**MP3**: Universal compatibility, lossy compression (libmp3lame)
-**FLAC**: Lossless compression, archival quality
-**WAV**: Uncompressed PCM (pcm_s16le), maximum quality
+For air-gapped deployments you can distribute the DMG and FFmpeg binaries internally—no activation or online checks occur.
 
 ---
 
-## Conversion Pipeline
+## Development Quick Start
 
-Honeymelon implements a three-stage conversion pipeline optimized for quality and performance:
+```bash
+# 1. Install dependencies (FFmpeg binaries download during postinstall)
+npm install
+
+# 2. Start the web UI in Vite (useful when iterating on Vue components)
+npm run dev
+
+# 3. Launch the desktop shell with live reload
+npm run tauri dev
+```
+
+To regenerate the bundled FFmpeg and FFprobe binaries for Apple Silicon:
+
+```bash
+npm run download-ffmpeg
+```
+
+> The script fetches arm64 builds from osxexperts.net and places them under `src-tauri/resources/bin`. Ensure you review licensing obligations before shipping custom builds.
+
+---
+
+## Command Reference
+
+| Task                          | Command                             |
+| ----------------------------- | ----------------------------------- |
+| Install dependencies          | `npm install`                       |
+| Format source (Prettier)      | `npm run format` / `format:js`      |
+| Lint (ESLint + Clippy)        | `npm run lint`                      |
+| Unit tests (Vitest)           | `npm run test:unit`                 |
+| End-to-end tests (Playwright) | `npm run test:e2e` (optional suite) |
+| Type-check Vue components     | `npm run type-check`                |
+| Build web assets              | `npm run build`                     |
+| Run Tauri desktop app         | `npm run tauri dev`                 |
+| Build signed macOS bundle     | `npm run tauri build`               |
+| Generate docs locally         | `npm run docs:dev`                  |
+
+Rust-specific tooling can be invoked inside `src-tauri/`:
+
+```bash
+cd src-tauri
+cargo fmt --all
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+```
+
+---
+
+## Architecture Notes
+
+- **Probe → Plan → Execute workflow**
+  1. The Rust layer calls FFprobe and summarises duration, codecs, resolution, subtitles, and colour metadata.
+  2. The TypeScript planner (`src/lib/ffmpeg-plan.ts`) selects an appropriate preset tier, determines copy vs transcode strategy, and produces FFmpeg arguments.
+  3. The Rust runner streams progress via Tauri events, managing exclusive locks for heavy codecs (AV1, ProRes) and writing to temporary files before atomic rename.
+
+- **Notification support**  
+  Successful or failed jobs trigger macOS toast notifications (via `@tauri-apps/plugin-notification`); permission prompts occur only once.
+
+- **Capability snapshots**  
+  FFmpeg encoder, format, and filter lists are cached in `~/Library/Caches/com.honeymelon.desktop/ffmpeg-capabilities.json` to avoid repeated probes.
+
+---
+
+## Testing & QA
+
+| Stage              | Command                           | Purpose                                                    |
+| ------------------ | --------------------------------- | ---------------------------------------------------------- |
+| Type safety        | `npm run type-check`              | Validates Vue + TypeScript integration                     |
+| Unit tests (JS)    | `npm run test:unit`               | Exercises planners, stores, utilities                      |
+| Unit tests (Rust)  | `cargo test` (inside `src-tauri`) | Validates error handling, path logic, FFmpeg runner        |
+| Lint / formatting  | `npm run lint`, `npm run format`  | Enforces project conventions                               |
+| Desktop smoke test | `npm run tauri dev`               | Manual verification of queue management and UI             |
+| Distribution build | `npm run tauri build`             | Produces signed `.app` and `.dmg` under `src-tauri/target` |
+
+Continuous integration should cover at least `npm run lint`, `npm run test:unit`, `npm run build`, and `cargo test` to prevent regressions.
+
+---
+
+## Release Checklist
+
+1. Increment versions in `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+2. Update `CHANGELOG.md` with release notes and link references.
+3. Run full QA suite:
+   ```bash
+   npm run format
+   npm run lint
+   npm run test:unit
+   npm run build
+   (cd src-tauri && cargo test)
+   ```
+4. Build the macOS bundle: `npm run tauri build`.
+5. Codesign/notarise the DMG if distributing outside the organisation.
+6. Upload the DMG, changelog, and checksum to the GitHub Release tagged `vX.Y.Z`.
+7. Smoke-test the distributed binary on a clean Apple Silicon machine.
+
+---
+
+## Documentation
+
+The full documentation set lives under [`docs/`](./docs/), powered by VitePress:
+
+- [User Guide](./docs/guide/) – onboarding, presets, batch conversion, troubleshooting.
+- [Architecture](./docs/architecture/) – deep dive into the planner, stores, and native integration.
+- [Development](./docs/development/) – contribution workflow, coding standards, commit strategy.
+- [Legal](./docs/legal/) – license compliance, third-party notices, and distribution guidance.
+
+Generate and preview locally:
+
+```bash
+npm run docs:dev   # live preview at http://localhost:5173
+npm run docs:build # emit static assets into docs/.vitepress/dist
+```
+
+---
+
+## License
+
+Honeymelon is distributed under a proprietary licence. See the [LICENSE](LICENSE) file for terms, and review the LGPL obligations outlined in [`docs/legal`](./docs/legal/) when shipping bundled FFmpeg binaries.
 
 ### Stage 1: Probe
 
