@@ -123,8 +123,6 @@ pnpm install
 ````
 `````
 
-`````
-
 #### Mermaid Diagrams
 
 ````markdown
@@ -132,7 +130,7 @@ pnpm install
 graph LR
     A[Start] --> B[End]
 ```
-`````
+````
 
 ### Adding a New Page
 
