@@ -21,7 +21,6 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build --target aarch64-apple-darwin",
-    "tauri:build:universal": "tauri build --target universal-apple-darwin",
     "remove:emojis": "node scripts/remove-emojis.js",
     "remove:emojis:dry": "node scripts/remove-emojis.js --dry-run",
     "remove:emojis:src": "node scripts/remove-emojis.js --include \"^/src/\"",
