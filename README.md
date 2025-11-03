@@ -871,8 +871,7 @@ cd src-tauri && cargo fmt --all
 **Building**:
 
 - `npm run build` - Type-check + Vite build (frontend only)
-- `npm run tauri:build` - Full production build (DMG output)
-- `npm run tauri:build:universal` - Universal binary (Apple Silicon + Intel)
+- `npm run tauri:build` - Full production build for Apple Silicon (DMG output)
 
 **Linting & Formatting**:
 
