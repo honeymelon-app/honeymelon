@@ -68,6 +68,8 @@ Key technology:
 | Disk space       | 50 MB app + headroom for outputs | ≥ 500 MB free for temporary files   |
 | Network          | Not required for day-to-day use  | Optional for future update channels |
 
+> **Note**: Honeymelon is compiled exclusively for Apple Silicon (ARM64 architecture). Intel-based Macs are **not supported**.
+
 ---
 
 ## Install Honeymelon
@@ -162,9 +164,11 @@ Continuous integration should cover at least `npm run lint`, `npm run test:unit`
 
 ## Release Checklist
 
-1. Increment versions in `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
-2. Update `CHANGELOG.md` with release notes and link references.
-3. Run full QA suite:
+Follow this checklist for production-ready releases:
+
+1. **Version Bump**: Increment versions in `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
+2. **Changelog**: Update `CHANGELOG.md` with release notes and link references.
+3. **Quality Assurance**: Run full QA suite:
    ```bash
    npm run format
    npm run lint
@@ -172,10 +176,28 @@ Continuous integration should cover at least `npm run lint`, `npm run test:unit`
    npm run build
    (cd src-tauri && cargo test)
    ```
-4. Build the macOS bundle: `npm run tauri build`.
-5. Codesign/notarise the DMG if distributing outside the organisation.
-6. Upload the DMG, changelog, and checksum to the GitHub Release tagged `vX.Y.Z`.
-7. Smoke-test the distributed binary on a clean Apple Silicon machine.
+4. **Code Signing Setup**: Ensure environment variables are set (see Advanced Build Configuration above):
+   - `APPLE_ID`
+   - `APPLE_PASSWORD`
+   - `APPLE_TEAM_ID`
+   - `APPLE_SIGNING_IDENTITY`
+5. **Build Signed Bundle**: `npm run tauri:build` (includes automatic notarization)
+6. **Verify Signature**: Run verification commands on the built app:
+   ```bash
+   codesign -vvv --deep --strict src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Honeymelon.app
+   spctl -a -vvv -t install src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Honeymelon.app
+   ```
+7. **Generate Checksum**: Create SHA256 checksum for the DMG:
+   ```bash
+   shasum -a 256 src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/Honeymelon_*.dmg > SHA256SUMS.txt
+   ```
+8. **Create GitHub Release**: Upload the DMG, changelog, and checksum to the GitHub Release tagged `vX.Y.Z`.
+9. **Smoke Test**: Test the distributed binary on a clean Apple Silicon machine:
+   - First launch (Gatekeeper check)
+   - Basic conversion workflow
+   - Preferences and settings
+   - Notification permissions
+10. **Announce**: Update documentation and notify users of the new release.
 
 ---
 
@@ -560,21 +582,15 @@ See [Building from Source](#building-from-source) section below.
 
 ### Advanced Build Configuration
 
-**Target Architectures**:
+**Target Architecture**:
 
-- **Apple Silicon only** (default):
+Honeymelon is built exclusively for Apple Silicon (ARM64):
 
-  ```bash
-  npm run tauri:build
-  # or: npm run tauri:build -- --target aarch64-apple-darwin
-  ```
+```bash
+npm run tauri:build
+```
 
-- **Universal binary** (Apple Silicon + Intel):
-
-  ```bash
-  npm run tauri:build:universal
-  # or: npm run tauri:build -- --target universal-apple-darwin
-  ```
+This compiles the app for the `aarch64-apple-darwin` target only. Intel-based Macs are not supported.
 
 **FFmpeg Configuration**:
 
@@ -590,20 +606,58 @@ To bundle FFmpeg with your build:
 - Place `ffmpeg` and `ffprobe` executables in `src-tauri/resources/bin/`
 - Ensure they are executable: `chmod +x src-tauri/resources/bin/ff*`
 
-**Code Signing & Notarization** (for distribution):
+**Code Signing & Notarization** (required for production distribution):
 
-1. Obtain Apple Developer ID Application certificate
-2. Set environment variables:
+For production releases, the app must be signed with an Apple Developer ID certificate and notarized by Apple. This ensures:
+
+- Users can open the app without security warnings
+- The app can be distributed outside the Mac App Store
+- macOS Gatekeeper will trust the application
+
+**Setup Steps**:
+
+1. **Enroll in Apple Developer Program** ($99/year)
+2. **Obtain Developer ID Application certificate** from Apple Developer portal
+3. **Install certificate** in your macOS Keychain
+4. **Generate app-specific password** for notarization at [appleid.apple.com](https://appleid.apple.com)
+5. **Configure environment variables**:
 
    ```bash
    export APPLE_ID="your@apple.id"
    export APPLE_PASSWORD="app-specific-password"
    export APPLE_TEAM_ID="YOUR_TEAM_ID"
+   export APPLE_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAM_ID)"
    ```
 
-3. Run build: `npm run tauri:build`
+6. **Update tauri.conf.json** with your signing identity:
 
-Tauri will automatically sign and notarize the app bundle.
+   ```json
+   {
+     "bundle": {
+       "macOS": {
+         "signingIdentity": "Developer ID Application: Your Name (TEAM_ID)"
+       }
+     }
+   }
+   ```
+
+7. **Build signed and notarized bundle**:
+
+   ```bash
+   npm run tauri:build
+   ```
+
+Tauri will automatically sign the app bundle and submit it to Apple's notarization service. The process takes 5-15 minutes. Once complete, the notarized DMG will be in `src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/`.
+
+**Verification**:
+
+```bash
+# Check code signature
+codesign -vvv --deep --strict /path/to/Honeymelon.app
+
+# Check notarization
+spctl -a -vvv -t install /path/to/Honeymelon.app
+```
 
 ---
 
