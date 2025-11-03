@@ -31,7 +31,7 @@ Honeymelon is a macOS Apple Silicon media converter built with Tauri + Vue 3. It
 
 The application follows a three-stage conversion pipeline implemented across frontend and backend:
 
-1. **Probe** ([src/lib/ffmpeg-probe.ts](src/lib/ffmpeg-probe.ts), [src-tauri/src/ffmpeg_probe.rs](src-tauri/src/ffmpeg_probe.rs))
+1. **Probe** ([src/lib/ffmpeg-probe.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/lib/ffmpeg-probe.ts), [src-tauri/src/ffmpeg_probe.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_probe.rs))
    - Invokes `ffprobe` via Tauri command to extract media metadata
    - Returns `ProbeSummary` with codecs, duration, resolution, color metadata, subtitle types
 
@@ -44,7 +44,7 @@ The application follows a three-stage conversion pipeline implemented across fro
      - If codec matches but container differs → copy if container allows
      - Otherwise → transcode with tier-specific quality settings
 
-3. **Execute** ([src-tauri/src/ffmpeg_runner.rs](src-tauri/src/ffmpeg_runner.rs))
+3. **Execute** ([src-tauri/src/ffmpeg_runner.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_runner.rs))
    - Rust side spawns FFmpeg as child process
    - Parses stderr for progress events (time, fps, speed)
    - Emits `ffmpeg://progress` and `ffmpeg://completion` events to frontend
@@ -59,7 +59,7 @@ Presets define target container + codec combinations with quality tiers:
 - Tier defaults stored in `video.tiers` and `audio.tiers` (bitrate, CRF, profile)
 - Container rules validate codec compatibility before execution
 
-### Capability Detection ([src/lib/capability.ts](src/lib/capability.ts), [src-tauri/src/ffmpeg_capabilities.rs](src-tauri/src/ffmpeg_capabilities.rs))
+### Capability Detection ([src/lib/capability.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/lib/capability.ts), [src-tauri/src/ffmpeg_capabilities.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_capabilities.rs))
 
 - On startup, queries `ffmpeg -encoders` and `-formats` to build `CapabilitySnapshot`
 - Presets auto-disable if required encoder unavailable
@@ -72,7 +72,7 @@ Presets define target container + codec combinations with quality tiers:
 - Exclusive jobs (AV1, ProRes) block parallel execution to prevent resource exhaustion
 - Progress updates streamed via Tauri events update job state in real-time
 
-### Tauri Commands ([src-tauri/src/lib.rs](src-tauri/src/lib.rs))
+### Tauri Commands ([src-tauri/src/lib.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/lib.rs))
 
 Exposed commands:
 
@@ -173,7 +173,7 @@ Exposed commands:
 1. Add async function in appropriate `src-tauri/src/*.rs` module
 2. Export from module with `pub` if needed
 3. Add `#[tauri::command]` attribute
-4. Register in `invoke_handler![]` in [src-tauri/src/lib.rs](src-tauri/src/lib.rs)
+4. Register in `invoke_handler![]` in [src-tauri/src/lib.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/lib.rs)
 5. Call from frontend via `import { invoke } from '@tauri-apps/api/core'`
 
 ### Debugging FFmpeg Arguments
@@ -196,4 +196,4 @@ Exposed commands:
 
 ## Additional References
 
-See [AGENTS.md](AGENTS.md) for detailed commit/PR guidelines and [README.md](README.md) for user-facing documentation.
+See [AGENTS.md](./agents.md) for detailed commit/PR guidelines and [README.md](../README.md) for user-facing documentation.

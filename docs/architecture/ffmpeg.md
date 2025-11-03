@@ -72,7 +72,7 @@ Set in Preferences → FFmpeg Settings.
 
 ### Implementation
 
-**Location**: [src-tauri/src/ffmpeg_runner.rs](../../src-tauri/src/ffmpeg_runner.rs)
+**Location**: [src-tauri/src/ffmpeg_runner.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_runner.rs)
 
 ```rust
 fn resolve_ffmpeg_path() -> Result<PathBuf> {
@@ -123,7 +123,7 @@ ffprobe \
 
 ### Output Parsing
 
-**Location**: [src-tauri/src/ffmpeg_probe.rs](../../src-tauri/src/ffmpeg_probe.rs)
+**Location**: [src-tauri/src/ffmpeg_probe.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_probe.rs)
 
 ```rust
 #[derive(Deserialize)]
@@ -174,7 +174,7 @@ match result {
 
 ### Command Construction
 
-**Location**: [src/lib/ffmpeg-plan.ts](../../src/lib/ffmpeg-plan.ts)
+**Location**: [src/lib/ffmpeg-plan.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/lib/ffmpeg-plan.ts)
 
 Build FFmpeg arguments from plan:
 
@@ -211,7 +211,7 @@ function buildFFmpegCommand(plan: FFmpegPlan): string[] {
 
 ### Process Spawning
 
-**Location**: [src-tauri/src/ffmpeg_runner.rs](../../src-tauri/src/ffmpeg_runner.rs)
+**Location**: [src-tauri/src/ffmpeg_runner.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_runner.rs)
 
 ```rust
 use std::process::{Command, Stdio};
@@ -311,7 +311,7 @@ FFmpeg supports hardware encoding via VideoToolbox:
 
 ### Automatic Selection
 
-**Location**: [src/lib/ffmpeg-plan.ts](../../src/lib/ffmpeg-plan.ts)
+**Location**: [src/lib/ffmpeg-plan.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/lib/ffmpeg-plan.ts)
 
 ```typescript
 function selectEncoder(codec: string, hwAccel: boolean): string {
@@ -347,7 +347,7 @@ Detect which encoders are available in the user's FFmpeg installation.
 
 ### Implementation
 
-**Location**: [src-tauri/src/ffmpeg_capabilities.rs](../../src-tauri/src/ffmpeg_capabilities.rs)
+**Location**: [src-tauri/src/ffmpeg_capabilities.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_capabilities.rs)
 
 **Command**:
 
@@ -519,7 +519,7 @@ match result {
 
 ### Unit Tests
 
-**Location**: [src-tauri/src/ffmpeg_probe.rs](../../src-tauri/src/ffmpeg_probe.rs)
+**Location**: [src-tauri/src/ffmpeg_probe.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_probe.rs)
 
 ```rust
 #[cfg(test)]

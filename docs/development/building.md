@@ -148,7 +148,7 @@ Universal builds are significantly larger and may not work correctly for Apple S
 
 ### Tauri Configuration
 
-**File**: [src-tauri/tauri.conf.json](../../src-tauri/tauri.conf.json)
+**File**: [src-tauri/tauri.conf.json](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/tauri.conf.json)
 
 Key settings:
 
@@ -192,7 +192,7 @@ export default defineConfig({
 
 ### Rust Build Configuration
 
-**File**: [src-tauri/Cargo.toml](../../src-tauri/Cargo.toml)
+**File**: [src-tauri/Cargo.toml](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/Cargo.toml)
 
 ```toml
 [profile.release]

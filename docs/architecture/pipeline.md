@@ -22,7 +22,7 @@ Each stage has specific responsibilities and can fail independently, allowing fo
 
 ### Implementation
 
-**Location**: [src/lib/ffmpeg-probe.ts](../../src/lib/ffmpeg-probe.ts) (frontend) and [src-tauri/src/ffmpeg_probe.rs](../../src-tauri/src/ffmpeg_probe.rs) (backend)
+**Location**: [src/lib/ffmpeg-probe.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/lib/ffmpeg-probe.ts) (frontend) and [src-tauri/src/ffmpeg_probe.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_probe.rs) (backend)
 
 **Process**:
 
@@ -247,7 +247,7 @@ FFmpeg Command:
 
 ### Implementation
 
-**Location**: [src-tauri/src/ffmpeg_runner.rs](../../src-tauri/src/ffmpeg_runner.rs) (backend) and [src/composables/use-job-orchestrator.ts](../../src/composables/use-job-orchestrator.ts) (frontend)
+**Location**: [src-tauri/src/ffmpeg_runner.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_runner.rs) (backend) and [src/composables/use-job-orchestrator.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/composables/use-job-orchestrator.ts) (frontend)
 
 ### Process
 
