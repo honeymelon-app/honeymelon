@@ -5,10 +5,8 @@ interface LicenseInfo {
   key: string;
   licenseId: string;
   orderId: string;
-  seats: number;
-  entitlementsChecksum: number;
-  flags: number;
-  updatesUntil: number | null;
+  maxMajorVersion: number;
+  issuedAt: number;
   payload: string;
   signature: string;
   activatedAt: number | null;

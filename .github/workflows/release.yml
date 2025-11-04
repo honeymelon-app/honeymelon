@@ -126,7 +126,12 @@ jobs:
           ls -lh src-tauri/resources/bin/ || echo "No binaries in resources"
 
       - name: Build application
-        run: npm run tauri:build
+        run: |
+          if [ -z "${HONEYMELON_LICENSE_PUBLIC_KEY}" ]; then
+            echo "::: Missing HONEYMELON_LICENSE_PUBLIC_KEY secret" >&2
+            exit 1
+          fi
+          npm run tauri:build
         env:
           # Apple code signing (optional - only if secrets are configured)
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -135,6 +140,9 @@ jobs:
           # Enable notarization if credentials provided
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # License verification key (Ed25519 public key, base64)
+          HONEYMELON_LICENSE_PUBLIC_KEY: ${{ secrets.HONEYMELON_LICENSE_PUBLIC_KEY }}
+          LICENSE_SIGNING_PUBLIC_KEY: ${{ secrets.HONEYMELON_LICENSE_PUBLIC_KEY }}
 
       - name: Extract version from tag
         id: version

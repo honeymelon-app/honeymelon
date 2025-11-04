@@ -13,6 +13,7 @@ use uuid::Uuid;
 const SIGNATURE_LENGTH: usize = 64;
 const LICENSE_FILE_NAME: &str = "license.json";
 const BASE32_ALPHABET: &[u8; 32] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const PAYLOAD_LENGTH: usize = 42; // sync with backend payload
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,10 +21,8 @@ pub struct LicenseInfo {
     pub key: String,
     pub license_id: String,
     pub order_id: String,
-    pub seats: u16,
-    pub entitlements_checksum: u64,
-    pub flags: u16,
-    pub updates_until: Option<u64>,
+    pub max_major_version: u8,
+    pub issued_at: u64,
     pub payload: String,
     pub signature: String,
     pub activated_at: Option<u64>,
@@ -85,12 +84,11 @@ impl From<LicenseError> for AppError {
 pub fn verify(key: &str) -> Result<LicenseInfo, LicenseError> {
     let blob = decode_key(key)?;
 
-    let payload_len = license_payload_length();
-    if blob.len() != payload_len + SIGNATURE_LENGTH {
+    if blob.len() != PAYLOAD_LENGTH + SIGNATURE_LENGTH {
         return Err(LicenseError::InvalidLength);
     }
 
-    let (payload_bytes, signature_bytes) = blob.split_at(payload_len);
+    let (payload_bytes, signature_bytes) = blob.split_at(PAYLOAD_LENGTH);
     let signature_bytes: [u8; SIGNATURE_LENGTH] = signature_bytes
         .try_into()
         .map_err(|_| LicenseError::InvalidSignature)?;
@@ -107,10 +105,8 @@ pub fn verify(key: &str) -> Result<LicenseInfo, LicenseError> {
         key: format_key(key),
         license_id: parsed.license_id.to_string(),
         order_id: parsed.order_id.to_string(),
-        seats: parsed.seats,
-        entitlements_checksum: parsed.entitlements_checksum,
-        flags: parsed.flags,
-        updates_until: parsed.updates_until,
+        max_major_version: parsed.max_major_version,
+        issued_at: parsed.issued_at,
         payload: BASE64.encode(payload_bytes),
         signature: BASE64.encode(signature_bytes),
         activated_at: None,
@@ -234,15 +230,12 @@ fn char_to_value(ch: u8) -> Option<u8> {
 struct ParsedPayload {
     license_id: Uuid,
     order_id: Uuid,
-    seats: u16,
-    entitlements_checksum: u64,
-    flags: u16,
-    updates_until: Option<u64>,
+    max_major_version: u8,
+    issued_at: u64,
 }
 
 fn parse_payload(bytes: &[u8]) -> Result<ParsedPayload, LicenseError> {
-    let payload_len = license_payload_length();
-    if bytes.len() != payload_len {
+    if bytes.len() != PAYLOAD_LENGTH {
         return Err(LicenseError::InvalidLength);
     }
 
@@ -253,27 +246,14 @@ fn parse_payload(bytes: &[u8]) -> Result<ParsedPayload, LicenseError> {
 
     let license_id = Uuid::from_slice(&bytes[1..17])?;
     let order_id = Uuid::from_slice(&bytes[17..33])?;
-    let seats = u16::from_be_bytes(bytes[33..35].try_into().unwrap());
-
-    let checksum_high = u32::from_be_bytes(bytes[35..39].try_into().unwrap());
-    let checksum_low = u32::from_be_bytes(bytes[39..43].try_into().unwrap());
-    let checksum = ((checksum_high as u64) << 32) | checksum_low as u64;
-
-    let flags = u16::from_be_bytes(bytes[43..45].try_into().unwrap());
-    let updates_raw = u64::from_be_bytes(bytes[45..53].try_into().unwrap());
-    let updates_until = if updates_raw == 0 {
-        None
-    } else {
-        Some(updates_raw)
-    };
+    let max_major_version = bytes[33];
+    let issued_at = u64::from_be_bytes(bytes[34..42].try_into().unwrap());
 
     Ok(ParsedPayload {
         license_id,
         order_id,
-        seats,
-        entitlements_checksum: checksum,
-        flags,
-        updates_until,
+        max_major_version,
+        issued_at,
     })
 }
 
@@ -302,10 +282,6 @@ fn parse_public_key(value: &str) -> Result<VerifyingKey, LicenseError> {
 
     VerifyingKey::from_bytes(&key_bytes)
         .map_err(|err| LicenseError::InvalidPublicKey(err.to_string()))
-}
-
-const fn license_payload_length() -> usize {
-    53
 }
 
 #[cfg(test)]
@@ -344,7 +320,7 @@ mod tests {
 
     #[test]
     fn decode_round_trip() {
-        let bytes = vec![0xBA; license_payload_length() + SIGNATURE_LENGTH];
+        let bytes = vec![0xBA; PAYLOAD_LENGTH + SIGNATURE_LENGTH];
         let key = encode_base32(&bytes);
         let decoded = decode_key(&key).unwrap();
         assert_eq!(bytes, decoded);

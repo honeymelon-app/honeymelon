@@ -36,31 +36,27 @@ const keyInput = ref('');
 const canSubmit = computed(() => keyInput.value.replace(/[^A-Z0-9]/gi, '').length >= 10);
 const verificationDetails = computed(() => preview.value ?? current.value ?? null);
 
-const updatesLabel = computed(() => {
+const majorVersionLabel = computed(() => {
   const details = verificationDetails.value;
   if (!details) {
     return null;
   }
 
-  if (!details.updatesUntil) {
-    return 'Lifetime updates included';
+  return `Includes Honeymelon ${details.maxMajorVersion}.x`; // communicates scope succinctly
+});
+
+const issuedAtLabel = computed(() => {
+  const details = verificationDetails.value;
+  if (!details) {
+    return null;
   }
 
-  const date = new Date(details.updatesUntil * 1000);
-  return `Updates through ${date.toLocaleDateString(undefined, {
+  const date = new Date(details.issuedAt * 1000);
+  return `Issued ${date.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   })}`;
-});
-
-const seatsLabel = computed(() => {
-  const details = verificationDetails.value;
-  if (!details) {
-    return null;
-  }
-
-  return `${details.seats} ${details.seats === 1 ? 'seat' : 'seats'}`;
 });
 
 watch(
@@ -228,29 +224,29 @@ async function handleDeactivate() {
 
         <div
           v-if="verificationDetails"
-          class="rounded-lg border border-border/70 bg-muted/30 p-4 text-sm"
+          class="rounded-lg border border-border/70 bg-muted/30 p-4 text-sm space-y-3"
         >
-          <div class="flex flex-col gap-3">
-            <div class="flex items-center justify-between gap-2">
-              <div>
-                <p class="text-xs uppercase tracking-wide text-muted-foreground">Key</p>
-                <p class="font-mono text-xs tracking-widest">{{ verificationDetails.key }}</p>
-              </div>
-              <Badge variant="secondary">{{ seatsLabel }}</Badge>
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <p class="text-xs uppercase tracking-wide text-muted-foreground">Key</p>
+              <p class="font-mono text-xs tracking-widest">{{ verificationDetails.key }}</p>
             </div>
+            <Badge v-if="majorVersionLabel" variant="secondary">{{ majorVersionLabel }}</Badge>
+          </div>
 
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <p class="text-xs uppercase tracking-wide text-muted-foreground">License ID</p>
-                <p class="font-mono text-xs">{{ verificationDetails.licenseId }}</p>
-              </div>
-              <div>
-                <p class="text-xs uppercase tracking-wide text-muted-foreground">Order ID</p>
-                <p class="font-mono text-xs">{{ verificationDetails.orderId }}</p>
-              </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <p class="text-xs uppercase tracking-wide text-muted-foreground">License ID</p>
+              <p class="font-mono text-xs">{{ verificationDetails.licenseId }}</p>
             </div>
+            <div>
+              <p class="text-xs uppercase tracking-wide text-muted-foreground">Order ID</p>
+              <p class="font-mono text-xs">{{ verificationDetails.orderId }}</p>
+            </div>
+          </div>
 
-            <p v-if="updatesLabel" class="text-xs text-muted-foreground">{{ updatesLabel }}</p>
+          <div class="text-xs text-muted-foreground space-y-1">
+            <p v-if="issuedAtLabel">{{ issuedAtLabel }}</p>
           </div>
         </div>
       </div>

@@ -159,6 +159,8 @@ async fn choose_output_directory(default_path: Option<String>) -> Result<Option<
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let _ = dotenvy::dotenv();
+
     use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
     tauri::Builder::default()
