@@ -66,10 +66,10 @@ jobs:
 
       - name: Push to Docs Repository
         env:
-          DOCS_REPO_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           cd docs-repo
-          git push https://x-access-token:${DOCS_REPO_TOKEN}@github.com/honeymelon-app/docs.git main
+          git push https://x-access-token:${GH_TOKEN}@github.com/honeymelon-app/docs.git main
 
       - name: Summary
         if: success()
