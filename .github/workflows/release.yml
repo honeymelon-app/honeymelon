@@ -4,6 +4,17 @@ on:
   push:
     tags:
       - 'v*.*.*' # Triggers on version tags like v1.0.0, v1.2.3, etc.
+  # Manual trigger so maintainers can run the release workflow from the Actions UI
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional release version (e.g., 1.2.3). If provided, used in release name.'
+        required: false
+      create_release:
+        description: 'Create GitHub Release and upload artifacts (true/false).'
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write # Required for creating releases and uploading assets
@@ -150,25 +161,39 @@ jobs:
 
       - name: Prepare release artifacts
         run: |
-          cd src-tauri/target/release/bundle
+          BUNDLE_DIR=src-tauri/target/release/bundle
+          STAGING_DIR="$BUNDLE_DIR/release-artifacts"
 
-          # Create a staging directory
-          mkdir -p release-artifacts
+          # Always ensure staging dir exists so later steps can safely reference it.
+          mkdir -p "$STAGING_DIR"
 
-          # Copy DMG if it exists
-          if [ -d "dmg" ]; then
-            cp dmg/*.dmg release-artifacts/ || true
+          if [ -d "$BUNDLE_DIR" ]; then
+            echo "Found bundle directory: $BUNDLE_DIR"
+
+            # Copy DMG files if present
+            if [ -d "$BUNDLE_DIR/dmg" ]; then
+              cp "$BUNDLE_DIR/dmg"/*.dmg "$STAGING_DIR/" 2>/dev/null || true
+            fi
+
+            # Zip the .app bundle if present under macos/
+            if [ -d "$BUNDLE_DIR/macos" ]; then
+              (cd "$BUNDLE_DIR/macos" && zip -r ../release-artifacts/Honeymelon-macOS-aarch64.app.zip Honeymelon.app) || true
+            fi
+
+            # (Optional) look for other common artifacts and copy them
+            if compgen -G "$BUNDLE_DIR/*.zip" > /dev/null; then
+              cp "$BUNDLE_DIR"/*.zip "$STAGING_DIR/" 2>/dev/null || true
+            fi
+          else
+            echo "Warning: bundle directory not found at $BUNDLE_DIR - created empty staging dir at $STAGING_DIR"
           fi
 
-          # Copy app bundle if it exists
-          if [ -d "macos" ]; then
-            cd macos
-            zip -r ../release-artifacts/Honeymelon-macOS-aarch64.app.zip Honeymelon.app
-            cd ..
+          # List staging contents (or show message if empty)
+          if [ -n "$(ls -A "$STAGING_DIR" 2>/dev/null)" ]; then
+            ls -lh "$STAGING_DIR"
+          else
+            echo "No release artifacts found in $STAGING_DIR"
           fi
-
-          # List what we're releasing
-          ls -lh release-artifacts/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
