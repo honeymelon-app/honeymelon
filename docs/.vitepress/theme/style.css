@@ -44,15 +44,16 @@
  * -------------------------------------------------------------------------- */
 
 :root {
+  /* Main website color scheme - Honeymelon warm orange/honey tones */
+  --vp-c-brand-1: hsl(28 67% 57%);
+  --vp-c-brand-2: hsl(34 72% 62%);
+  --vp-c-brand-3: hsl(34 72% 62%);
+  --vp-c-brand-soft: hsl(42 81% 88% / 0.14);
+
   --vp-c-default-1: var(--vp-c-gray-1);
   --vp-c-default-2: var(--vp-c-gray-2);
   --vp-c-default-3: var(--vp-c-gray-3);
   --vp-c-default-soft: var(--vp-c-gray-soft);
-
-  --vp-c-brand-1: var(--vp-c-indigo-1);
-  --vp-c-brand-2: var(--vp-c-indigo-2);
-  --vp-c-brand-3: var(--vp-c-indigo-3);
-  --vp-c-brand-soft: var(--vp-c-indigo-soft);
 
   --vp-c-tip-1: var(--vp-c-brand-1);
   --vp-c-tip-2: var(--vp-c-brand-2);
@@ -68,6 +69,16 @@
   --vp-c-danger-2: var(--vp-c-red-2);
   --vp-c-danger-3: var(--vp-c-red-3);
   --vp-c-danger-soft: var(--vp-c-red-soft);
+}
+
+.dark {
+  /* Dark mode using main website's dark theme colors */
+  --vp-c-bg: hsl(30 25% 8%);
+  --vp-c-bg-soft: hsl(30 20% 10%);
+  --vp-c-bg-mute: hsl(30 20% 15%);
+
+  --vp-c-text-1: hsl(45 85% 95%);
+  --vp-c-text-2: hsl(42 30% 65%);
 }
 
 /**
@@ -92,9 +103,17 @@
 
 :root {
   --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #bd34fe 30%, #41d1ff);
+  --vp-home-hero-name-background: -webkit-linear-gradient(
+    120deg,
+    hsl(34 72% 62%) 30%,
+    hsl(28 67% 57%)
+  );
 
-  --vp-home-hero-image-background-image: linear-gradient(-45deg, #bd34fe 50%, #47caff 50%);
+  --vp-home-hero-image-background-image: linear-gradient(
+    -45deg,
+    hsl(34 72% 62%) 50%,
+    hsl(28 67% 57%) 50%
+  );
   --vp-home-hero-image-filter: blur(44px);
 }
 
