@@ -20,10 +20,55 @@
 - [Development Quick Start](#development-quick-start)
 - [Command Reference](#command-reference)
 - [Architecture Notes](#architecture-notes)
-- [Testing & QA](#testing--qa)
+- [Testing \& QA](#testing--qa)
 - [Release Checklist](#release-checklist)
 - [Documentation](#documentation)
 - [License](#license)
+  - [Stage 1: Probe](#stage-1-probe)
+  - [Stage 2: Plan](#stage-2-plan)
+  - [Stage 3: Execute](#stage-3-execute)
+- [Architecture](#architecture)
+  - [Technology Stack](#technology-stack)
+  - [Project Structure](#project-structure)
+  - [Architectural Principles](#architectural-principles)
+- [Installation](#installation)
+  - [Option 1: Pre-built Binary (Recommended)](#option-1-pre-built-binary-recommended)
+  - [Option 2: Build from Source](#option-2-build-from-source)
+- [Building from Source](#building-from-source)
+  - [Prerequisites](#prerequisites)
+  - [Build Steps](#build-steps)
+  - [Advanced Build Configuration](#advanced-build-configuration)
+- [Configuration](#configuration)
+  - [Application Preferences](#application-preferences)
+  - [Preset System](#preset-system)
+  - [Environment Variables](#environment-variables)
+- [Usage](#usage)
+  - [Basic Workflow](#basic-workflow)
+  - [Keyboard Shortcuts](#keyboard-shortcuts)
+  - [Menu Bar](#menu-bar)
+- [Development](#development)
+  - [Development Environment Setup](#development-environment-setup)
+  - [Available npm Scripts](#available-npm-scripts)
+  - [Development Guidelines](#development-guidelines)
+  - [Testing](#testing)
+- [Legal \& Licensing](#legal--licensing)
+  - [Proprietary Software](#proprietary-software)
+  - [FFmpeg Licensing](#ffmpeg-licensing)
+  - [Patent Considerations](#patent-considerations)
+  - [Third-Party Software](#third-party-software)
+  - [Distribution Requirements](#distribution-requirements)
+- [Troubleshooting](#troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Performance Optimization](#performance-optimization)
+  - [Getting Help](#getting-help)
+- [Contributing](#contributing)
+  - [Development Priorities](#development-priorities)
+  - [Code Style Requirements](#code-style-requirements)
+- [Acknowledgements](#acknowledgements)
+- [License](#license-1)
+  - [Honeymelon Application](#honeymelon-application)
+  - [FFmpeg](#ffmpeg)
+  - [Third-Party Dependencies](#third-party-dependencies)
 
 ---
 
@@ -41,19 +86,19 @@ Key technology:
 
 ## Feature Highlights
 
-- **Remux-first conversion pipeline**  
+- **Remux-first conversion pipeline**
   Dynamically decides between stream copy or transcode based on container rules, capabilities, and preset tiers.
 
-- **Preset library across media types**  
+- **Preset library across media types**
   Ready-to-ship presets for video, audio, and stills (PNG/JPEG/WebP) with tiered quality defaults, subtitle handling policies, and colour metadata preservation.
 
-- **Job queue designed for teams**  
+- **Job queue designed for teams**
   Drag-and-drop folders, edit preset assignments before start, track ETA, view logs, and receive macOS notifications on completion or failure.
 
-- **FFmpeg capability awareness**  
+- **FFmpeg capability awareness**
   Bundled FFmpeg binaries are interrogated at runtime so unsupported encoders are filtered automatically.
 
-- **Privacy by design**  
+- **Privacy by design**
   No telemetry, network access, or cloud dependencies. Output destination is configurable per machine with a dedicated chooser.
 
 ---
@@ -139,10 +184,10 @@ cargo test
   2. The TypeScript planner (`src/lib/ffmpeg-plan.ts`) selects an appropriate preset tier, determines copy vs transcode strategy, and produces FFmpeg arguments.
   3. The Rust runner streams progress via Tauri events, managing exclusive locks for heavy codecs (AV1, ProRes) and writing to temporary files before atomic rename.
 
-- **Notification support**  
+- **Notification support**
   Successful or failed jobs trigger macOS toast notifications (via `@tauri-apps/plugin-notification`); permission prompts occur only once.
 
-- **Capability snapshots**  
+- **Capability snapshots**
   FFmpeg encoder, format, and filter lists are cached in `~/Library/Caches/com.honeymelon.desktop/ffmpeg-capabilities.json` to avoid repeated probes.
 
 ---
@@ -169,6 +214,7 @@ Follow this checklist for production-ready releases:
 1. **Version Bump**: Increment versions in `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
 2. **Changelog**: Update `CHANGELOG.md` with release notes and link references.
 3. **Quality Assurance**: Run full QA suite:
+
    ```bash
    npm run format
    npm run lint
@@ -176,6 +222,7 @@ Follow this checklist for production-ready releases:
    npm run build
    (cd src-tauri && cargo test)
    ```
+
 4. **Code Signing Setup**: Ensure environment variables are set (see Advanced Build Configuration above):
    - `APPLE_ID`
    - `APPLE_PASSWORD`
@@ -183,14 +230,18 @@ Follow this checklist for production-ready releases:
    - `APPLE_SIGNING_IDENTITY`
 5. **Build Signed Bundle**: `npm run tauri:build` (includes automatic notarization)
 6. **Verify Signature**: Run verification commands on the built app:
+
    ```bash
    codesign -vvv --deep --strict src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Honeymelon.app
    spctl -a -vvv -t install src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Honeymelon.app
    ```
+
 7. **Generate Checksum**: Create SHA256 checksum for the DMG:
+
    ```bash
    shasum -a 256 src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/Honeymelon_*.dmg > SHA256SUMS.txt
    ```
+
 8. **Create GitHub Release**: Upload the DMG, changelog, and checksum to the GitHub Release tagged `vX.Y.Z`.
 9. **Smoke Test**: Test the distributed binary on a clean Apple Silicon machine:
    - First launch (Gatekeeper check)
