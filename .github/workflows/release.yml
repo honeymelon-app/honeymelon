@@ -162,7 +162,15 @@ jobs:
       - name: Prepare release artifacts
         id: prepare_artifacts
         run: |
-          BUNDLE_DIR=src-tauri/target/release/bundle
+          # Try to find the bundle directory under target (handles target-specific folders like
+          # target/aarch64-apple-darwin/release/bundle and the default target/release/bundle)
+          BUNDLE_DIR="$(find src-tauri/target -type d -path '*/release/bundle' -print -quit || true)"
+
+          # Fallback to the conventional path if find returned nothing
+          if [ -z "$BUNDLE_DIR" ]; then
+            BUNDLE_DIR=src-tauri/target/release/bundle
+          fi
+
           STAGING_DIR="$BUNDLE_DIR/release-artifacts"
 
           # Always ensure staging dir exists so later steps can safely reference it.
@@ -182,7 +190,7 @@ jobs:
             fi
 
             # (Optional) look for other common artifacts and copy them
-            if compgen -G "$BUNDLE_DIR/*.zip" > /dev/null; then
+            if compgen -G "$BUNDLE_DIR"/*.zip > /dev/null; then
               cp "$BUNDLE_DIR"/*.zip "$STAGING_DIR/" 2>/dev/null || true
             fi
           else
@@ -194,7 +202,7 @@ jobs:
             ls -lh "$STAGING_DIR"
           else
             echo "Error: No release artifacts found in $STAGING_DIR" >&2
-            echo "Ensure the build produced the expected bundle under $BUNDLE_DIR" >&2
+            echo "Searched for bundle under src-tauri/target (found: $BUNDLE_DIR)" >&2
             exit 1
           fi
 
@@ -237,7 +245,7 @@ jobs:
 
             **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ steps.create_tag.outputs.tag_name }}
           files: |
-            src-tauri/target/release/bundle/release-artifacts/*
+            src-tauri/target/**/release/bundle/release-artifacts/*
           draft: false
           prerelease: false
         env:
@@ -289,7 +297,7 @@ jobs:
 
             **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.ref_name }}
           files: |
-            src-tauri/target/release/bundle/release-artifacts/*
+            src-tauri/target/**/release/bundle/release-artifacts/*
           draft: false
           prerelease: false
         env:
@@ -299,7 +307,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: honeymelon-macos-aarch64
-          path: src-tauri/target/release/bundle/release-artifacts/*
+          path: src-tauri/target/**/release/bundle/release-artifacts/*
           retention-days: 30
 
   # Optional: Create checksums for verification
