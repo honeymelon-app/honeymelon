@@ -324,8 +324,18 @@ jobs:
 
       - name: Generate checksums
         run: |
+          set -euo pipefail
           cd artifacts
-          shasum -a 256 * > SHA256SUMS.txt
+
+          # Find files only (skip directories) and generate deterministic SHA256 sums.
+          # Use NUL separators to safely handle spaces/newlines in filenames.
+          if [ -z "$(find . -type f -print -quit)" ]; then
+            echo "Error: no files found in artifacts to checksum" >&2
+            exit 1
+          fi
+
+          # Generate sorted list of files and compute shasums in a stable order
+          find . -type f -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Upload checksums to release
