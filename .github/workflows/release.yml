@@ -160,6 +160,7 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Prepare release artifacts
+        id: prepare_artifacts
         run: |
           BUNDLE_DIR=src-tauri/target/release/bundle
           STAGING_DIR="$BUNDLE_DIR/release-artifacts"
@@ -188,14 +189,62 @@ jobs:
             echo "Warning: bundle directory not found at $BUNDLE_DIR - created empty staging dir at $STAGING_DIR"
           fi
 
-          # List staging contents (or show message if empty)
+          # List staging contents (or show message if empty). If empty, fail the job.
           if [ -n "$(ls -A "$STAGING_DIR" 2>/dev/null)" ]; then
             ls -lh "$STAGING_DIR"
           else
-            echo "No release artifacts found in $STAGING_DIR"
+            echo "Error: No release artifacts found in $STAGING_DIR" >&2
+            echo "Ensure the build produced the expected bundle under $BUNDLE_DIR" >&2
+            exit 1
           fi
 
-      - name: Create GitHub Release
+      - name: Create tag for manual release
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version != '' }}
+        id: create_tag
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          case "$VERSION" in
+            v*) TAG="$VERSION" ;;
+            *) TAG="v$VERSION" ;;
+          esac
+
+          echo "Creating tag $TAG for release"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Ensure the auth remote so we can push tags
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+
+          # Create and push the annotated tag
+          git tag -a "$TAG" -m "Release $TAG" || true
+          git push origin "$TAG"
+
+          echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Create GitHub Release (manual with version)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true' && github.event.inputs.version != '' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.create_tag.outputs.tag_name }}
+          name: Honeymelon ${{ steps.create_tag.outputs.tag_name }}
+          body: |
+            ## Honeymelon ${{ steps.create_tag.outputs.tag_name }}
+
+            This release was created via manual workflow dispatch.
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ steps.create_tag.outputs.tag_name }}
+          files: |
+            src-tauri/target/release/bundle/release-artifacts/*
+          draft: false
+          prerelease: false
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Create GitHub Release (tag-based)
+        if: ${{ startsWith(github.ref, 'refs/tags/') && (github.event_name != 'workflow_dispatch' || github.event.inputs.create_release == 'true') }}
         uses: softprops/action-gh-release@v1
         with:
           name: Honeymelon v${{ steps.version.outputs.VERSION }}
