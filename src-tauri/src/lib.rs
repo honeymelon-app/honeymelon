@@ -3,6 +3,7 @@ mod ffmpeg_capabilities;
 mod ffmpeg_probe;
 mod ffmpeg_runner;
 mod fs_utils;
+mod license;
 
 use error::AppError;
 use tauri::{Emitter, Manager};
@@ -109,6 +110,35 @@ async fn pick_media_files(media_kind: Option<String>) -> Result<Vec<String>, App
 }
 
 #[tauri::command]
+async fn verify_license_key(key: String) -> Result<license::LicenseInfo, AppError> {
+    license::verify(&key).map_err(Into::into)
+}
+
+#[tauri::command]
+async fn activate_license(
+    app: tauri::AppHandle,
+    key: String,
+) -> Result<license::LicenseInfo, AppError> {
+    let mut info = license::verify(&key)?;
+    info.activated_at = Some(license::activate_timestamp());
+    license::persist(&app, &info)?;
+    app.emit("license://activated", &info).ok();
+    Ok(info)
+}
+
+#[tauri::command]
+async fn current_license(app: tauri::AppHandle) -> Result<Option<license::LicenseInfo>, AppError> {
+    license::load(&app).map_err(Into::into)
+}
+
+#[tauri::command]
+async fn remove_license(app: tauri::AppHandle) -> Result<(), AppError> {
+    license::remove(&app)?;
+    app.emit("license://removed", &()).ok();
+    Ok(())
+}
+
+#[tauri::command]
 async fn choose_output_directory(default_path: Option<String>) -> Result<Option<String>, AppError> {
     let selection = tauri::async_runtime::spawn_blocking(move || {
         let mut dialog = rfd::FileDialog::new().set_title("Select output folder");
@@ -142,7 +172,11 @@ pub fn run() {
             set_max_concurrency,
             expand_media_paths,
             pick_media_files,
-            choose_output_directory
+            choose_output_directory,
+            verify_license_key,
+            activate_license,
+            current_license,
+            remove_license
         ])
         .setup(|app| {
             // Build native macOS menu structure

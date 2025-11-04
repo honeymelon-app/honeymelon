@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -11,9 +12,20 @@ import AboutDialog from '@/components/AboutDialog.vue';
 import DestinationChooser from '@/components/DestinationChooser.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
+import LicenseActivationDialog from '@/components/LicenseActivationDialog.vue';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAppOrchestration } from '@/composables/use-app-orchestration';
 import { PRESETS } from '@/lib/presets';
 import type { MediaKind } from '@/lib/types';
+import { useLicenseStore } from '@/stores/license';
 
 const { t } = useI18n();
 
@@ -34,6 +46,24 @@ const {
   cancelAll,
   clearCompleted,
 } = app;
+
+const licenseStore = useLicenseStore();
+const {
+  current: activeLicense,
+  initialized: licenseInitialized,
+  isLoading: licenseLoading,
+  needsActivation,
+} = storeToRefs(licenseStore);
+const openLicenseDialog = () => licenseStore.requestActivationDialog();
+onMounted(() => {
+  void licenseStore.init();
+});
+
+const licenseReady = computed(() => Boolean(activeLicense.value));
+const licenseChecking = computed(() => !licenseInitialized.value || licenseLoading.value);
+const showSkeleton = computed(
+  () => licenseChecking.value || (licenseReady.value && !presetsReady.value),
+);
 
 // Track active tab
 const activeTab = ref<MediaKind>('video');
@@ -96,122 +126,158 @@ const handleImageBrowse = () => handleBrowse('image');
 
 <template>
   <!-- Loading Skeleton -->
-  <AppLoadingSkeleton v-if="!presetsReady" />
+  <LicenseActivationDialog />
+
+  <AppLoadingSkeleton v-if="showSkeleton" />
 
   <!-- Main App -->
-  <Window
-    v-else
-    :show-footer="hasActiveJobs"
-    :active-job-count="activeJobs.length"
-    @cancel-all="cancelAll"
-  >
-    <!-- Container with relative positioning for absolute controls -->
-    <div class="relative flex flex-col flex-1">
-      <!-- Top-right controls -->
-      <div class="absolute right-0 top-0 z-10 flex items-center gap-x-3">
-        <DestinationChooser />
-        <LanguageSwitcher />
-        <ThemeSwitcher />
-      </div>
-
-      <!-- Tabs for media type filtering -->
-      <Tabs v-model="activeTab" default-value="video" class="flex flex-col flex-1">
-        <TabsList aria-label="Media type filter" class="w-fit">
-          <TabsTrigger value="video" aria-label="Video files">
-            {{ t('media.video') }}
-          </TabsTrigger>
-          <TabsTrigger value="audio" aria-label="Audio files">
-            {{ t('media.audio') }}
-          </TabsTrigger>
-          <TabsTrigger value="image" aria-label="Image files">
-            {{ t('media.image') }}
-          </TabsTrigger>
-        </TabsList>
-
-        <KeepAlive>
-          <div class="flex-1 flex flex-col min-h-0">
-            <!-- Video Tab -->
-            <TabsContent
-              value="video"
-              class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
-            >
-              <FileUploader
-                :is-drag-over="isDragOver"
-                :has-active-jobs="hasVideoActiveJobs"
-                :media-kind="'video'"
-                :on-file-input="handleVideoFileInput"
-                :on-browse="handleVideoBrowse"
-              />
-              <JobQueue
-                :active-jobs="videoActiveJobs"
-                :completed-jobs="videoCompletedJobs"
-                :has-active-jobs="hasVideoActiveJobs"
-                :has-completed-jobs="hasVideoCompletedJobs"
-                :has-no-jobs="hasNoVideoJobs"
-                :preset-options="presetOptions"
-                :on-cancel-job="handleCancelJob"
-                :on-update-preset="handleUpdatePreset"
-                :on-start-job="handleStartJob"
-                :on-clear-completed="clearCompleted"
-              />
-            </TabsContent>
-
-            <!-- Audio Tab -->
-            <TabsContent
-              value="audio"
-              class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
-            >
-              <FileUploader
-                :is-drag-over="isDragOver"
-                :has-active-jobs="hasAudioActiveJobs"
-                :media-kind="'audio'"
-                :on-file-input="handleAudioFileInput"
-                :on-browse="handleAudioBrowse"
-              />
-              <JobQueue
-                :active-jobs="audioActiveJobs"
-                :completed-jobs="audioCompletedJobs"
-                :has-active-jobs="hasAudioActiveJobs"
-                :has-completed-jobs="hasAudioCompletedJobs"
-                :has-no-jobs="hasNoAudioJobs"
-                :preset-options="presetOptions"
-                :on-cancel-job="handleCancelJob"
-                :on-update-preset="handleUpdatePreset"
-                :on-start-job="handleStartJob"
-                :on-clear-completed="clearCompleted"
-              />
-            </TabsContent>
-
-            <!-- Image Tab -->
-            <TabsContent
-              value="image"
-              class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
-            >
-              <FileUploader
-                :is-drag-over="isDragOver"
-                :has-active-jobs="hasImageActiveJobs"
-                :media-kind="'image'"
-                :on-file-input="handleImageFileInput"
-                :on-browse="handleImageBrowse"
-              />
-              <JobQueue
-                :active-jobs="imageActiveJobs"
-                :completed-jobs="imageCompletedJobs"
-                :has-active-jobs="hasImageActiveJobs"
-                :has-completed-jobs="hasImageCompletedJobs"
-                :has-no-jobs="hasNoImageJobs"
-                :preset-options="presetOptions"
-                :on-cancel-job="handleCancelJob"
-                :on-update-preset="handleUpdatePreset"
-                :on-start-job="handleStartJob"
-                :on-clear-completed="clearCompleted"
-              />
-            </TabsContent>
-          </div>
-        </KeepAlive>
-      </Tabs>
+  <template v-else>
+    <div v-if="needsActivation" class="flex h-screen items-center justify-center bg-background">
+      <Card class="w-full max-w-md border border-border/70 bg-background/95 shadow-lg">
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2 text-lg">
+            {{ t('app.license.requiredTitle', 'Activation Required') }}
+          </CardTitle>
+          <CardDescription>
+            {{
+              t(
+                'app.license.requiredBody',
+                'Enter your Honeymelon license to unlock the media converter. The window will reopen automatically.',
+              )
+            }}
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4 text-sm text-muted-foreground">
+          <p>
+            {{
+              t(
+                'app.license.instructions',
+                'If you just purchased a license, copy the key from your email or the customer portal.',
+              )
+            }}
+          </p>
+        </CardContent>
+        <CardFooter class="flex justify-end">
+          <Button size="sm" @click="openLicenseDialog">{{
+            t('app.license.enterKey', 'Enter License Key')
+          }}</Button>
+        </CardFooter>
+      </Card>
     </div>
-  </Window>
+    <Window
+      v-else
+      :show-footer="hasActiveJobs"
+      :active-job-count="activeJobs.length"
+      @cancel-all="cancelAll"
+    >
+      <!-- Container with relative positioning for absolute controls -->
+      <div class="relative flex flex-col flex-1">
+        <!-- Top-right controls -->
+        <div class="absolute right-0 top-0 z-10 flex items-center gap-x-3" v-if="licenseReady">
+          <DestinationChooser />
+          <LanguageSwitcher />
+          <ThemeSwitcher />
+        </div>
+
+        <!-- Tabs for media type filtering -->
+        <Tabs v-model="activeTab" default-value="video" class="flex flex-col flex-1">
+          <TabsList aria-label="Media type filter" class="w-fit">
+            <TabsTrigger value="video" aria-label="Video files">
+              {{ t('media.video') }}
+            </TabsTrigger>
+            <TabsTrigger value="audio" aria-label="Audio files">
+              {{ t('media.audio') }}
+            </TabsTrigger>
+            <TabsTrigger value="image" aria-label="Image files">
+              {{ t('media.image') }}
+            </TabsTrigger>
+          </TabsList>
+
+          <KeepAlive>
+            <div class="flex-1 flex flex-col min-h-0">
+              <!-- Video Tab -->
+              <TabsContent
+                value="video"
+                class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
+              >
+                <FileUploader
+                  :is-drag-over="isDragOver"
+                  :has-active-jobs="hasVideoActiveJobs"
+                  :media-kind="'video'"
+                  :on-file-input="handleVideoFileInput"
+                  :on-browse="handleVideoBrowse"
+                />
+                <JobQueue
+                  :active-jobs="videoActiveJobs"
+                  :completed-jobs="videoCompletedJobs"
+                  :has-active-jobs="hasVideoActiveJobs"
+                  :has-completed-jobs="hasVideoCompletedJobs"
+                  :has-no-jobs="hasNoVideoJobs"
+                  :preset-options="presetOptions"
+                  :on-cancel-job="handleCancelJob"
+                  :on-update-preset="handleUpdatePreset"
+                  :on-start-job="handleStartJob"
+                  :on-clear-completed="clearCompleted"
+                />
+              </TabsContent>
+
+              <!-- Audio Tab -->
+              <TabsContent
+                value="audio"
+                class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
+              >
+                <FileUploader
+                  :is-drag-over="isDragOver"
+                  :has-active-jobs="hasAudioActiveJobs"
+                  :media-kind="'audio'"
+                  :on-file-input="handleAudioFileInput"
+                  :on-browse="handleAudioBrowse"
+                />
+                <JobQueue
+                  :active-jobs="audioActiveJobs"
+                  :completed-jobs="audioCompletedJobs"
+                  :has-active-jobs="hasAudioActiveJobs"
+                  :has-completed-jobs="hasAudioCompletedJobs"
+                  :has-no-jobs="hasNoAudioJobs"
+                  :preset-options="presetOptions"
+                  :on-cancel-job="handleCancelJob"
+                  :on-update-preset="handleUpdatePreset"
+                  :on-start-job="handleStartJob"
+                  :on-clear-completed="clearCompleted"
+                />
+              </TabsContent>
+
+              <!-- Image Tab -->
+              <TabsContent
+                value="image"
+                class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
+              >
+                <FileUploader
+                  :is-drag-over="isDragOver"
+                  :has-active-jobs="hasImageActiveJobs"
+                  :media-kind="'image'"
+                  :on-file-input="handleImageFileInput"
+                  :on-browse="handleImageBrowse"
+                />
+                <JobQueue
+                  :active-jobs="imageActiveJobs"
+                  :completed-jobs="imageCompletedJobs"
+                  :has-active-jobs="hasImageActiveJobs"
+                  :has-completed-jobs="hasImageCompletedJobs"
+                  :has-no-jobs="hasNoImageJobs"
+                  :preset-options="presetOptions"
+                  :on-cancel-job="handleCancelJob"
+                  :on-update-preset="handleUpdatePreset"
+                  :on-start-job="handleStartJob"
+                  :on-clear-completed="clearCompleted"
+                />
+              </TabsContent>
+            </div>
+          </KeepAlive>
+        </Tabs>
+      </div>
+    </Window>
+  </template>
 
   <!-- About Dialog -->
   <Dialog v-model:open="isAboutOpen" modal>
