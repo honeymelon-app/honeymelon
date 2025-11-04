@@ -68,7 +68,7 @@ function handleClearCompleted() {
         Clear Completed
       </Button>
     </div>
-    <ScrollArea class="h-[400px] w-full">
+    <ScrollArea class="h-[490px] w-full">
       <div class="divide-y divide-muted space-y-3 h-full">
         <JobQueueItem
           v-for="job in jobs"

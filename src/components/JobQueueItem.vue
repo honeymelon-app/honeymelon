@@ -146,7 +146,7 @@ async function handleOpenDiskAccessHelp() {
         <!-- Header -->
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0 flex-1">
-            <h3 class="truncate font-medium text-foreground max-w-lg">
+            <h3 class="truncate font-medium text-foreground max-w-sm">
               {{ fileName }}
             </h3>
             <div class="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">

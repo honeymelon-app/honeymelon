@@ -202,7 +202,7 @@ const handleImageBrowse = () => handleBrowse('image');
               >
                 <FileUploader
                   :is-drag-over="isDragOver"
-                  :has-active-jobs="hasVideoActiveJobs"
+                  :has-active-jobs="hasVideoActiveJobs || hasVideoCompletedJobs"
                   :media-kind="'video'"
                   :on-file-input="handleVideoFileInput"
                   :on-browse="handleVideoBrowse"
@@ -228,7 +228,7 @@ const handleImageBrowse = () => handleBrowse('image');
               >
                 <FileUploader
                   :is-drag-over="isDragOver"
-                  :has-active-jobs="hasAudioActiveJobs"
+                  :has-active-jobs="hasAudioActiveJobs || hasAudioCompletedJobs"
                   :media-kind="'audio'"
                   :on-file-input="handleAudioFileInput"
                   :on-browse="handleAudioBrowse"
@@ -254,7 +254,7 @@ const handleImageBrowse = () => handleBrowse('image');
               >
                 <FileUploader
                   :is-drag-over="isDragOver"
-                  :has-active-jobs="hasImageActiveJobs"
+                  :has-active-jobs="hasImageActiveJobs || hasImageCompletedJobs"
                   :media-kind="'image'"
                   :on-file-input="handleImageFileInput"
                   :on-browse="handleImageBrowse"

@@ -11,16 +11,16 @@ interface FileUploaderProps {
   onBrowse?: () => void;
 }
 
-const props = defineProps<FileUploaderProps>();
+defineProps<FileUploaderProps>();
 </script>
 
 <template>
   <FileDropZone
-    :is-drag-over="props.isDragOver"
+    :is-drag-over="isDragOver"
     :presets-ready="true"
-    :has-active-jobs="props.hasActiveJobs"
-    :media-kind="props.mediaKind"
-    @browse="props.onBrowse"
-    @file-input="props.onFileInput"
+    :has-active-jobs="hasActiveJobs"
+    :media-kind="mediaKind"
+    @browse="onBrowse"
+    @file-input="onFileInput"
   />
 </template>
