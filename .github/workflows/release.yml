@@ -124,6 +124,49 @@ jobs:
           # Verify bundled binaries
           ls -lh src-tauri/resources/bin/ || echo "No binaries in resources"
 
+      - name: Sign FFmpeg binaries
+        run: |
+          # Only sign if Apple signing identity is configured
+          if [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ]; then
+            echo "Signing FFmpeg binaries with Developer ID..."
+
+            # Sign ffmpeg with hardened runtime
+            codesign --sign "${{ secrets.APPLE_SIGNING_IDENTITY }}" \
+                     --force \
+                     --options runtime \
+                     --entitlements src-tauri/entitlements.plist \
+                     --timestamp \
+                     --verbose \
+                     src-tauri/resources/bin/ffmpeg
+
+            # Sign ffprobe with hardened runtime
+            codesign --sign "${{ secrets.APPLE_SIGNING_IDENTITY }}" \
+                     --force \
+                     --options runtime \
+                     --entitlements src-tauri/entitlements.plist \
+                     --timestamp \
+                     --verbose \
+                     src-tauri/resources/bin/ffprobe
+
+            echo "FFmpeg binaries signed successfully"
+
+            # Verify signatures
+            echo "Verifying signatures..."
+            codesign --verify --deep --strict --verbose=2 src-tauri/resources/bin/ffmpeg
+            codesign --verify --deep --strict --verbose=2 src-tauri/resources/bin/ffprobe
+
+            # Display signature info
+            echo "FFmpeg signature info:"
+            codesign --display --verbose=4 src-tauri/resources/bin/ffmpeg
+            echo "ffprobe signature info:"
+            codesign --display --verbose=4 src-tauri/resources/bin/ffprobe
+
+            echo "Signature verification complete"
+          else
+            echo "WARNING: Skipping FFmpeg signing - APPLE_SIGNING_IDENTITY not configured"
+            echo "WARNING: Production builds require signed FFmpeg binaries for notarization"
+          fi
+
       - name: Build application
         run: |
           if [ -z "${HONEYMELON_LICENSE_PUBLIC_KEY}" ]; then

@@ -35,7 +35,8 @@
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
         "acceptFirstMouse": true,
-        "tabbingIdentifier": null
+        "tabbingIdentifier": null,
+        "dragDropEnabled": true
       }
     ],
     "security": {
@@ -68,9 +69,10 @@
       "minimumSystemVersion": "13.0",
       "frameworks": [],
       "exceptionDomain": "",
-      "signingIdentity": null,
+      "signingIdentity": "-",
       "providerShortName": null,
-      "entitlements": null,
+      "entitlements": "entitlements.plist",
+      "hardenedRuntime": true,
       "dmg": {
         "appPosition": {
           "x": 180,

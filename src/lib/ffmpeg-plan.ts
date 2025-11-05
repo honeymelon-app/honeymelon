@@ -12,15 +12,15 @@ import type {
   VCodec,
 } from './types';
 
-const VIDEO_ENCODERS: Record<VCodec, string | null> = {
+const VIDEO_ENCODERS: Record<VCodec, string[] | string | null> = {
   copy: 'copy',
   none: null,
-  h264: 'libx264',
-  hevc: 'libx265',
-  vp9: 'libvpx-vp9',
-  av1: 'libaom-av1',
+  h264: ['h264_videotoolbox', 'libx264'],
+  hevc: ['hevc_videotoolbox', 'libx265'],
+  vp9: ['libvpx-vp9'],
+  av1: ['libaom-av1', 'libsvtav1'],
   gif: 'gif',
-  prores: 'prores_ks',
+  prores: ['prores_videotoolbox', 'prores_ks'],
   png: 'png',
   mjpeg: 'mjpeg',
   webp: 'libwebp',
@@ -41,6 +41,31 @@ const AUDIO_ENCODERS: Record<ACodec, string | null> = {
 const SUBTITLE_CONVERT_CODEC = 'mov_text';
 
 const TIER_PRIORITY: Tier[] = ['balanced', 'fast', 'high'];
+
+function selectBestEncoder(
+  encoders: string[] | string | null,
+  capabilities?: CapabilitySnapshot,
+): string | null {
+  if (encoders === null || encoders === 'copy') {
+    return encoders;
+  }
+
+  if (typeof encoders === 'string') {
+    return encoders;
+  }
+
+  if (!capabilities) {
+    return encoders[encoders.length - 1] ?? null;
+  }
+
+  for (const encoder of encoders) {
+    if (capabilities.videoEncoders.has(encoder)) {
+      return encoder;
+    }
+  }
+
+  return encoders[encoders.length - 1] ?? null;
+}
 
 export interface PlannerContext {
   presetId: string;
@@ -101,7 +126,7 @@ export function planJob(context: PlannerContext): PlannerDecision {
   const sourceAudioCodec = normalizeCodec(context.summary.acodec);
 
   let videoAction: 'copy' | 'transcode' | 'drop';
-  let videoEncoder = VIDEO_ENCODERS[preset.video.codec] ?? undefined;
+  let videoEncoder = selectBestEncoder(VIDEO_ENCODERS[preset.video.codec], context.capabilities);
   let videoNote: string;
 
   if (preset.video.codec === 'none') {
@@ -126,16 +151,33 @@ export function planJob(context: PlannerContext): PlannerDecision {
     videoNote = `Video: copy matching codec ${sourceVideoCodec}.`;
   } else {
     videoAction = 'transcode';
-    videoEncoder = videoEncoder ?? preset.video.codec;
-    const requiredEncoder = VIDEO_ENCODERS[preset.video.codec];
+    const selectedEncoder = videoEncoder ?? preset.video.codec;
+    videoEncoder = selectedEncoder;
+
+    const encoderOptions = VIDEO_ENCODERS[preset.video.codec];
+    const isHardwareAccelerated =
+      selectedEncoder.includes('videotoolbox') ||
+      selectedEncoder.includes('_qsv') ||
+      selectedEncoder.includes('_nvenc');
+
     if (
-      requiredEncoder &&
+      encoderOptions &&
       context.capabilities &&
-      !context.capabilities.videoEncoders.has(requiredEncoder)
+      typeof encoderOptions !== 'string' &&
+      Array.isArray(encoderOptions)
     ) {
-      warnings.push(`Encoder ${requiredEncoder} not reported by FFmpeg; transcode may fail.`);
+      const hasAnyEncoder = encoderOptions.some((enc) =>
+        context.capabilities!.videoEncoders.has(enc),
+      );
+      if (!hasAnyEncoder) {
+        warnings.push(
+          `None of the encoders for ${preset.video.codec} are available; transcode may fail.`,
+        );
+      }
     }
-    videoNote = `Video: transcode ${sourceVideoCodec ?? 'unknown'} → ${preset.video.codec} with ${videoEncoder}.`;
+
+    const accelerationNote = isHardwareAccelerated ? ' (hardware accelerated)' : '';
+    videoNote = `Video: transcode ${sourceVideoCodec ?? 'unknown'} → ${preset.video.codec} with ${videoEncoder}${accelerationNote}.`;
   }
 
   if (videoAction === 'drop' && preset.video.codec !== 'none') {
@@ -296,11 +338,15 @@ function planImageJob(context: PlannerContext, preset: Preset): PlannerDecision 
   const warnings: string[] = [];
   const args: string[] = ['-progress', 'pipe:2', '-nostats'];
 
-  const videoEncoder = VIDEO_ENCODERS[preset.video.codec];
+  const videoEncoder = selectBestEncoder(VIDEO_ENCODERS[preset.video.codec], context.capabilities);
 
   if (!videoEncoder) {
     warnings.push(`Unknown image codec: ${preset.video.codec}`);
-  } else if (context.capabilities && !context.capabilities.videoEncoders.has(videoEncoder)) {
+  } else if (
+    typeof videoEncoder === 'string' &&
+    context.capabilities &&
+    !context.capabilities.videoEncoders.has(videoEncoder)
+  ) {
     warnings.push(`Encoder ${videoEncoder} not reported by FFmpeg; conversion may fail.`);
   }
 
