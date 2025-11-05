@@ -1,3 +1,23 @@
+/**
+ * Main entry point for the Honeymelon Vue 3 application.
+ *
+ * This file initializes and configures the Vue application instance, setting up essential
+ * plugins, global error handling, and production optimizations. It serves as the bootstrap
+ * script that transforms the static HTML into a dynamic single-page application (SPA).
+ *
+ * Key responsibilities:
+ * - Creates and configures the root Vue application instance
+ * - Integrates state management with Pinia store
+ * - Sets up internationalization (i18n) for multi-language support
+ * - Implements comprehensive error handling for both Vue-specific and global JavaScript errors
+ * - Applies production-specific optimizations and security measures
+ * - Prevents unwanted text selection in production for a native desktop app feel
+ *
+ * The application follows a component-based architecture where this main.ts file acts as
+ * the orchestrator, mounting the root App component and establishing the foundation for
+ * the entire application's lifecycle.
+ */
+
 import './assets/css/global.css';
 
 import { createApp } from 'vue';
@@ -6,6 +26,13 @@ import { createPinia } from 'pinia';
 import App from './app.vue';
 import { i18n } from '@/lib/i18n';
 
+/**
+ * Create the root Vue application instance.
+ *
+ * This initializes the Vue app with the root App component, which serves as the
+ * entry point for the entire component tree. The app instance will be configured
+ * with plugins and mounted to the DOM element with id 'app'.
+ */
 const app = createApp(App);
 
 // Production performance optimizations
@@ -32,8 +59,21 @@ if (import.meta.env.DEV) {
   };
 }
 
+/**
+ * Register essential plugins with the Vue application.
+ *
+ * - Pinia: Provides centralized state management across the application
+ * - i18n: Enables internationalization and localization features
+ */
 app.use(createPinia());
 app.use(i18n);
+
+/**
+ * Mount the Vue application to the DOM.
+ *
+ * This final step renders the application into the HTML element with id 'app',
+ * starting the Vue lifecycle and making the application interactive.
+ */
 app.mount('#app');
 
 // Global error handler for unhandled promise rejections

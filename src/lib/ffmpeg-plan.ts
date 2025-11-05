@@ -354,7 +354,9 @@ function planImageJob(context: PlannerContext, preset: Preset): PlannerDecision 
   const formatMap: Record<string, string> = {
     png: 'image2',
     jpg: 'image2',
+    jpeg: 'image2', // Also support jpeg variant
     webp: 'image2',
+    gif: 'image2', // For single-frame GIF extraction
   };
 
   const outputFormat = formatMap[preset.container];

@@ -1,13 +1,67 @@
+/**
+ * Custom error types and error handling utilities for the Honeymelon application.
+ *
+ * This module defines the application's error handling strategy, providing a unified
+ * `AppError` type that can be serialized and sent to the frontend. The error type
+ * wraps various underlying error sources (I/O, JSON parsing, etc.) into a consistent
+ * format with error codes and human-readable messages.
+ *
+ * The design prioritizes:
+ * - Consistent error reporting across the application
+ * - Safe serialization for IPC communication with the frontend
+ * - Easy conversion from common Rust error types
+ * - Debuggability with proper error codes and context
+ */
 use serde::Serialize;
 
+/**
+ * Application-specific error type that can be serialized for IPC communication.
+ *
+ * This struct represents errors that occur within the Honeymelon backend and
+ * need to be communicated to the frontend. It uses camelCase serialization
+ * to match JavaScript/TypeScript naming conventions.
+ *
+ * # Fields
+ *
+ * * `code` - A static string identifier for the error type (e.g., "io_error", "serde_error")
+ * * `message` - A human-readable description of what went wrong
+ *
+ * # Examples
+ *
+ * ```
+ * // Create a custom error
+ * let error = AppError::new("validation_error", "Invalid input provided");
+ *
+ * // Convert from standard library errors
+ * let io_error: std::io::Error = ...;
+ * let app_error: AppError = io_error.into();
+ * ```
+ */
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AppError {
+    /** Static error code identifier for programmatic error handling */
     pub code: &'static str,
+    /** Human-readable error message describing what went wrong */
     pub message: String,
 }
 
 impl AppError {
+    /**
+     * Creates a new AppError with the specified code and message.
+     *
+     * # Arguments
+     *
+     * * `code` - A static string identifier for the error type
+     * * `message` - The error message (can be any type that converts to String)
+     *
+     * # Examples
+     *
+     * ```
+     * let error = AppError::new("file_not_found", "The specified file does not exist");
+     * let error = AppError::new("network_error", format!("Connection failed: {}", details));
+     * ```
+     */
     pub fn new(code: &'static str, message: impl Into<String>) -> Self {
         Self {
             code,
@@ -16,12 +70,26 @@ impl AppError {
     }
 }
 
+/**
+ * Conversion from standard I/O errors to AppError.
+ *
+ * This implementation allows seamless conversion of `std::io::Error` instances
+ * to `AppError`, maintaining the error message while assigning a consistent
+ * error code for I/O operations.
+ */
 impl From<std::io::Error> for AppError {
     fn from(value: std::io::Error) -> Self {
         Self::new("io_error", value.to_string())
     }
 }
 
+/**
+ * Conversion from Serde JSON errors to AppError.
+ *
+ * This implementation allows seamless conversion of `serde_json::Error` instances
+ * to `AppError`, maintaining the error message while assigning a consistent
+ * error code for JSON serialization/deserialization operations.
+ */
 impl From<serde_json::Error> for AppError {
     fn from(value: serde_json::Error) -> Self {
         Self::new("serde_error", value.to_string())

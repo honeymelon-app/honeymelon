@@ -80,10 +80,33 @@ export async function discoverDroppedEntries(files: FileList | File[]): Promise<
 
   const candidates = list
     .map((file) => (file as TauriFile).path)
-    .filter((path): path is string => Boolean(path));
+    .filter((path): path is string => Boolean(path && path.trim().length > 0));
+
+  const fallbackEntries = (() => {
+    const entries = new Map<string, string>();
+    for (const file of list) {
+      const tauriLike = file as TauriFile;
+      const rawPath = tauriLike.path ?? '';
+      const name = file.name || basename(rawPath) || 'Untitled';
+      const candidate = rawPath || name;
+      if (!candidate || !hasAllowedExtension(candidate)) {
+        continue;
+      }
+      entries.set(candidate, name);
+    }
+    return Array.from(entries.entries()).map(([path, name]) => ({
+      path,
+      name: name || basename(path),
+    }));
+  })();
 
   if (!candidates.length) {
-    return [];
+    if (!fallbackEntries.length) {
+      console.warn(
+        '[file-discovery] Unable to resolve filesystem paths for selected files; no entries enqueued.',
+      );
+    }
+    return fallbackEntries;
   }
 
   const { invoke } = await import('@tauri-apps/api/core');
@@ -101,6 +124,10 @@ export async function discoverDroppedEntries(files: FileList | File[]): Promise<
       continue;
     }
     unique.add(path);
+  }
+
+  if (unique.size === 0 && fallbackEntries.length) {
+    return fallbackEntries;
   }
 
   return Array.from(unique).map((path) => ({

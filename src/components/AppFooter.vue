@@ -1,19 +1,27 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
-import { XCircle } from 'lucide-vue-next';
+import { Play } from 'lucide-vue-next';
 
 interface AppFooterProps {
   activeJobCount: number;
+  canStartAll?: boolean;
 }
 
-defineProps<AppFooterProps>();
+const props = withDefaults(defineProps<AppFooterProps>(), {
+  canStartAll: false,
+});
 
 const emit = defineEmits<{
   cancelAll: [];
+  startAll: [];
 }>();
 
 function handleCancelAll() {
   emit('cancelAll');
+}
+
+function handleStartAll() {
+  emit('startAll');
 }
 </script>
 
@@ -27,9 +35,18 @@ function handleCancelAll() {
         <span>{{ activeJobCount }} file{{ activeJobCount !== 1 ? 's' : '' }} in queue</span>
       </div>
       <div class="flex items-center gap-3">
-        <Button variant="outline" size="lg" @click="handleCancelAll" class="cursor-pointer">
-          <XCircle class="mr-2 h-5 w-5" />
+        <Button variant="ghost" size="lg" @click="handleCancelAll" class="cursor-pointer">
           Cancel All
+        </Button>
+        <Button
+          variant="default"
+          size="lg"
+          class="cursor-pointer"
+          :disabled="!props.canStartAll"
+          @click="handleStartAll"
+        >
+          <Play class="mr-2 h-5 w-5" />
+          Start All
         </Button>
       </div>
     </div>

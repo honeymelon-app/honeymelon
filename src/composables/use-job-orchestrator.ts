@@ -4,6 +4,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type * as NotificationPlugin from '@tauri-apps/plugin-notification';
 
 import { availablePresets, loadCapabilities } from '@/lib/capability';
+import { LIMITS } from '@/lib/constants';
 import { planJob, resolvePreset } from '@/lib/ffmpeg-plan';
 import { probeMedia } from '@/lib/ffmpeg-probe';
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
@@ -80,6 +81,9 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   const simulate = options.simulate ?? !isTauriRuntime();
   let notificationModulePromise: Promise<NotificationModule | null> | null = null;
 
+  // Mutex to prevent concurrent startNextAvailable calls
+  let isStartingNext = false;
+
   // Store unlisten functions for cleanup
   const unlistenProgress = ref<UnlistenFn | null>(null);
   const unlistenCompletion = ref<UnlistenFn | null>(null);
@@ -120,33 +124,40 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
 
   if (!simulate) {
     listen<ProgressEventPayload>(PROGRESS_EVENT, (event) => {
-      const payload = event.payload;
-      const rawFallback = parseProgressFromRaw(payload?.raw);
-      const mergedProgress = mergeProgressMetrics(payload?.progress, rawFallback);
+      try {
+        const payload = event.payload;
 
-      if (!payload?.jobId) {
-        return;
-      }
-      const progressUpdate: {
-        processedSeconds?: number;
-        fps?: number;
-        speed?: number;
-      } = {};
-      if (mergedProgress?.processedSeconds !== undefined) {
-        progressUpdate.processedSeconds = mergedProgress.processedSeconds;
-      }
-      if (mergedProgress?.fps !== undefined) {
-        progressUpdate.fps = mergedProgress.fps;
-      }
-      if (mergedProgress?.speed !== undefined) {
-        progressUpdate.speed = mergedProgress.speed;
-      }
+        if (!payload?.jobId) {
+          console.warn('[orchestrator] Invalid progress event - missing jobId:', event);
+          return;
+        }
 
-      if (Object.keys(progressUpdate).length > 0) {
-        jobs.updateProgress(payload.jobId, progressUpdate);
-      }
-      if (payload.raw) {
-        jobs.appendLog(payload.jobId, payload.raw);
+        const rawFallback = parseProgressFromRaw(payload?.raw);
+        const mergedProgress = mergeProgressMetrics(payload?.progress, rawFallback);
+
+        const progressUpdate: {
+          processedSeconds?: number;
+          fps?: number;
+          speed?: number;
+        } = {};
+        if (mergedProgress?.processedSeconds !== undefined) {
+          progressUpdate.processedSeconds = mergedProgress.processedSeconds;
+        }
+        if (mergedProgress?.fps !== undefined) {
+          progressUpdate.fps = mergedProgress.fps;
+        }
+        if (mergedProgress?.speed !== undefined) {
+          progressUpdate.speed = mergedProgress.speed;
+        }
+
+        if (Object.keys(progressUpdate).length > 0) {
+          jobs.updateProgress(payload.jobId, progressUpdate);
+        }
+        if (payload.raw) {
+          jobs.appendLog(payload.jobId, payload.raw);
+        }
+      } catch (error) {
+        console.error('[orchestrator] Error processing progress event:', error, event);
       }
     })
       .then((unlisten) => {
@@ -157,12 +168,24 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       });
 
     listen<{ jobId: string; line: string }>(STDERR_EVENT, (event) => {
-      const payload = event.payload;
-      if (!payload?.jobId || typeof payload.line !== 'string') {
-        return;
+      try {
+        const payload = event.payload;
+
+        if (!payload?.jobId) {
+          console.warn('[orchestrator] Invalid stderr event - missing jobId:', event);
+          return;
+        }
+
+        if (typeof payload.line !== 'string') {
+          console.warn('[orchestrator] Invalid stderr event - line is not a string:', event);
+          return;
+        }
+
+        console.error(`[ffmpeg][${payload.jobId}] ${payload.line}`);
+        jobs.appendLog(payload.jobId, payload.line);
+      } catch (error) {
+        console.error('[orchestrator] Error processing stderr event:', error, event);
       }
-      console.error(`[ffmpeg][${payload.jobId}] ${payload.line}`);
-      jobs.appendLog(payload.jobId, payload.line);
     })
       .then((unlisten) => {
         unlistenStderr.value = unlisten;
@@ -172,43 +195,54 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       });
 
     listen<CompletionEventPayload>(COMPLETION_EVENT, (event) => {
-      const payload = event.payload;
-      if (!payload?.jobId) {
-        return;
-      }
+      try {
+        const payload = event.payload;
 
-      if (payload.logs) {
-        jobs.setLogs(payload.jobId, payload.logs);
-      }
+        if (!payload?.jobId) {
+          console.warn('[orchestrator] Invalid completion event - missing jobId:', event);
+          return;
+        }
 
-      if (payload.cancelled) {
-        jobs.cancelJob(payload.jobId);
+        if (typeof payload.success !== 'boolean' || typeof payload.cancelled !== 'boolean') {
+          console.warn('[orchestrator] Invalid completion event - missing required flags:', event);
+          return;
+        }
+
+        if (payload.logs) {
+          jobs.setLogs(payload.jobId, payload.logs);
+        }
+
+        if (payload.cancelled) {
+          jobs.cancelJob(payload.jobId);
+          if (autoStartNext) {
+            startNextAvailable().catch((error) => {
+              console.error('[orchestrator] Failed to start next job after cancellation:', error);
+            });
+          }
+          return;
+        }
+
+        if (payload.success) {
+          const job = jobs.getJob(payload.jobId);
+          jobs.markCompleted(payload.jobId, job?.outputPath ?? '');
+          void notifyJobResult(payload);
+        } else {
+          const errorMessage =
+            payload.message ??
+            (payload.exitCode !== undefined && payload.exitCode !== null
+              ? `FFmpeg exited with code ${payload.exitCode}`
+              : 'FFmpeg process terminated unexpectedly.');
+          jobs.markFailed(payload.jobId, errorMessage, payload.code ?? undefined);
+          void notifyJobResult(payload);
+        }
+
         if (autoStartNext) {
           startNextAvailable().catch((error) => {
-            console.error('[orchestrator] Failed to start next job after cancellation:', error);
+            console.error('[orchestrator] Failed to start next job after completion:', error);
           });
         }
-        return;
-      }
-
-      if (payload.success) {
-        const job = jobs.getJob(payload.jobId);
-        jobs.markCompleted(payload.jobId, job?.outputPath ?? '');
-        void notifyJobResult(payload);
-      } else {
-        const errorMessage =
-          payload.message ??
-          (payload.exitCode !== undefined && payload.exitCode !== null
-            ? `FFmpeg exited with code ${payload.exitCode}`
-            : 'FFmpeg process terminated unexpectedly.');
-        jobs.markFailed(payload.jobId, errorMessage, payload.code ?? undefined);
-        void notifyJobResult(payload);
-      }
-
-      if (autoStartNext) {
-        startNextAvailable().catch((error) => {
-          console.error('[orchestrator] Failed to start next job after completion:', error);
-        });
+      } catch (error) {
+        console.error('[orchestrator] Error processing completion event:', error, event);
       }
     })
       .then((unlisten) => {
@@ -226,71 +260,81 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     unlistenCompletion.value?.();
     unlistenStderr.value?.();
 
-    // Clean up any running simulation timers
-    simulatedJobs.forEach((timer) => {
+    // Clean up any running simulation timers - convert to array first for safe iteration
+    Array.from(simulatedJobs.values()).forEach((timer) => {
       window.clearInterval(timer);
     });
     simulatedJobs.clear();
   });
 
-  async function startNextAvailable() {
-    if (hasExclusiveActive.value) {
-      return;
+  async function startNextAvailable(): Promise<boolean> {
+    // Mutex: prevent concurrent execution
+    if (isStartingNext) {
+      return false;
     }
 
-    const nextQueued = jobs.peekNext();
-    if (!nextQueued) {
-      return;
-    }
-
-    if (!canStartJob(nextQueued.presetId)) {
-      return;
-    }
-
-    if (shouldDeferQueuedExclusive(nextQueued.presetId)) {
-      return;
-    }
-
-    const job = jobs.startNext();
-    if (!job) {
-      return;
-    }
-
-    if (!canStartJob(job.presetId)) {
-      jobs.requeue(job.id);
-      return;
-    }
-
+    isStartingNext = true;
     try {
-      const summary = await probe(job.path);
-      jobs.markPlanning(job.id, summary);
-
-      const decision = await plan(summary, job.presetId, job.tier, job.path);
-      const exclusive = requiresExclusive(decision);
-      const otherActive = activeJobs.value.filter(
-        (active) => active.id !== job.id && active.state.status === 'running',
-      ).length;
-
-      if (exclusive && otherActive > 0) {
-        jobs.requeue(job.id);
-        return;
+      if (hasExclusiveActive.value) {
+        return false;
       }
 
-      jobs.setExclusive(job.id, exclusive);
-      jobs.markRunning(job.id, decision);
+      const nextQueued = jobs.peekNext();
+      if (!nextQueued) {
+        return false;
+      }
 
-      const started = await run(job.id, decision, exclusive);
-      if (!started) {
-        jobs.requeue(job.id);
-        if (autoStartNext) {
-          startNextAvailable().catch((error) => {
-            console.error('[orchestrator] Failed to start next job after requeue:', error);
-          });
+      if (!canStartJob(nextQueued.presetId)) {
+        return false;
+      }
+
+      if (shouldDeferQueuedExclusive(nextQueued.presetId)) {
+        return false;
+      }
+
+      const job = jobs.startNext();
+      if (!job) {
+        return false;
+      }
+
+      // No need for second canStartJob check - job was just validated via peekNext
+
+      try {
+        const summary = await probe(job.path);
+        jobs.markPlanning(job.id, summary);
+
+        const decision = await plan(summary, job.presetId, job.tier, job.path);
+        const exclusive = requiresExclusive(decision);
+        const otherActive = activeJobs.value.filter(
+          (active) => active.id !== job.id && active.state.status === 'running',
+        ).length;
+
+        if (exclusive && otherActive > 0) {
+          jobs.requeue(job.id);
+          return false;
         }
+
+        jobs.setExclusive(job.id, exclusive);
+        jobs.markRunning(job.id, decision);
+
+        const started = await run(job.id, decision, exclusive);
+        if (!started) {
+          jobs.requeue(job.id);
+          if (autoStartNext) {
+            startNextAvailable().catch((error) => {
+              console.error('[orchestrator] Failed to start next job after requeue:', error);
+            });
+          }
+        }
+        return true;
+      } catch (error) {
+        const details = parseErrorDetails(error);
+        jobs.markFailed(job.id, details.message, details.code);
+        return false;
       }
-    } catch (error) {
-      const details = parseErrorDetails(error);
-      jobs.markFailed(job.id, details.message, details.code);
+    } finally {
+      // Always release the mutex
+      isStartingNext = false;
     }
   }
 
@@ -411,10 +455,19 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     }
 
     const job = jobs.getJob(jobId);
+    if (!job) {
+      throw new JobError('Job not found', 'job_missing');
+    }
+
     const outputPath = buildOutputPath(job, decision);
     jobs.setOutputPath(jobId, outputPath);
 
-    const args = ['-y', '-nostdin', '-i', job?.path ?? '', ...decision.ffmpegArgs];
+    const args = ['-y', '-nostdin', '-i', job.path, ...decision.ffmpegArgs];
+
+    // Validate FFmpeg arguments before invoking
+    if (args.length === 0 || !decision.ffmpegArgs || decision.ffmpegArgs.length === 0) {
+      throw new JobError('FFmpeg arguments cannot be empty', 'job_invalid_args');
+    }
 
     try {
       await invokeStartJob({
@@ -443,32 +496,41 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     const extension = preset.outputExtension ?? preset.container;
 
     const baseDirCandidate = outputDirectory.value;
+    const sanitizedBaseDirCandidate = sanitizePath(baseDirCandidate);
+    const fallbackBaseDir = sourcePath ? sanitizePath(pathDirname(sourcePath)) : '';
     const baseDir =
-      baseDirCandidate && baseDirCandidate.length
-        ? baseDirCandidate
-        : sourcePath
-          ? pathDirname(sourcePath)
-          : '';
+      sanitizedBaseDirCandidate && sanitizedBaseDirCandidate.length
+        ? sanitizedBaseDirCandidate
+        : fallbackBaseDir;
 
     const rawBaseName = sourcePath ? stripExtension(pathBasename(sourcePath)) : preset.id;
+    const safeBaseName = sanitizePathComponent(rawBaseName || 'output').trim() || 'output';
+    const safeExtension = sanitizePathComponent(extension || preset.container).trim() || 'mp4';
 
-    let fileName = `${rawBaseName || 'output'}.${extension}`;
+    let fileName = `${safeBaseName}.${safeExtension}`;
 
     if (includePresetInName.value || includeTierInName.value) {
-      const segments: string[] = [rawBaseName || 'output'];
-      const separator = filenameSeparator.value || '-';
+      const segments: string[] = [safeBaseName];
+      const separatorRaw = filenameSeparator.value || '-';
+      const separator = sanitizePathComponent(separatorRaw) || '-';
 
       if (includePresetInName.value) {
-        segments.push(slugify(preset.id));
+        segments.push(sanitizePathComponent(slugify(preset.id)));
       }
       if (includeTierInName.value && job?.tier) {
-        segments.push(job.tier);
+        segments.push(sanitizePathComponent(job.tier));
       }
 
-      fileName = `${segments.filter(Boolean).join(separator)}.${extension}`;
+      const compositeName = segments
+        .map((segment) => segment.trim())
+        .filter(Boolean)
+        .join(separator);
+      fileName = `${sanitizePathComponent(compositeName) || safeBaseName}.${safeExtension}`;
     }
 
-    return baseDir ? joinPath(baseDir, fileName) : fileName;
+    const sanitizedFileName = sanitizePathComponent(fileName) || `${safeBaseName}.${safeExtension}`;
+
+    return baseDir ? joinPath(baseDir, sanitizedFileName) : sanitizedFileName;
   }
 
   async function invokeStartJob(payload: {
@@ -510,10 +572,10 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       });
 
       if (elapsed >= totalDuration) {
+        simulatedJobs.delete(jobId); // Delete first - ensures cleanup happens
         window.clearInterval(timer);
         jobs.markCompleted(jobId, outputPath);
         jobs.appendLog(jobId, 'Simulation completed');
-        simulatedJobs.delete(jobId);
       }
     }, interval);
 
@@ -547,6 +609,30 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  function sanitizePathComponent(value: string): string {
+    if (!value) {
+      return '';
+    }
+    return value.replace(/\.\./g, '').replace(/[<>:"|?*\\/]/g, '_');
+  }
+
+  function sanitizePath(value?: string | null): string {
+    if (!value) {
+      return '';
+    }
+    const normalized = value.replace(/\\/g, '/');
+    const leadingSlash = normalized.startsWith('/');
+    const segments = normalized
+      .split('/')
+      .map((segment) => sanitizePathComponent(segment))
+      .filter((segment) => segment.length > 0);
+    if (!segments.length) {
+      return '';
+    }
+    const sanitized = segments.join('/');
+    return leadingSlash ? `/${sanitized}` : sanitized;
   }
 
   function parseErrorDetails(error: unknown): { message: string; code?: string } {
@@ -613,7 +699,9 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     const displayName = pathBasename(nameSource);
 
     const truncate = (input: string): string =>
-      input.length > 160 ? `${input.slice(0, 157)}…` : input;
+      input.length > LIMITS.NOTIFICATION_MAX_BODY_LENGTH
+        ? `${input.slice(0, LIMITS.NOTIFICATION_MAX_BODY_LENGTH - 3)}…`
+        : input;
 
     if (payload.success) {
       try {

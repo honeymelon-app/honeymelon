@@ -26,12 +26,19 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
     if (!isTauriRuntime()) return;
 
     if (onDrop) {
-      unlistenDrop.value = await listen<string[]>('tauri://drag-drop', async (event) => {
-        const paths = event.payload;
-        if (Array.isArray(paths) && paths.length > 0) {
-          await onDrop(paths);
-        }
-      });
+      unlistenDrop.value = await listen<{ paths?: string[] | null }>(
+        'tauri://drag-drop',
+        async (event) => {
+          const payloadPaths = event.payload?.paths;
+          const paths = Array.isArray(payloadPaths) ? payloadPaths : [];
+          if (paths.length > 0) {
+            await onDrop(paths);
+          }
+          if (onDragLeave) {
+            onDragLeave();
+          }
+        },
+      );
     }
 
     if (onDragEnter) {

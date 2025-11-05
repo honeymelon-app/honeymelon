@@ -1,3 +1,27 @@
+/**
+ * Honeymelon Tauri Application Library
+ *
+ * This is the main Rust library for the Honeymelon desktop application, built with Tauri.
+ * It provides the backend functionality for media conversion, file management, licensing,
+ * and system integration through a set of Tauri commands that can be invoked from the
+ * frontend JavaScript/TypeScript code.
+ *
+ * The application uses FFmpeg for media processing and provides a native desktop experience
+ * with file dialogs, system menus, and notification support.
+ *
+ * Key modules:
+ * - ffmpeg_capabilities: Detects available FFmpeg codecs and formats
+ * - ffmpeg_probe: Analyzes media files to extract metadata
+ * - ffmpeg_runner: Executes FFmpeg conversion jobs
+ * - fs_utils: File system utilities for media file discovery
+ * - license: Handles application licensing and activation
+ * - error: Custom error types for the application
+ *
+ * Architecture:
+ * The library exposes async Tauri commands that spawn blocking operations on separate
+ * threads to avoid blocking the main UI thread. All media processing is done asynchronously
+ * with proper error handling and progress reporting.
+ */
 mod error;
 mod ffmpeg_capabilities;
 mod ffmpeg_probe;
@@ -8,23 +32,56 @@ mod license;
 use error::AppError;
 use tauri::{Emitter, Manager};
 
+/**
+ * Supported video file extensions.
+ *
+ * These extensions are used for file filtering in dialogs and
+ * determining which files to process as video content.
+ */
 const VIDEO_EXTENSIONS: &[&str] = &[
     "mp4", "m4v", "mov", "mkv", "webm", "avi", "mpg", "mpeg", "ts", "m2ts", "mxf", "hevc", "h265",
     "h264", "flv", "ogv", "wmv", "gif",
 ];
 
+/**
+ * Supported audio file extensions.
+ *
+ * These extensions are used for file filtering in dialogs and
+ * determining which files to process as audio content.
+ */
 const AUDIO_EXTENSIONS: &[&str] = &[
     "mp3", "aac", "m4a", "flac", "wav", "aiff", "aif", "ogg", "opus", "wma", "alac", "wave",
 ];
 
+/**
+ * Supported image file extensions.
+ *
+ * These extensions are used for file filtering in dialogs and
+ * determining which files to process as image content.
+ */
 const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp"];
 
+/**
+ * All supported media file extensions combined.
+ *
+ * Used when no specific media type filter is requested.
+ */
 const ALL_MEDIA_EXTENSIONS: &[&str] = &[
     "mp4", "m4v", "mov", "mkv", "webm", "avi", "mpg", "mpeg", "ts", "m2ts", "mxf", "hevc", "h265",
     "h264", "flv", "ogv", "wmv", "gif", "mp3", "aac", "m4a", "flac", "wav", "aiff", "aif", "ogg",
     "opus", "wma", "alac", "wave", "png", "jpg", "jpeg", "webp",
 ];
 
+/**
+ * Loads FFmpeg capabilities asynchronously.
+ *
+ * This command probes the system to determine which FFmpeg codecs,
+ * formats, and features are available. The result is cached and used
+ * to determine which conversion presets are supported.
+ *
+ * @param app - Tauri application handle for accessing app data directory
+ * @return CapabilitySnapshot containing available codecs and formats
+ */
 #[tauri::command]
 async fn load_capabilities(
     app: tauri::AppHandle,
@@ -34,6 +91,16 @@ async fn load_capabilities(
         .map_err(|err| AppError::new("capability_thread_join", err.to_string()))?
 }
 
+/**
+ * Probes a media file for metadata.
+ *
+ * Analyzes a media file using FFmpeg to extract information about
+ * streams, duration, codecs, and other metadata needed for conversion.
+ *
+ * @param app - Tauri application handle
+ * @param path - File system path to the media file
+ * @return ProbeResponse containing detailed media information
+ */
 #[tauri::command]
 async fn probe_media(
     app: tauri::AppHandle,
@@ -44,6 +111,19 @@ async fn probe_media(
         .map_err(|err| AppError::new("probe_thread_join", err.to_string()))?
 }
 
+/**
+ * Starts a media conversion job.
+ *
+ * Initiates an FFmpeg conversion process with the specified arguments
+ * and output path. Jobs can be run exclusively (blocking other jobs)
+ * or concurrently based on system capabilities.
+ *
+ * @param app - Tauri application handle for progress reporting
+ * @param job_id - Unique identifier for the job
+ * @param args - FFmpeg command line arguments
+ * @param output_path - Destination file path
+ * @param exclusive - Whether to run exclusively (blocking other jobs)
+ */
 #[tauri::command]
 async fn start_job(
     app: tauri::AppHandle,
@@ -55,16 +135,42 @@ async fn start_job(
     ffmpeg_runner::start_job(app, job_id, args, output_path, exclusive)
 }
 
+/**
+ * Cancels a running conversion job.
+ *
+ * Attempts to stop an active FFmpeg process for the specified job.
+ * Returns whether the cancellation was successful.
+ *
+ * @param job_id - Unique identifier of the job to cancel
+ * @return true if cancellation succeeded, false otherwise
+ */
 #[tauri::command]
 async fn cancel_job(job_id: String) -> Result<bool, AppError> {
     ffmpeg_runner::cancel_job(&job_id)
 }
 
+/**
+ * Sets the maximum concurrency limit for jobs.
+ *
+ * Controls how many conversion jobs can run simultaneously.
+ * This affects system resource usage and processing speed.
+ *
+ * @param limit - Maximum number of concurrent jobs
+ */
 #[tauri::command]
 async fn set_max_concurrency(limit: usize) {
     ffmpeg_runner::set_max_concurrency(limit);
 }
 
+/**
+ * Expands media file paths from directories.
+ *
+ * Recursively scans directories to find all media files within them.
+ * This allows users to drop folders and have all contained media files processed.
+ *
+ * @param paths - List of file/folder paths to expand
+ * @return List of expanded media file paths
+ */
 #[tauri::command]
 async fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError> {
     tauri::async_runtime::spawn_blocking(move || fs_utils::expand_media_paths(paths))
@@ -72,6 +178,15 @@ async fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError>
         .map_err(|err| AppError::new("fs_thread_join", err.to_string()))?
 }
 
+/**
+ * Opens a native file picker for media files.
+ *
+ * Displays a system file dialog filtered by media type, allowing users
+ * to select multiple files for processing.
+ *
+ * @param media_kind - Optional filter: "video", "audio", "image", or none for all
+ * @return List of selected file paths
+ */
 #[tauri::command]
 async fn pick_media_files(media_kind: Option<String>) -> Result<Vec<String>, AppError> {
     let extensions = match media_kind.as_deref() {
@@ -109,11 +224,30 @@ async fn pick_media_files(media_kind: Option<String>) -> Result<Vec<String>, App
     Ok(files)
 }
 
+/**
+ * Verifies a license key without activation.
+ *
+ * Checks if a license key is valid and extracts license information
+ * without persisting it to the system.
+ *
+ * @param key - License key string to verify
+ * @return LicenseInfo if valid, error otherwise
+ */
 #[tauri::command]
 async fn verify_license_key(key: String) -> Result<license::LicenseInfo, AppError> {
     license::verify(&key).map_err(Into::into)
 }
 
+/**
+ * Activates a license key.
+ *
+ * Verifies and persists a license key to the system, marking it as
+ * activated with a timestamp. Emits an event to notify the frontend.
+ *
+ * @param app - Tauri application handle for persistence
+ * @param key - License key to activate
+ * @return Activated LicenseInfo
+ */
 #[tauri::command]
 async fn activate_license(
     app: tauri::AppHandle,
@@ -126,11 +260,27 @@ async fn activate_license(
     Ok(info)
 }
 
+/**
+ * Retrieves the current active license.
+ *
+ * Loads the persisted license information from the system.
+ *
+ * @param app - Tauri application handle
+ * @return Current license info or None if no license
+ */
 #[tauri::command]
 async fn current_license(app: tauri::AppHandle) -> Result<Option<license::LicenseInfo>, AppError> {
     license::load(&app).map_err(Into::into)
 }
 
+/**
+ * Removes the current license.
+ *
+ * Deletes the persisted license information and emits an event
+ * to notify the frontend of the license removal.
+ *
+ * @param app - Tauri application handle
+ */
 #[tauri::command]
 async fn remove_license(app: tauri::AppHandle) -> Result<(), AppError> {
     license::remove(&app)?;
@@ -138,6 +288,15 @@ async fn remove_license(app: tauri::AppHandle) -> Result<(), AppError> {
     Ok(())
 }
 
+/**
+ * Opens a directory picker for output location.
+ *
+ * Displays a system folder selection dialog for choosing where
+ * converted files should be saved.
+ *
+ * @param default_path - Optional default directory to start in
+ * @return Selected directory path or None if cancelled
+ */
 #[tauri::command]
 async fn choose_output_directory(default_path: Option<String>) -> Result<Option<String>, AppError> {
     let selection = tauri::async_runtime::spawn_blocking(move || {
@@ -157,6 +316,13 @@ async fn choose_output_directory(default_path: Option<String>) -> Result<Option<
     Ok(path.to_str().map(|value| value.to_string()))
 }
 
+/**
+ * Main application entry point.
+ *
+ * Initializes and runs the Tauri application with all configured
+ * plugins, commands, and menu structure. Sets up the native macOS
+ * menu bar and event handlers for desktop integration.
+ */
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = dotenvy::dotenv();
@@ -328,12 +494,7 @@ pub fn run() {
                     },
                     "zoom" => {
                         if let Some(window) = app.get_webview_window("main") {
-                            let is_maximized = window.is_maximized().unwrap_or(false);
-                            if is_maximized {
-                                let _ = window.unmaximize();
-                            } else {
-                                let _ = window.maximize();
-                            }
+                            let _ = window.maximize();
                         }
                     },
                     "toggle_devtools" => {

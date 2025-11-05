@@ -96,11 +96,8 @@ export const useJobsStore = defineStore('jobs', () => {
   }
 
   function enqueue(path: string, presetId: string, tier: Tier = 'balanced'): JobId | null {
-    // Check for duplicate path - O(n) but unavoidable without separate path index
-    for (const job of jobsMap.value.values()) {
-      if (job.path === path) {
-        return null;
-      }
+    if (jobs.value.some((job) => job.path === path)) {
+      return null;
     }
     const createdAt = now();
     const id = createJobId();
@@ -118,7 +115,7 @@ export const useJobsStore = defineStore('jobs', () => {
       updatedAt: createdAt,
     };
 
-    jobsMap.value.set(id, record);
+    jobs.value = [...jobs.value, record];
     return id;
   }
 
@@ -129,17 +126,18 @@ export const useJobsStore = defineStore('jobs', () => {
   }
 
   function getJob(id: JobId): JobRecord | undefined {
-    return jobsMap.value.get(id);
+    return jobs.value.find((job) => job.id === id);
   }
 
   function updateJob(id: JobId, updater: (job: JobRecord) => JobRecord) {
-    const record = jobsMap.value.get(id);
-    if (!record) {
+    const index = jobs.value.findIndex((j) => j.id === id);
+    if (index === -1) {
       return;
     }
+    const record = jobs.value[index];
     const updated = updater({ ...record });
     updated.updatedAt = now();
-    jobsMap.value.set(id, updated);
+    jobs.value = [...jobs.value.slice(0, index), updated, ...jobs.value.slice(index + 1)];
   }
 
   function markProbing(id: JobId) {
@@ -252,10 +250,10 @@ export const useJobsStore = defineStore('jobs', () => {
         job.summary?.durationSec &&
         job.summary.durationSec > 0
       ) {
-        const ratio =
-          job.summary.durationSec > 0
-            ? Math.min(Math.max(nextProgress.processedSeconds / job.summary.durationSec, 0), 1)
-            : 0;
+        const ratio = Math.min(
+          Math.max(nextProgress.processedSeconds / job.summary.durationSec, 0),
+          1,
+        );
         nextProgress = {
           ...nextProgress,
           ratio,
@@ -301,7 +299,6 @@ export const useJobsStore = defineStore('jobs', () => {
         },
       };
     });
-    pruneTerminalJobs();
   }
 
   function markFailed(id: JobId, error: string, code?: string) {
@@ -321,7 +318,6 @@ export const useJobsStore = defineStore('jobs', () => {
         },
       };
     });
-    pruneTerminalJobs();
   }
 
   function cancelJob(id: JobId) {
@@ -355,7 +351,7 @@ export const useJobsStore = defineStore('jobs', () => {
   }
 
   function removeJob(id: JobId) {
-    jobsMap.value.delete(id);
+    jobs.value = jobs.value.filter((job) => job.id !== id);
   }
 
   function updateJobPreset(id: JobId, presetId: string) {
@@ -366,11 +362,7 @@ export const useJobsStore = defineStore('jobs', () => {
   }
 
   function clearCompleted() {
-    for (const [id, job] of jobsMap.value.entries()) {
-      if (isTerminalState(job.state)) {
-        jobsMap.value.delete(id);
-      }
-    }
+    jobs.value = jobs.value.filter((job) => !isTerminalState(job.state));
   }
 
   function startNext(): JobRecord | undefined {
@@ -417,7 +409,6 @@ export const useJobsStore = defineStore('jobs', () => {
     removeJob,
     updateJobPreset,
     clearCompleted,
-    pruneTerminalJobs,
     startNext,
     peekNext,
   };

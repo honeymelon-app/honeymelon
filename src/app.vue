@@ -1,4 +1,30 @@
 <script setup lang="ts">
+/**
+ * Root application component for Honeymelon.
+ *
+ * This is the main Vue component that serves as the entry point for the entire application UI.
+ * It orchestrates the high-level application state, including license management, media type
+ * filtering, file uploading, and job queue management. The component implements a tabbed interface
+ * that allows users to work with different media types (video, audio, image) separately.
+ *
+ * Key responsibilities:
+ * - License activation and validation flow
+ * - Media type-based tab navigation and filtering
+ * - Integration with file upload and job orchestration systems
+ * - Loading state management during app initialization
+ * - Global UI layout coordination (window, dialogs, controls)
+ *
+ * The component uses Vue's Composition API with reactive state management through Pinia stores
+ * and composables. It implements a responsive design that adapts to different media types
+ * while maintaining consistent UX patterns across tabs.
+ *
+ * Architecture:
+ * - Uses computed properties for reactive filtering of jobs by media type
+ * - Implements event handlers for file input, browsing, and job management
+ * - Manages dialog states for license activation and about information
+ * - Coordinates between multiple child components for a cohesive user experience
+ */
+
 import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
@@ -29,6 +55,14 @@ import { useLicenseStore } from '@/stores/license';
 
 const { t } = useI18n();
 
+/**
+ * Main application orchestration composable.
+ *
+ * This composable provides centralized access to all major application state and actions,
+ * including drag-and-drop handling, job management, preset configuration, and UI state.
+ * It acts as the primary interface between the root component and the application's
+ * business logic layer.
+ */
 const app = useAppOrchestration();
 const {
   isDragOver,
@@ -36,6 +70,7 @@ const {
   activeJobs,
   completedJobs,
   hasActiveJobs,
+  hasQueuedJobs,
   presetOptions,
   isAboutOpen,
   handleFileInput,
@@ -43,10 +78,18 @@ const {
   handleCancelJob,
   handleUpdatePreset,
   handleStartJob,
+  startAll,
   cancelAll,
   clearCompleted,
 } = app;
 
+/**
+ * License store integration.
+ *
+ * Manages the application's licensing system, including license validation,
+ * activation dialogs, and feature gating. The license system ensures that
+ * only valid users can access the media conversion functionality.
+ */
 const licenseStore = useLicenseStore();
 const {
   current: activeLicense,
@@ -54,30 +97,74 @@ const {
   isLoading: licenseLoading,
   needsActivation,
 } = storeToRefs(licenseStore);
+
+/**
+ * Initialize license system on component mount.
+ *
+ * This ensures that license validation occurs early in the application lifecycle,
+ * allowing the UI to adapt based on license status (e.g., showing activation dialog).
+ */
 const openLicenseDialog = () => licenseStore.requestActivationDialog();
 onMounted(() => {
   void licenseStore.init();
 });
 
+/**
+ * Computed properties for license state management.
+ *
+ * These reactive properties determine when the application is ready to use
+ * and when to show loading states or activation prompts.
+ */
 const licenseReady = computed(() => Boolean(activeLicense.value));
 const licenseChecking = computed(() => !licenseInitialized.value || licenseLoading.value);
 const showSkeleton = computed(
   () => licenseChecking.value || (licenseReady.value && !presetsReady.value),
 );
 
-// Track active tab
+/**
+ * Active tab state for media type filtering.
+ *
+ * Tracks which media type tab (video/audio/image) is currently selected.
+ * This affects which jobs are displayed and which file types are accepted.
+ */
 const activeTab = ref<MediaKind>('video');
 
-// Filter jobs by media type
+/**
+ * Utility functions for job filtering by media type.
+ *
+ * These functions enable the tabbed interface by filtering jobs based on their
+ * associated preset's media kind. This allows users to focus on specific media
+ * types while maintaining a unified job queue underneath.
+ */
+
+/**
+ * Determines the media kind of a job based on its preset.
+ *
+ * @param presetId - The ID of the preset used for the job
+ * @returns The media kind (video/audio/image) or null if preset not found
+ */
 function getJobMediaKind(presetId: string): MediaKind | null {
   const preset = PRESETS.find((p) => p.id === presetId);
   return preset?.mediaKind ?? null;
 }
 
+/**
+ * Filters a job array by media kind.
+ *
+ * @param jobs - Array of jobs to filter
+ * @param mediaKind - The media kind to filter by
+ * @returns Filtered array of jobs matching the specified media kind
+ */
 function filterJobsByMediaKind(jobs: typeof activeJobs.value, mediaKind: MediaKind) {
   return jobs.filter((job) => getJobMediaKind(job.presetId) === mediaKind);
 }
 
+/**
+ * Computed properties for video jobs.
+ *
+ * These reactive properties provide filtered views of the job queue specifically
+ * for video-related operations, enabling the video tab functionality.
+ */
 const videoActiveJobs = computed(() => filterJobsByMediaKind(activeJobs.value, 'video'));
 const videoCompletedJobs = computed(() => filterJobsByMediaKind(completedJobs.value, 'video'));
 const hasVideoActiveJobs = computed(() => videoActiveJobs.value.length > 0);
@@ -86,6 +173,11 @@ const hasNoVideoJobs = computed(
   () => videoActiveJobs.value.length === 0 && videoCompletedJobs.value.length === 0,
 );
 
+/**
+ * Computed properties for audio jobs.
+ *
+ * Similar to video jobs but for audio-specific operations and the audio tab.
+ */
 const audioActiveJobs = computed(() => filterJobsByMediaKind(activeJobs.value, 'audio'));
 const audioCompletedJobs = computed(() => filterJobsByMediaKind(completedJobs.value, 'audio'));
 const hasAudioActiveJobs = computed(() => audioActiveJobs.value.length > 0);
@@ -94,6 +186,11 @@ const hasNoAudioJobs = computed(
   () => audioActiveJobs.value.length === 0 && audioCompletedJobs.value.length === 0,
 );
 
+/**
+ * Computed properties for image jobs.
+ *
+ * Similar to other media types but for image processing operations.
+ */
 const imageActiveJobs = computed(() => filterJobsByMediaKind(activeJobs.value, 'image'));
 const imageCompletedJobs = computed(() => filterJobsByMediaKind(completedJobs.value, 'image'));
 const hasImageActiveJobs = computed(() => imageActiveJobs.value.length > 0);
@@ -102,36 +199,59 @@ const hasNoImageJobs = computed(
   () => imageActiveJobs.value.length === 0 && imageCompletedJobs.value.length === 0,
 );
 
-// Create media-kind-specific file input handlers
+/**
+ * Media-kind-specific event handlers.
+ *
+ * These handlers ensure that when files are added through different tabs,
+ * the appropriate tab becomes active and the file input is processed correctly.
+ * This provides a seamless user experience when switching between media types.
+ */
+
+/**
+ * Handles file input for video files and switches to video tab.
+ */
 const handleVideoFileInput = (event: Event) => {
   activeTab.value = 'video';
   handleFileInput(event);
 };
 
+/**
+ * Handles file input for audio files and switches to audio tab.
+ */
 const handleAudioFileInput = (event: Event) => {
   activeTab.value = 'audio';
   handleFileInput(event);
 };
 
+/**
+ * Handles file input for image files and switches to image tab.
+ */
 const handleImageFileInput = (event: Event) => {
   activeTab.value = 'image';
   handleFileInput(event);
 };
 
-// Create media-kind-specific browse handlers
+/**
+ * Media-kind-specific browse handlers.
+ *
+ * These functions trigger file browsing dialogs filtered by media type,
+ * ensuring users can only select appropriate file types for each tab.
+ */
 const handleVideoBrowse = () => handleBrowse('video');
 const handleAudioBrowse = () => handleBrowse('audio');
 const handleImageBrowse = () => handleBrowse('image');
 </script>
 
 <template>
-  <!-- Loading Skeleton -->
+  <!-- License Activation Dialog Component -->
   <LicenseActivationDialog />
 
+  <!-- Loading Skeleton - Shows during app initialization -->
   <AppLoadingSkeleton v-if="showSkeleton" />
 
-  <!-- Main App -->
+  <!-- Main Application Interface -->
   <template v-else>
+    <!-- License Activation Required Screen -->
     <div v-if="needsActivation" class="flex h-screen items-center justify-center bg-background">
       <Card class="w-full max-w-md border border-border/70 bg-background/95 shadow-lg">
         <CardHeader>
@@ -164,22 +284,26 @@ const handleImageBrowse = () => handleBrowse('image');
         </CardFooter>
       </Card>
     </div>
+
+    <!-- Main Application Window -->
     <Window
       v-else
       :show-footer="hasActiveJobs"
       :active-job-count="activeJobs.length"
+      :can-start-all="hasQueuedJobs"
       @cancel-all="cancelAll"
+      @start-all="startAll"
     >
       <!-- Container with relative positioning for absolute controls -->
       <div class="relative flex flex-col flex-1">
-        <!-- Top-right controls -->
+        <!-- Top-right controls for global settings -->
         <div class="absolute right-0 top-0 z-10 flex items-center gap-x-3" v-if="licenseReady">
           <DestinationChooser />
           <LanguageSwitcher />
           <ThemeSwitcher />
         </div>
 
-        <!-- Tabs for media type filtering -->
+        <!-- Media Type Tabs - Core navigation for filtering by video/audio/image -->
         <Tabs v-model="activeTab" default-value="video" class="flex flex-col flex-1">
           <TabsList aria-label="Media type filter" class="w-fit">
             <TabsTrigger value="video" aria-label="Video files">
@@ -193,13 +317,15 @@ const handleImageBrowse = () => handleBrowse('image');
             </TabsTrigger>
           </TabsList>
 
+          <!-- KeepAlive preserves component state when switching tabs -->
           <KeepAlive>
             <div class="flex-1 flex flex-col min-h-0">
-              <!-- Video Tab -->
+              <!-- Video Tab Content -->
               <TabsContent
                 value="video"
                 class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
               >
+                <!-- File uploader for video files -->
                 <FileUploader
                   :is-drag-over="isDragOver"
                   :has-active-jobs="hasVideoActiveJobs || hasVideoCompletedJobs"
@@ -207,6 +333,7 @@ const handleImageBrowse = () => handleBrowse('image');
                   :on-file-input="handleVideoFileInput"
                   :on-browse="handleVideoBrowse"
                 />
+                <!-- Job queue displaying video conversion jobs -->
                 <JobQueue
                   :active-jobs="videoActiveJobs"
                   :completed-jobs="videoCompletedJobs"
@@ -221,11 +348,12 @@ const handleImageBrowse = () => handleBrowse('image');
                 />
               </TabsContent>
 
-              <!-- Audio Tab -->
+              <!-- Audio Tab Content -->
               <TabsContent
                 value="audio"
                 class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
               >
+                <!-- File uploader for audio files -->
                 <FileUploader
                   :is-drag-over="isDragOver"
                   :has-active-jobs="hasAudioActiveJobs || hasAudioCompletedJobs"
@@ -233,6 +361,7 @@ const handleImageBrowse = () => handleBrowse('image');
                   :on-file-input="handleAudioFileInput"
                   :on-browse="handleAudioBrowse"
                 />
+                <!-- Job queue displaying audio conversion jobs -->
                 <JobQueue
                   :active-jobs="audioActiveJobs"
                   :completed-jobs="audioCompletedJobs"
@@ -247,11 +376,12 @@ const handleImageBrowse = () => handleBrowse('image');
                 />
               </TabsContent>
 
-              <!-- Image Tab -->
+              <!-- Image Tab Content -->
               <TabsContent
                 value="image"
                 class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
               >
+                <!-- File uploader for image files -->
                 <FileUploader
                   :is-drag-over="isDragOver"
                   :has-active-jobs="hasImageActiveJobs || hasImageCompletedJobs"
@@ -259,6 +389,7 @@ const handleImageBrowse = () => handleBrowse('image');
                   :on-file-input="handleImageFileInput"
                   :on-browse="handleImageBrowse"
                 />
+                <!-- Job queue displaying image conversion jobs -->
                 <JobQueue
                   :active-jobs="imageActiveJobs"
                   :completed-jobs="imageCompletedJobs"
@@ -279,7 +410,7 @@ const handleImageBrowse = () => handleBrowse('image');
     </Window>
   </template>
 
-  <!-- About Dialog -->
+  <!-- About Dialog - Modal overlay for application information -->
   <Dialog v-model:open="isAboutOpen" modal>
     <DialogContent class="sm:max-w-md" aria-labelledby="about-dialog-title">
       <AboutDialog />

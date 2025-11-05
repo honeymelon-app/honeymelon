@@ -29,6 +29,9 @@ export const LIMITS = {
 
   /** Minimum concurrent job limit */
   MIN_CONCURRENCY: 1,
+
+  /** Maximum notification body length for macOS (256 chars max, truncate at 250 for safety) */
+  NOTIFICATION_MAX_BODY_LENGTH: 250,
 } as const;
 
 export const DEFAULTS = {

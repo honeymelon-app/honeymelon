@@ -1,3 +1,15 @@
+/**
+ * File system utilities for media file discovery and path expansion.
+ *
+ * This module provides utilities for working with file system paths in the context
+ * of media file processing. The main functionality is expanding directory paths
+ * to discover all media files contained within, supporting recursive traversal
+ * and deduplication.
+ *
+ * The implementation uses a breadth-first search (BFS) approach with a queue
+ * and visited set to efficiently handle directory traversal while avoiding
+ * infinite loops from circular symlinks or redundant paths.
+ */
 use std::{
     collections::{HashSet, VecDeque},
     fs,
@@ -6,11 +18,67 @@ use std::{
 
 use crate::error::AppError;
 
+/**
+ * Expands a list of file and directory paths into a flat list of all files found.
+ *
+ * This function recursively traverses directories to find all files within them,
+ * while treating individual file paths as-is. It performs deduplication to avoid
+ * processing the same path multiple times and handles various edge cases like
+ * non-existent paths, empty strings, and filesystem errors gracefully.
+ *
+ * The algorithm uses a breadth-first search (BFS) approach:
+ * 1. Start with all input paths in a queue
+ * 2. For each path, check if it's a file or directory
+ * 3. If it's a file, add it to the results
+ * 4. If it's a directory, enqueue all its children
+ * 5. Use a visited set to prevent processing the same path twice
+ *
+ * This approach ensures efficient traversal and prevents infinite loops that
+ * could occur with circular directory structures or symlinks.
+ *
+ * # Arguments
+ *
+ * * `paths` - A vector of string paths that can be either files or directories
+ *
+ * # Returns
+ *
+ * Returns a `Result` containing:
+ * - `Ok(Vec<String>)` - A vector of file paths as strings, with duplicates removed
+ * - `Err(AppError)` - An error if filesystem operations fail
+ *
+ * # Examples
+ *
+ * ```
+ * // Expand a directory to find all files within
+ * let files = expand_media_paths(vec!["/path/to/media".to_string()])?;
+ *
+ * // Mix files and directories
+ * let files = expand_media_paths(vec![
+ *     "/path/to/video.mp4".to_string(),
+ *     "/path/to/media/folder".to_string()
+ * ])?;
+ * ```
+ *
+ * # Error Handling
+ *
+ * The function handles various error conditions gracefully:
+ * - Non-existent paths are silently ignored
+ * - Filesystem permission errors are ignored (paths skipped)
+ * - Invalid UTF-8 paths are filtered out
+ * - Empty strings in input are filtered out
+ *
+ * This defensive approach ensures the function doesn't fail completely due to
+ * individual problematic paths, allowing partial success when possible.
+ */
 pub fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError> {
+    // BFS queue for directory traversal
     let mut queue: VecDeque<PathBuf> = VecDeque::new();
+    // Set to track visited paths and prevent duplicates/cycles
     let mut visited: HashSet<PathBuf> = HashSet::new();
+    // Collection of discovered files
     let mut files: Vec<PathBuf> = Vec::new();
 
+    // Initialize queue with all input paths, filtering out empty strings
     for path in paths {
         if path.is_empty() {
             continue;
@@ -18,27 +86,39 @@ pub fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError> {
         queue.push_back(PathBuf::from(path));
     }
 
+    // Process queue using breadth-first search
     while let Some(current) = queue.pop_front() {
+        // Skip if we've already processed this path
         if !visited.insert(current.clone()) {
             continue;
         }
 
+        // Check the path metadata to determine if it's a file or directory
         match fs::metadata(&current) {
             Ok(meta) if meta.is_file() => {
+                // It's a file, add it to our results
                 files.push(current);
             },
             Ok(meta) if meta.is_dir() => {
+                // It's a directory, enqueue all its children for processing
                 if let Ok(entries) = fs::read_dir(&current) {
                     for entry in entries.flatten() {
                         queue.push_back(entry.path());
                     }
                 }
             },
-            Ok(_) => {},
-            Err(_) => {},
+            Ok(_) => {
+                // Path exists but is neither file nor directory (e.g., symlink, device)
+                // Silently ignore these special file types
+            },
+            Err(_) => {
+                // Path doesn't exist or permission denied
+                // Silently ignore these errors to allow partial success
+            },
         }
     }
 
+    // Convert PathBuf results to strings, filtering out invalid UTF-8 paths
     let mut unique = Vec::new();
     for path in files {
         if let Some(as_str) = path.to_str() {
