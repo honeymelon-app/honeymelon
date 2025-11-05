@@ -11,6 +11,8 @@
     "core:event:allow-unlisten",
     "core:event:allow-emit",
     "core:webview:allow-internal-toggle-devtools",
+    "core:webview:allow-webview-read-clipboard",
+    "core:webview:allow-webview-write-clipboard",
     "opener:default",
     "notification:default"
   ]
