@@ -1,5 +1,7 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 interface LicenseInfo {
   key: string;
@@ -30,8 +32,6 @@ export const useLicenseStore = defineStore('license', () => {
       return;
     }
 
-    const { listen } = await import('@tauri-apps/api/event');
-
     const unlistenActivated = await listen<LicenseInfo>('license://activated', (event) => {
       current.value = event.payload;
       promptOnInit.value = false;
@@ -55,7 +55,6 @@ export const useLicenseStore = defineStore('license', () => {
 
     try {
       isLoading.value = true;
-      const { invoke } = await import('@tauri-apps/api/core');
       current.value = await invoke<LicenseInfo | null>('current_license');
       promptOnInit.value = !current.value;
     } catch (error) {
@@ -81,7 +80,6 @@ export const useLicenseStore = defineStore('license', () => {
     try {
       isVerifying.value = true;
       lastError.value = null;
-      const { invoke } = await import('@tauri-apps/api/core');
       preview.value = await invoke<LicenseInfo>('verify_license_key', { key });
       return preview.value;
     } catch (error) {
@@ -102,7 +100,6 @@ export const useLicenseStore = defineStore('license', () => {
     try {
       isActivating.value = true;
       lastError.value = null;
-      const { invoke } = await import('@tauri-apps/api/core');
       const license = await invoke<LicenseInfo>('activate_license', { key });
       current.value = license;
       preview.value = null;
@@ -119,7 +116,6 @@ export const useLicenseStore = defineStore('license', () => {
 
   async function remove() {
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
       await invoke('remove_license');
       current.value = null;
       preview.value = null;

@@ -10,7 +10,7 @@ const isTauriRuntime =
   '__TAURI_INTERNALS__' in window &&
   typeof getVersion === 'function';
 
-const version = ref<string>(import.meta.env?.PACKAGE_VERSION ?? '1.0.0');
+const version = ref<string>(import.meta.env?.PACKAGE_VERSION ?? '1.0.1');
 const buildDate = ref(new Date().toISOString().split('T')[0]);
 
 onMounted(async () => {

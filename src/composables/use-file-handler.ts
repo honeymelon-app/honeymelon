@@ -1,4 +1,5 @@
 import { type Ref } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
 import { useJobsStore } from '@/stores/jobs';
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
 import type { Preset } from '@/lib/types';
@@ -97,7 +98,6 @@ export function useFileHandler(options: UseFileHandlerOptions) {
       const validPaths = paths.filter((p) => typeof p === 'string' && p.trim().length > 0);
       if (!validPaths.length) return;
 
-      const { invoke } = await import('@tauri-apps/api/core');
       let expanded: string[] = [];
       try {
         expanded = await invoke<string[]>('expand_media_paths', { paths: validPaths });
@@ -129,7 +129,6 @@ export function useFileHandler(options: UseFileHandlerOptions) {
     if (!(await ensurePresetsReady())) return;
     if (isTauriRuntime()) {
       try {
-        const { invoke } = await import('@tauri-apps/api/core');
         const selection = await invoke<string[]>('pick_media_files', {
           mediaKind: mediaKind || null,
         });

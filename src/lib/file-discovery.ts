@@ -1,3 +1,5 @@
+import { invoke } from '@tauri-apps/api/core';
+
 export const MEDIA_EXTENSIONS = [
   'mp4',
   'm4v',
@@ -109,7 +111,6 @@ export async function discoverDroppedEntries(files: FileList | File[]): Promise<
     return fallbackEntries;
   }
 
-  const { invoke } = await import('@tauri-apps/api/core');
   let expanded: string[] = [];
   try {
     expanded = await invoke<string[]>('expand_media_paths', { paths: candidates });

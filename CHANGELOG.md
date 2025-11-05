@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes._
 
+## [1.0.1] - 2025-11-05
+
+### Changed
+
+- Rust backend now loads `.env` at build time and forwards `HONEYMELON_LICENSE_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
+- Added `dotenvy` to Rust build dependencies.
+- Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification.
+- Replaced all dynamic imports of Tauri API modules with static imports in frontend files to resolve Vite warnings:
+  - `src/stores/license.ts`
+  - `src/composables/use-file-handler.ts`
+  - `src/composables/use-job-orchestrator.ts`
+  - `src/lib/file-discovery.ts`
+  - `src/components/DestinationChooser.vue`
+- Added and improved docblocks and comments in Rust modules for clarity and maintainability (`lib.rs`, `license.rs`, `ffmpeg_capabilities.rs`).
+
 ## [1.0.0] - 2025-11-04
 
 ### Added

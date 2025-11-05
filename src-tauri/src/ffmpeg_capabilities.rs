@@ -25,6 +25,8 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
+#[cfg(target_os = "macos")]
+use std::{collections::HashSet, ffi::OsStr};
 use tauri::{AppHandle, Manager};
 
 use crate::error::AppError;
@@ -84,7 +86,8 @@ pub fn load_capabilities(app: &AppHandle) -> Result<CapabilitySnapshot, AppError
     // Try to load from cache first
     if let Some(cache_path) = cache_path(app) {
         if let Ok(contents) = fs::read_to_string(&cache_path) {
-            if let Ok(snapshot) = serde_json::from_str::<CapabilitySnapshot>(&contents) {
+            if let Ok(mut snapshot) = serde_json::from_str::<CapabilitySnapshot>(&contents) {
+                snapshot.video_encoders = validate_video_encoders(app, snapshot.video_encoders);
                 return Ok(snapshot);
             }
         }
@@ -153,7 +156,8 @@ fn refresh_capabilities(app: &AppHandle) -> Result<CapabilitySnapshot, AppError>
     let formats_output = run_ffmpeg(app, &["-hide_banner", "-formats"])?;
     let filters_output = run_ffmpeg(app, &["-hide_banner", "-filters"])?;
 
-    let (video_encoders, audio_encoders) = parse_encoders(&encoders_output);
+    let (video_encoders_raw, audio_encoders) = parse_encoders(&encoders_output);
+    let video_encoders = validate_video_encoders(app, video_encoders_raw);
     let formats = parse_formats(&formats_output);
     let filters = parse_filters(&filters_output);
 
@@ -451,6 +455,114 @@ fn parse_filters(output: &str) -> Vec<String> {
     }
 
     filters.into_iter().collect()
+}
+
+/**
+ * Validates detected video encoders and removes ones that fail self-tests.
+ *
+ * On macOS, hardware-accelerated VideoToolbox encoders occasionally appear in
+ * capability listings even when initialization fails at runtime. To prevent
+ * conversion jobs from crashing with exit status 187, we perform a lightweight
+ * self-test and drop encoders that cannot start successfully.
+ */
+#[cfg(target_os = "macos")]
+fn validate_video_encoders(app: &AppHandle, encoders: Vec<String>) -> Vec<String> {
+    validate_macos_video_encoders(app, encoders)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn validate_video_encoders(_app: &AppHandle, encoders: Vec<String>) -> Vec<String> {
+    encoders
+}
+
+#[cfg(target_os = "macos")]
+fn validate_macos_video_encoders(app: &AppHandle, encoders: Vec<String>) -> Vec<String> {
+    let Some(ffmpeg_path) = resolve_working_ffmpeg_path(app) else {
+        eprintln!("[capabilities] Unable to locate working ffmpeg binary for encoder validation.");
+        return encoders;
+    };
+
+    let mut invalid_encoders: HashSet<String> = HashSet::new();
+    let candidates = [
+        "h264_videotoolbox",
+        "hevc_videotoolbox",
+        "prores_videotoolbox",
+    ];
+
+    for encoder in candidates {
+        if !encoders.iter().any(|entry| entry == encoder) {
+            continue;
+        }
+
+        if !self_test_videotoolbox_encoder(ffmpeg_path.as_os_str(), encoder) {
+            eprintln!(
+                "[capabilities] Removing {encoder} due to failed VideoToolbox initialization self-test."
+            );
+            invalid_encoders.insert(encoder.to_string());
+        }
+    }
+
+    encoders
+        .into_iter()
+        .filter(|encoder| !invalid_encoders.contains(encoder))
+        .collect()
+}
+
+#[cfg(target_os = "macos")]
+fn resolve_working_ffmpeg_path(app: &AppHandle) -> Option<OsString> {
+    for candidate in candidate_ffmpeg_paths(app) {
+        let mut command = Command::new(&candidate);
+        command.args(["-hide_banner", "-version"]);
+
+        match command.output() {
+            Ok(output) if output.status.success() => {
+                return Some(candidate);
+            },
+            Ok(_) => continue,
+            Err(_) => continue,
+        }
+    }
+    None
+}
+
+#[cfg(target_os = "macos")]
+fn self_test_videotoolbox_encoder(ffmpeg_path: &OsStr, encoder: &str) -> bool {
+    let mut command = Command::new(ffmpeg_path);
+    command.args([
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=black:size=64x64:rate=30:duration=0.2",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:v",
+        encoder,
+        "-frames:v",
+        "5",
+        "-f",
+        "null",
+        "-",
+    ]);
+
+    match command.output() {
+        Ok(output) if output.status.success() => true,
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            eprintln!(
+                "[capabilities] Self-test for encoder {encoder} exited with status {:?}: {}",
+                output.status.code(),
+                stderr.trim()
+            );
+            false
+        },
+        Err(error) => {
+            eprintln!("[capabilities] Failed to execute self-test for encoder {encoder}: {error}");
+            false
+        },
+    }
 }
 
 #[cfg(test)]

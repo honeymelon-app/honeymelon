@@ -1,5 +1,6 @@
 import { ref, watch, onUnmounted } from 'vue';
 
+import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type * as NotificationPlugin from '@tauri-apps/plugin-notification';
 
@@ -110,7 +111,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     }
 
     const normalized = Math.max(1, Math.floor(limit || 1));
-    const { invoke } = await import('@tauri-apps/api/core');
     await invoke('set_max_concurrency', { limit: normalized });
   }
 
@@ -543,7 +543,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       return;
     }
 
-    const { invoke } = await import('@tauri-apps/api/core');
     await invoke('start_job', payload);
   }
 
@@ -747,7 +746,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       return;
     }
 
-    const { invoke } = await import('@tauri-apps/api/core');
     await invoke<boolean>('cancel_job', { jobId: jobId });
   }
 

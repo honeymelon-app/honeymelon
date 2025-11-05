@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, type HTMLAttributes } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
 import { storeToRefs } from 'pinia';
 import { Folder, FolderOpen } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,6 @@ const displayPath = computed(() => {
 async function chooseDirectory() {
   isChoosing.value = true;
   try {
-    const { invoke } = await import('@tauri-apps/api/core');
     const result = await invoke<string | null>('choose_output_directory', {
       defaultPath: outputDirectory.value || null,
     });

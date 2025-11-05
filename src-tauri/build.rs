@@ -26,6 +26,18 @@ fn ensure_resource(path: &str) {
 }
 
 fn main() {
+    // Load .env file during build time to make environment variables
+    // available to option_env!() macros in the source code
+    let _ = dotenvy::dotenv();
+
+    // Forward HONEYMELON_LICENSE_PUBLIC_KEY to the compiler if it exists
+    // This makes it available to option_env!() macros in the source code
+    if let Ok(key) = std::env::var("HONEYMELON_LICENSE_PUBLIC_KEY") {
+        println!("cargo:rustc-env=LICENSE_SIGNING_PUBLIC_KEY={}", key);
+    } else if let Ok(key) = std::env::var("LICENSE_SIGNING_PUBLIC_KEY") {
+        println!("cargo:rustc-env=LICENSE_SIGNING_PUBLIC_KEY={}", key);
+    }
+
     ensure_resource("resources/bin/ffmpeg");
     ensure_resource("resources/bin/ffprobe");
     tauri_build::build()
