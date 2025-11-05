@@ -47,12 +47,7 @@ window.addEventListener('error', (event) => {
   console.error('[Uncaught Error]', event.error || event.message);
 });
 
-// Disable right-click context menu in production
-if (import.meta.env.PROD) {
-  document.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-  });
-}
+// Context menu is enabled to allow native cut/copy/paste operations
 
 // Prevent text selection drag in production for better desktop feel
 if (import.meta.env.PROD) {
