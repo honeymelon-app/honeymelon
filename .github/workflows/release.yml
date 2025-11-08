@@ -3,7 +3,6 @@ name: Release Build
 on:
   release:
     types: [published] # Triggers when a release is published (created from UI or API)
-    branches: [release] # Only trigger for releases from 'release' branch
 
 permissions:
   contents: write # Required for creating releases and uploading assets
@@ -170,7 +169,6 @@ jobs:
           fi
 
       - name: Build application
-        if: github.event.release.prerelease == false # Skip for pre-releases
         run: |
           if [ -z "${HONEYMELON_LICENSE_PUBLIC_KEY}" ]; then
             echo "::: Missing HONEYMELON_LICENSE_PUBLIC_KEY secret" >&2
