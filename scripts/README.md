@@ -60,6 +60,7 @@ node scripts/update-version.js 1.2.3 --dry-run
 - Writes the new version to `package.json` and `package-lock.json`
 - Updates the Vue About dialog fallback, Rust `Cargo.toml`, and `tauri.conf.json`
 - Supports a `--dry-run` flag to inspect the files that would change
+- Refreshes the `**Version**` line at the bottom of `README.md` so docs match the release.
 
 ## Adding New Scripts
 
