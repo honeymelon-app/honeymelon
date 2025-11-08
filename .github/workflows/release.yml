@@ -236,30 +236,54 @@ jobs:
             exit 1
           fi
 
-      - name: Upload artifacts to external URL
+      - name: Upload artifacts to platform
         id: upload_artifacts
         run: |
-          # Upload each artifact and capture URLs
-          ARTIFACT_URLS=""
+          set -euo pipefail
+
+          detect_platform() {
+            local filepath="$1"
+            if [[ "$filepath" =~ (darwin|mac).*arm64|aarch64 ]]; then
+              echo "darwin-aarch64"
+              return
+            fi
+            if [[ "$filepath" =~ (darwin|mac).*x86_64|amd64|x64 ]]; then
+              echo "darwin-x64"
+              return
+            fi
+            echo "unknown"
+          }
+
+          ARTIFACTS_JSON="[]"
+
           for file in src-tauri/target/**/release/bundle/release-artifacts/*; do
-            if [ -f "$file" ]; then
-              # Upload via curl (adjust headers/auth as needed)
-              RESPONSE=$(curl -X POST "${{ secrets.LARAVEL_WEBHOOK_URL }}" \
+            if [[ -f "$file" ]]; then
+              PLATFORM=$(detect_platform "$file")
+              if [[ "$PLATFORM" == "unknown" ]]; then
+                PLATFORM="darwin-aarch64"
+              fi
+
+              SHA256=$(shasum -a 256 "$file" | awk '{print $1}')
+
+              RESPONSE=$(curl -X POST "${{ secrets.LARAVEL_ARTIFACT_UPLOAD_URL }}" \
                 -H "Authorization: Bearer ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}" \
-                -F "file=@$file" \
+                -F "platform=$PLATFORM" \
+                -F "sha256=$SHA256" \
+                -F "artifact=@$file" \
                 -s)
 
-              # Extract URL from response (adjust based on API response format, e.g., JSON)
-              UPLOAD_URL=$(echo "$RESPONSE" | jq -r '.url')  # Example: assume JSON with 'url' field
-
-              if [ -n "$UPLOAD_URL" ]; then
-                ARTIFACT_URLS="$ARTIFACT_URLS $UPLOAD_URL"
+              DATA=$(jq '.data' <<< "$RESPONSE")
+              if [[ "$DATA" != "null" ]]; then
+                ARTIFACTS_JSON=$(jq --argjson item "$DATA" '. + [$item]' <<< "$ARTIFACTS_JSON")
               fi
             fi
           done
 
-          # Output for later steps
-          echo "artifact_urls=$ARTIFACT_URLS" >> $GITHUB_OUTPUT
+          {
+            echo "artifacts<<EOF"
+            echo "$ARTIFACTS_JSON"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload artifacts to release
         uses: softprops/action-gh-release@v1
@@ -301,21 +325,42 @@ jobs:
 
       - name: Notify Laravel webhook
         run: |
+          set -euo pipefail
+
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          MAJOR="${{ steps.metadata.outputs.major }}"
+          CHANNEL="${{ steps.metadata.outputs.channel }}"
+          COMMIT_HASH="${{ steps.metadata.outputs.commit_hash }}"
+          NOTES_RAW=$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH")
+          PUBLISHED_AT="${{ github.event.release.published_at }}"
+          ARTIFACTS="${{ steps.upload_artifacts.outputs.artifacts }}"
+          ARTIFACTS_JSON="${ARTIFACTS:-[]}"
+
+          PAYLOAD=$(jq -n \
+            --arg version "$VERSION" \
+            --arg tag "$TAG" \
+            --arg commit_hash "$COMMIT_HASH" \
+            --arg channel "$CHANNEL" \
+            --arg notes "$NOTES_RAW" \
+            --arg published_at "$PUBLISHED_AT" \
+            --argjson major "$MAJOR" \
+            --argjson artifacts "$ARTIFACTS_JSON" \
+            '{
+              version: $version,
+              tag: $tag,
+              commit_hash: $commit_hash,
+              channel: $channel,
+              notes: $notes,
+              published_at: $published_at,
+              major: $major,
+              artifacts: $artifacts
+            }')
+
           curl -X POST "${{ secrets.LARAVEL_WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}" \
-            -d @- <<EOF
-          {
-            "version": "${{ steps.metadata.outputs.version }}",
-            "tag": "${{ github.event.release.tag_name }}",
-            "commit_hash": "${{ steps.metadata.outputs.commit_hash }}",
-            "channel": "${{ steps.metadata.outputs.channel }}",
-            "notes": $(echo '${{ github.event.release.body }}' | jq -Rs .),
-            "published_at": "${{ github.event.release.published_at }}",
-            "major": ${{ steps.metadata.outputs.major }},
-            "artifact_urls": "${{ steps.upload_artifacts.outputs.artifact_urls }}"
-          }
-          EOF
+            -d "$PAYLOAD"
 
       - name: Upload build artifacts (for debugging)
         uses: actions/upload-artifact@v4
