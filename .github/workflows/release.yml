@@ -254,6 +254,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [ -z "${{ secrets.LARAVEL_ARTIFACT_UPLOAD_URL }}" ] || \
+             [ -z "${{ secrets.LARAVEL_WEBHOOK_TOKEN }}" ]; then
+            echo "Skipping artifact upload: missing webhook/upload secrets"
+            echo "artifacts<<EOF"
+            echo "[]"
+            echo "EOF"
+            exit 0
+          fi
+
           detect_platform() {
             local filepath="$1"
             if [[ "$filepath" =~ (darwin|mac).*arm64|aarch64 ]]; then
