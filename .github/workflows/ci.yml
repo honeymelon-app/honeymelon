@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - development
+      - develop
   pull_request:
     branches:
       - main
-      - development
+      - develop
 
 permissions:
   contents: read
@@ -195,7 +195,7 @@ jobs:
     needs: build
     env:
       # ensure we don’t skip browser downloads
-      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "0"
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0'
       # pin the cache location so cache hits are consistent
       PLAYWRIGHT_BROWSERS_PATH: $HOME/Library/Caches/ms-playwright
 
@@ -234,7 +234,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-${{ steps.pwv.outputs.ver }}-
             ${{ runner.os }}-playwright-
-
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
