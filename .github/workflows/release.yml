@@ -170,19 +170,34 @@ jobs:
 
       - name: Build application
         run: |
-          if [ -z "${HONEYMELON_LICENSE_PUBLIC_KEY}" ]; then
+          set -euo pipefail
+
+          if [ -z "${HONEYMELON_LICENSE_PUBLIC_KEY:-}" ]; then
             echo "::: Missing HONEYMELON_LICENSE_PUBLIC_KEY secret" >&2
             exit 1
           fi
+
+          if [ -n "${{ secrets.APPLE_ID }}" ] && \
+             [ -n "${{ secrets.APPLE_PASSWORD }}" ] && \
+             [ -n "${{ secrets.APPLE_TEAM_ID }}" ] && \
+             [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ] && \
+             [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ] && \
+             [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" ]; then
+            echo "Apple credentials available, enabling codesign and notarization"
+            export APPLE_ID="${{ secrets.APPLE_ID }}"
+            export APPLE_PASSWORD="${{ secrets.APPLE_PASSWORD }}"
+            export APPLE_TEAM_ID="${{ secrets.APPLE_TEAM_ID }}"
+            export APPLE_SIGNING_IDENTITY="${{ secrets.APPLE_SIGNING_IDENTITY }}"
+            export TAURI_SIGNING_PRIVATE_KEY="${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
+            export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}"
+          else
+            echo "Apple credentials missing, skipping codesign and notarization"
+            export TAURI_SKIP_SIGNING=1
+            export TAURI_SKIP_NOTARIZE=1
+          fi
+
           npm run tauri:build
         env:
-          # Apple code signing (optional - only if secrets are configured)
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # Enable notarization if credentials provided
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           # License verification key (Ed25519 public key, base64)
           HONEYMELON_LICENSE_PUBLIC_KEY: ${{ secrets.HONEYMELON_LICENSE_PUBLIC_KEY }}
           LICENSE_SIGNING_PUBLIC_KEY: ${{ secrets.HONEYMELON_LICENSE_PUBLIC_KEY }}
