@@ -140,12 +140,23 @@ function syncTauriConfig() {
   });
 }
 
+function syncReadmeVersion() {
+  const readmeRe = /(\*\*Version\*\*:\s*)(\d+\.\d+\.\d+(?:[-+][\w.]+)?)/;
+  return replaceInFile('README.md', (contents) => {
+    if (!readmeRe.test(contents)) {
+      throw new Error('Could not locate version line in README.md');
+    }
+    return contents.replace(readmeRe, `$1${targetVersion}`);
+  });
+}
+
 try {
   syncPackageJson();
   syncPackageLock();
   syncAboutDialog();
   syncCargoToml();
   syncTauriConfig();
+  syncReadmeVersion();
 
   if (touchedFiles.length === 0) {
     console.log(`No files changed. All versions already set to ${targetVersion}.`);

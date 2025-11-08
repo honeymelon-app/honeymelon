@@ -1324,7 +1324,7 @@ All third-party software licenses and attributions are documented in [THIRD_PART
 
 **Project Status**: Active Development
 
-**Version**: 0.1.0
+**Version**: 0.0.1
 
 **Maintained By**: Honeymelon Contributors
 
