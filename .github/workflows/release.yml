@@ -3,6 +3,7 @@ name: Release Build
 on:
   release:
     types: [published] # Triggers when a release is published (created from UI or API)
+    branches: [release] # Only trigger for releases from 'release' branch
 
 permissions:
   contents: write # Required for creating releases and uploading assets
@@ -125,6 +126,7 @@ jobs:
           ls -lh src-tauri/resources/bin/ || echo "No binaries in resources"
 
       - name: Sign FFmpeg binaries
+        if: github.event.release.prerelease == false # Skip for pre-releases
         run: |
           # Only sign if Apple signing identity is configured
           if [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ]; then
@@ -168,6 +170,7 @@ jobs:
           fi
 
       - name: Build application
+        if: github.event.release.prerelease == false # Skip for pre-releases
         run: |
           if [ -z "${HONEYMELON_LICENSE_PUBLIC_KEY}" ]; then
             echo "::: Missing HONEYMELON_LICENSE_PUBLIC_KEY secret" >&2
@@ -233,6 +236,31 @@ jobs:
             exit 1
           fi
 
+      - name: Upload artifacts to external URL
+        id: upload_artifacts
+        run: |
+          # Upload each artifact and capture URLs
+          ARTIFACT_URLS=""
+          for file in src-tauri/target/**/release/bundle/release-artifacts/*; do
+            if [ -f "$file" ]; then
+              # Upload via curl (adjust headers/auth as needed)
+              RESPONSE=$(curl -X POST "${{ secrets.LARAVEL_WEBHOOK_URL }}" \
+                -H "Authorization: Bearer ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}" \
+                -F "file=@$file" \
+                -s)
+
+              # Extract URL from response (adjust based on API response format, e.g., JSON)
+              UPLOAD_URL=$(echo "$RESPONSE" | jq -r '.url')  # Example: assume JSON with 'url' field
+
+              if [ -n "$UPLOAD_URL" ]; then
+                ARTIFACT_URLS="$ARTIFACT_URLS $UPLOAD_URL"
+              fi
+            fi
+          done
+
+          # Output for later steps
+          echo "artifact_urls=$ARTIFACT_URLS" >> $GITHUB_OUTPUT
+
       - name: Upload artifacts to release
         uses: softprops/action-gh-release@v1
         with:
@@ -284,7 +312,8 @@ jobs:
             "channel": "${{ steps.metadata.outputs.channel }}",
             "notes": $(echo '${{ github.event.release.body }}' | jq -Rs .),
             "published_at": "${{ github.event.release.published_at }}",
-            "major": ${{ steps.metadata.outputs.major }}
+            "major": ${{ steps.metadata.outputs.major }},
+            "artifact_urls": "${{ steps.upload_artifacts.outputs.artifact_urls }}"
           }
           EOF
 

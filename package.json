@@ -1,6 +1,6 @@
 {
   "name": "honeymelon",
-  "version": "1.0.1",
+  "version": "0.0.1",
   "description": "A beautiful, simple, and powerful media converter for macOS Apple Silicon",
   "author": "Jerome Thayananthajothy <tjthavarshan@gmail.com>",
   "license": "UNLICENSED",
@@ -24,6 +24,7 @@
     "remove:emojis": "node scripts/remove-emojis.js",
     "remove:emojis:dry": "node scripts/remove-emojis.js --dry-run",
     "remove:emojis:src": "node scripts/remove-emojis.js --include \"^/src/\"",
+    "version:update": "node scripts/update-version.js",
     "download-ffmpeg": "bash scripts/download-ffmpeg.sh",
     "postinstall": "bash scripts/download-ffmpeg.sh || echo 'FFmpeg download skipped (optional)'",
     "lint": "npm run lint:js && npm run lint:rust",

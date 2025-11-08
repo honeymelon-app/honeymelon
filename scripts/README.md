@@ -37,6 +37,30 @@ The binaries are downloaded from [evermeet.cx](https://evermeet.cx/ffmpeg/), whi
 
 **Note:** This script is automatically run during `npm install` via the postinstall hook. Manual execution is only needed if you want to re-download or update the binaries.
 
+### `update-version.js`
+
+Keeps the project version in sync across `package.json`, `package-lock.json`, `src/components/AboutDialog.vue`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`. The `package.json` value remains the single source of truth.
+
+**Usage:**
+
+```bash
+# Preferred (adds npm lifecycle logging)
+npm run version:update -- 1.2.3
+
+# Direct execution
+node scripts/update-version.js 1.2.3
+
+# Preview changes without touching files
+node scripts/update-version.js 1.2.3 --dry-run
+```
+
+**What it does:**
+
+- Validates the provided semantic version (e.g. `1.2.3` or `2.0.0-beta.1`)
+- Writes the new version to `package.json` and `package-lock.json`
+- Updates the Vue About dialog fallback, Rust `Cargo.toml`, and `tauri.conf.json`
+- Supports a `--dry-run` flag to inspect the files that would change
+
 ## Adding New Scripts
 
 When adding new build scripts:

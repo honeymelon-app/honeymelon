@@ -1,6 +1,6 @@
 [package]
 name = "honeymelon"
-version = "1.0.1"
+version = "0.0.1"
 description = "A simple MacOS Apple Silicon media converter"
 authors = ["Jerome Thayananthajothy <tjthavarshan@gmail.com>"]
 license = "UNLICENSED"
