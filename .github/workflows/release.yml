@@ -307,15 +307,6 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Upload artifacts to release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.event.release.tag_name }}
-          files: |
-            src-tauri/target/**/release/bundle/release-artifacts/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract release metadata
         id: metadata
         run: |
