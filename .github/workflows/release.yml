@@ -171,6 +171,8 @@ jobs:
       - name: Build application
         run: |
           set -euo pipefail
+          # Enable recursive globbing so release artifacts under any target directory are found
+          shopt -s globstar nullglob
 
           if [ -z "${HONEYMELON_LICENSE_PUBLIC_KEY:-}" ]; then
             echo "::: Missing HONEYMELON_LICENSE_PUBLIC_KEY secret" >&2
@@ -293,6 +295,12 @@ jobs:
                 -F "sha256=$SHA256" \
                 -F "artifact=@$file" \
                 -s)
+
+              if ! jq -e . >/dev/null 2>&1 <<< "$RESPONSE"; then
+                echo "Warning: artifact upload returned non-JSON response, skipping"
+                echo "$RESPONSE"
+                continue
+              fi
 
               DATA=$(jq '.data' <<< "$RESPONSE")
               if [[ "$DATA" != "null" ]]; then
