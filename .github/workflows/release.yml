@@ -280,34 +280,32 @@ jobs:
 
           ARTIFACTS_JSON="[]"
 
-          for file in src-tauri/target/**/release/bundle/release-artifacts/*; do
-            if [[ -f "$file" ]]; then
-              PLATFORM=$(detect_platform "$file")
-              if [[ "$PLATFORM" == "unknown" ]]; then
-                PLATFORM="darwin-aarch64"
-              fi
-
-              SHA256=$(shasum -a 256 "$file" | awk '{print $1}')
-
-              RESPONSE=$(curl -X POST "${{ secrets.LARAVEL_ARTIFACT_UPLOAD_URL }}" \
-                -H "Authorization: Bearer ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}" \
-                -F "platform=$PLATFORM" \
-                -F "sha256=$SHA256" \
-                -F "artifact=@$file" \
-                -s)
-
-              if ! jq -e . >/dev/null 2>&1 <<< "$RESPONSE"; then
-                echo "Warning: artifact upload returned non-JSON response, skipping"
-                echo "$RESPONSE"
-                continue
-              fi
-
-              DATA=$(jq '.data' <<< "$RESPONSE")
-              if [[ "$DATA" != "null" ]]; then
-                ARTIFACTS_JSON=$(jq --argjson item "$DATA" '. + [$item]' <<< "$ARTIFACTS_JSON")
-              fi
+          while IFS= read -r -d '' file; do
+            PLATFORM=$(detect_platform "$file")
+            if [[ "$PLATFORM" == "unknown" ]]; then
+              PLATFORM="darwin-aarch64"
             fi
-          done
+
+            SHA256=$(shasum -a 256 "$file" | awk '{print $1}')
+
+            RESPONSE=$(curl -X POST "${{ secrets.LARAVEL_ARTIFACT_UPLOAD_URL }}" \
+              -H "Authorization: Bearer ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}" \
+              -F "platform=$PLATFORM" \
+              -F "sha256=$SHA256" \
+              -F "artifact=@$file" \
+              -s)
+
+            if ! jq -e . >/dev/null 2>&1 <<< "$RESPONSE"; then
+              echo "Warning: artifact upload returned non-JSON response, skipping"
+              echo "$RESPONSE"
+              continue
+            fi
+
+            DATA=$(jq '.data' <<< "$RESPONSE")
+            if [[ "$DATA" != "null" ]]; then
+              ARTIFACTS_JSON=$(jq --argjson item "$DATA" '. + [$item]' <<< "$ARTIFACTS_JSON")
+            fi
+          done < <(find src-tauri/target -path '*/release/bundle/release-artifacts/*' -type f -print0)
 
           # Base64 encode the JSON to avoid shell interpretation issues
           ARTIFACTS_B64=$(printf '%s' "$ARTIFACTS_JSON" | base64)
