@@ -252,9 +252,9 @@ jobs:
       - name: Upload artifacts to platform (match working curl)
         id: upload_artifacts
         env:
-          UPLOAD_URL: ${{ secrets.LARAVEL_ARTIFACT_UPLOAD_URL }} # e.g. https://honeymelon.app/api/artifacts/upload
-          WEBHOOK_TOKEN: ${{ secrets.LARAVEL_WEBHOOK_TOKEN }} # your Bearer token
-          CF_COOKIE: ${{ secrets.CF_COOKIE }} # set to the _cfuvid=... string
+          UPLOAD_URL: ${{ secrets.LARAVEL_ARTIFACT_UPLOAD_URL }}
+          WEBHOOK_TOKEN: ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}
+          CF_COOKIE: ${{ secrets.CF_COOKIE }}
         run: |
           set -Eeuo pipefail
 
