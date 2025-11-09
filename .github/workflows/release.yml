@@ -249,18 +249,17 @@ jobs:
             exit 1
           fi
 
-      - name: Upload artifacts to platform
+      - name: Upload artifacts to platform (match working curl)
         id: upload_artifacts
         env:
-          UPLOAD_URL: ${{ secrets.LARAVEL_ARTIFACT_UPLOAD_URL }}
-          WEBHOOK_TOKEN: ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}
-          # Optional: only if your server truly requires a cookie (generally avoid this)
-          CF_COOKIE: ${{ secrets.CF_COOKIE }}
+          UPLOAD_URL: ${{ secrets.LARAVEL_ARTIFACT_UPLOAD_URL }} # e.g. https://honeymelon.app/api/artifacts/upload
+          WEBHOOK_TOKEN: ${{ secrets.LARAVEL_WEBHOOK_TOKEN }} # your Bearer token
+          CF_COOKIE: ${{ secrets.CF_COOKIE }} # set to the _cfuvid=... string
         run: |
           set -Eeuo pipefail
 
-          if [ -z "${UPLOAD_URL:-}" ] || [ -z "${WEBHOOK_TOKEN:-}" ]; then
-            echo "Skipping artifact upload: missing webhook/upload secrets"
+          if [ -z "${UPLOAD_URL:-}" ] || [ -z "${WEBHOOK_TOKEN:-}" ] || [ -z "${CF_COOKIE:-}" ]; then
+            echo "::warning::Missing one of UPLOAD_URL / WEBHOOK_TOKEN / CF_COOKIE. Skipping."
             {
               echo "artifacts_b64<<EOF"
               echo "$(printf '[]' | base64)"
@@ -269,66 +268,54 @@ jobs:
             exit 0
           fi
 
-          detect_platform() {
-            local filepath="$1"
-            if [[ "$filepath" =~ (darwin|mac).*arm64|aarch64 ]]; then
-              echo "darwin-aarch64"; return
-            fi
-            if [[ "$filepath" =~ (darwin|mac).*(x86_64|amd64|x64) ]]; then
-              echo "darwin-x64"; return
-            fi
-            echo "unknown"
-          }
-
-          # Compose headers
+          # Match your curl: Accept JSON + Cookie + Bearer
           CURL_HEADERS=(
             -H "Authorization: Bearer ${WEBHOOK_TOKEN}"
             -H "Accept: application/json"
-            -H "X-Requested-With: XMLHttpRequest"
+            -H "Cookie: ${CF_COOKIE}"
           )
-          if [ -n "${CF_COOKIE:-}" ]; then
-            CURL_HEADERS+=(-H "Cookie: ${CF_COOKIE}")
-          fi
+
+          # Normalize to the platform your server expects in your working curl
+          normalize_platform() {
+            local fp="$1"
+            if [[ "$fp" =~ (darwin|mac).*arm64|aarch64 ]]; then
+              echo "darwinx64" > /dev/null  # we only need darwinx64 in your example; leave logic if you’ll expand later
+            fi
+            # For now always emit darwinx64 to mirror the proven request
+            echo "darwinx64"
+          }
 
           ARTIFACTS_JSON="[]"
 
           upload_one() {
             local file="$1"
             local platform="$2"
-            local sha256="$3"
 
-            # Write response body to a temp file so we can inspect it if non-JSON
             local body; body="$(mktemp)"
-            # Capture status code; do NOT follow redirects
-            local status
-            # -i to show headers, but send headers to stderr to keep body clean
-            status=$(curl -sS -X POST "$UPLOAD_URL" \
-              --max-redirs 0 \
+            local code
+            code=$(curl -sS -X POST "$UPLOAD_URL" \
               --fail-with-body \
               -D /dev/stderr \
               "${CURL_HEADERS[@]}" \
               -F "platform=${platform}" \
-              -F "sha256=${sha256}" \
               -F "artifact=@${file}" \
               -w "%{http_code}" \
               -o "$body" || true)
 
-            # If curl itself failed (network, TLS, etc.), status may be empty
-            if [[ -z "$status" ]]; then
+            if [[ -z "$code" ]]; then
               echo "::warning::Upload failed for $file (no status)."
               cat "$body" || true
               rm -f "$body"
               return 1
             fi
 
-            # Surface common auth/redirect issues explicitly
-            if [[ "$status" == "302" || "$status" == "301" ]]; then
-              echo "::warning::Got $status (redirect) for $file. Endpoint likely behind web guard/session. Ensure this route uses an API guard (e.g., auth:sanctum/token) and accepts Bearer tokens, not sessions."
-            elif [[ "$status" == "401" || "$status" == "403" ]]; then
-              echo "::warning::Got $status for $file. Bearer token rejected or guard mismatch. Verify token/abilities and route middleware."
+            if [[ "$code" != "200" && "$code" != "201" ]]; then
+              echo "::warning::Upload got HTTP $code for $file"
+              head -c 2000 "$body" || true
+              rm -f "$body"
+              return 1
             fi
 
-            # Try parse JSON
             if jq -e . >/dev/null 2>&1 < "$body"; then
               local data
               data=$(jq '.data' < "$body")
@@ -336,7 +323,7 @@ jobs:
                 ARTIFACTS_JSON=$(jq --argjson item "$data" '. + [$item]' <<< "$ARTIFACTS_JSON")
               fi
             else
-              echo "::warning::Artifact upload returned non-JSON response for $file"
+              echo "::warning::Non-JSON success body for $file"
               head -c 2000 "$body" || true
             fi
 
@@ -344,13 +331,13 @@ jobs:
             return 0
           }
 
+          # Find your artifacts (same path as before)
           while IFS= read -r -d '' file; do
-            PLATFORM=$(detect_platform "$file")
-            [[ "$PLATFORM" == "unknown" ]] && PLATFORM="darwin-aarch64"
-            SHA256=$(shasum -a 256 "$file" | awk '{print $1}')
-            upload_one "$file" "$PLATFORM" "$SHA256"
+            PLATFORM=$(normalize_platform "$file")
+            upload_one "$file" "$PLATFORM"
           done < <(find src-tauri/target -path '*/release/bundle/release-artifacts/*' -type f -print0)
 
+          # Output aggregated data as base64 JSON
           ARTIFACTS_B64=$(printf '%s' "$ARTIFACTS_JSON" | base64)
           {
             echo "artifacts_b64<<EOF"
