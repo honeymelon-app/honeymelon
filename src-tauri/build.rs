@@ -18,7 +18,7 @@ fn require_sidecar(rel: &str) {
     if !p.exists() {
         eprintln!(
             "error: required sidecar missing: {}\n\
-             hint: run scripts/setup_ffmpeg.sh (puts arm64 ffmpeg/ffprobe in src-tauri/bin/)",
+             hint: run scripts/download-ffmpeg.sh (puts arm64 ffmpeg/ffprobe in src-tauri/bin/)",
             p.display()
         );
         // Hard fail so we never ship without sidecars
