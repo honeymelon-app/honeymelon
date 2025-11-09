@@ -724,7 +724,7 @@ fn parse_payload(bytes: &[u8]) -> Result<ParsedPayload, LicenseError> {
  * in order of preference, allowing flexible deployment configurations.
  *
  * # Key Sources (in priority order)
- * 1. `HONEYMELON_LICENSE_PUBLIC_KEY` environment variable
+ * 1. `LICENSE_PUBLIC_KEY` environment variable
  * 2. `LICENSE_SIGNING_PUBLIC_KEY` environment variable
  * 3. Compile-time `LICENSE_SIGNING_PUBLIC_KEY` environment variable
  *
@@ -737,7 +737,7 @@ fn parse_payload(bytes: &[u8]) -> Result<ParsedPayload, LicenseError> {
  */
 fn load_verifying_key() -> Result<VerifyingKey, LicenseError> {
     // Try runtime environment variables first
-    if let Ok(value) = std::env::var("HONEYMELON_LICENSE_PUBLIC_KEY") {
+    if let Ok(value) = std::env::var("LICENSE_PUBLIC_KEY") {
         return parse_public_key(&value);
     }
     if let Ok(value) = std::env::var("LICENSE_SIGNING_PUBLIC_KEY") {

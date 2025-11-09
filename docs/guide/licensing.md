@@ -32,7 +32,7 @@ LICENSE_SIGNING_PRIVATE_KEY=base64_private_key
 
 For the desktop app, inject the public key at build time. The verifier looks for one of:
 
-- `HONEYMELON_LICENSE_PUBLIC_KEY`
+- `LICENSE_PUBLIC_KEY`
 - `LICENSE_SIGNING_PUBLIC_KEY`
 - A compile-time value baked in via `option_env!` (set `LICENSE_SIGNING_PUBLIC_KEY` when running `cargo build` if you want a static key in CI).
 
@@ -70,7 +70,7 @@ All license data is verified locally; no network calls are required during activ
 3. Set the public key for the desktop app via env var before running `npm run tauri:dev`:
 
    ```bash
-   export HONEYMELON_LICENSE_PUBLIC_KEY=base64_public_key
+   export LICENSE_PUBLIC_KEY=base64_public_key
    npm run tauri:dev
    ```
 

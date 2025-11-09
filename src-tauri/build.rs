@@ -30,9 +30,9 @@ fn main() {
     // available to option_env!() macros in the source code
     let _ = dotenvy::dotenv();
 
-    // Forward HONEYMELON_LICENSE_PUBLIC_KEY to the compiler if it exists
+    // Forward LICENSE_PUBLIC_KEY to the compiler if it exists
     // This makes it available to option_env!() macros in the source code
-    if let Ok(key) = std::env::var("HONEYMELON_LICENSE_PUBLIC_KEY") {
+    if let Ok(key) = std::env::var("LICENSE_PUBLIC_KEY") {
         println!("cargo:rustc-env=LICENSE_SIGNING_PUBLIC_KEY={}", key);
     } else if let Ok(key) = std::env::var("LICENSE_SIGNING_PUBLIC_KEY") {
         println!("cargo:rustc-env=LICENSE_SIGNING_PUBLIC_KEY={}", key);

@@ -29,9 +29,9 @@ jobs:
 
       - name: Clone Docs Repository
         env:
-          DOCS_REPO_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          git clone https://x-access-token:${DOCS_REPO_TOKEN}@github.com/honeymelon-app/docs.git docs-repo
+          git clone https://x-access-token:${GH_TOKEN}@github.com/honeymelon-app/docs.git docs-repo
 
       - name: Sync Documentation Files
         run: |

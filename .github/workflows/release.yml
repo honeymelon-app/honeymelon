@@ -172,8 +172,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "${HONEYMELON_LICENSE_PUBLIC_KEY:-}" ]; then
-            echo "::: Missing HONEYMELON_LICENSE_PUBLIC_KEY secret" >&2
+          if [ -z "${LICENSE_PUBLIC_KEY:-}" ]; then
+            echo "::: Missing LICENSE_PUBLIC_KEY secret" >&2
             exit 1
           fi
 
@@ -199,8 +199,8 @@ jobs:
           npm run tauri:build
         env:
           # License verification key (Ed25519 public key, base64)
-          HONEYMELON_LICENSE_PUBLIC_KEY: ${{ secrets.HONEYMELON_LICENSE_PUBLIC_KEY }}
-          LICENSE_SIGNING_PUBLIC_KEY: ${{ secrets.HONEYMELON_LICENSE_PUBLIC_KEY }}
+          LICENSE_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}
+          LICENSE_SIGNING_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}
 
       - name: Prepare release artifacts
         id: prepare_artifacts
@@ -252,14 +252,14 @@ jobs:
       - name: Upload artifacts to platform (match working curl)
         id: upload_artifacts
         env:
-          UPLOAD_URL: ${{ secrets.LARAVEL_ARTIFACT_UPLOAD_URL }}
-          WEBHOOK_TOKEN: ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}
+          UPLOAD_URL: ${{ secrets.ARTIFACT_UPLOAD_URL }}
+          PLATFORM_TOKEN: ${{ secrets.PLATFORM_TOKEN }}
           CF_COOKIE: ${{ secrets.CF_COOKIE }}
         run: |
           set -Eeuo pipefail
 
-          if [ -z "${UPLOAD_URL:-}" ] || [ -z "${WEBHOOK_TOKEN:-}" ] || [ -z "${CF_COOKIE:-}" ]; then
-            echo "::warning::Missing one of UPLOAD_URL / WEBHOOK_TOKEN / CF_COOKIE. Skipping."
+          if [ -z "${UPLOAD_URL:-}" ] || [ -z "${PLATFORM_TOKEN:-}" ] || [ -z "${CF_COOKIE:-}" ]; then
+            echo "::warning::Missing one of UPLOAD_URL / PLATFORM_TOKEN / CF_COOKIE. Skipping."
             {
               echo "artifacts_b64<<EOF"
               echo "$(printf '[]' | base64)"
@@ -270,7 +270,7 @@ jobs:
 
           # Match your curl: Accept JSON + Cookie + Bearer
           CURL_HEADERS=(
-            -H "Authorization: Bearer ${WEBHOOK_TOKEN}"
+            -H "Authorization: Bearer ${PLATFORM_TOKEN}"
             -H "Accept: application/json"
             -H "Cookie: ${CF_COOKIE}"
           )
@@ -410,14 +410,14 @@ jobs:
               artifacts: $artifacts
             }')
 
-          echo "Webhook URL: ${{ secrets.LARAVEL_WEBHOOK_URL }}"
+          echo "Webhook URL: ${{ secrets.WEBHOOK_URL }}"
           echo "Channel: $CHANNEL"
           echo "ARTIFACTS_JSON: $ARTIFACTS_JSON"
           echo "Payload: $PAYLOAD"
 
-          curl -v -X POST "${{ secrets.LARAVEL_WEBHOOK_URL }}" \
+          curl -v -X POST "${{ secrets.WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.PLATFORM_TOKEN }}" \
             -d "$PAYLOAD"
 
       - name: Upload build artifacts (for debugging)

@@ -12,8 +12,8 @@
  * on Windows in release builds, providing a cleaner native application experience.
  *
  * The actual application setup, menu configuration, command handlers, and window management
- * are all implemented in the honeymelon_lib::run() function.
+ * are all implemented in the LIb::run() function.
  */
 fn main() {
-    honeymelon_lib::run()
+    LIb::run()
 }
