@@ -7,19 +7,22 @@
     "core:default",
     "core:window:allow-start-dragging",
     "core:event:default",
-    "core:event:allow-listen",
-    "core:event:allow-unlisten",
-    "core:event:allow-emit",
     "core:webview:allow-internal-toggle-devtools",
     "opener:default",
     "notification:default",
-    "shell:default",
-    "shell:allow-spawn",
     {
       "identifier": "shell:allow-execute",
-      "scope": [
-        { "name": "ffmpeg", "cmd": "$RESOURCE/bin/ffmpeg", "args": true },
-        { "name": "ffprobe", "cmd": "$RESOURCE/bin/ffprobe", "args": true }
+      "allow": [
+        {
+          "name": "ffmpeg",
+          "cmd": "$RESOURCE/bin/ffmpeg",
+          "args": [{ "validator": ".*" }]
+        },
+        {
+          "name": "ffprobe",
+          "cmd": "$RESOURCE/bin/ffprobe",
+          "args": [{ "validator": ".*" }]
+        }
       ]
     }
   ]
