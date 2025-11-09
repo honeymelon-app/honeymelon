@@ -153,8 +153,8 @@ jobs:
             local file="$1"
             local response
             response=$(curl -sS -X POST "$UPLOAD_URL" \
-              -H "X-Client-Key: $PLATFORM_ACCESS_KEY" \
-              -H "X-Client-Secret: $PLATFORM_ACCESS_SECRET" \
+              -H "X-Client-Key: $PLATFORM_KEY" \
+              -H "X-Client-Secret: $PLATFORM_SECRET" \
               -H "Accept: application/json" \
               -H "Cookie: $CF_COOKIE" \
               -F "platform=darwinx64" \
