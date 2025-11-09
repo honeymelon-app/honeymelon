@@ -87,6 +87,11 @@ jobs:
       - name: Check Rust formatting
         run: cd src-tauri && cargo fmt --all -- --check
 
+      - name: Download FFmpeg binaries
+        run: |
+          chmod +x scripts/setup_ffmpeg.sh
+          ./scripts/setup_ffmpeg.sh
+
       - name: Run Clippy (Rust linter)
         run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
 
