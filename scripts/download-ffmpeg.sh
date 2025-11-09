@@ -14,7 +14,7 @@ FFPROBE_URL="https://www.osxexperts.net/ffprobe711arm.zip"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BIN_DIR="$PROJECT_ROOT/src-tauri/resources/bin"
+BIN_DIR="$PROJECT_ROOT/src-tauri/bin"
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}FFmpeg Bundling Setup for Honeymelon (Apple Silicon only)${NC}"
@@ -37,6 +37,7 @@ need_cmd() { command -v "$1" &>/dev/null || {
   exit 1
 }; }
 need_cmd curl
+# Prefer the system unzip first; only attempt brew if truly missing
 if ! command -v unzip &>/dev/null; then
   echo -e "${YELLOW}unzip not found. Installing via Homebrew...${NC}"
   if ! command -v brew &>/dev/null; then
@@ -45,9 +46,6 @@ if ! command -v unzip &>/dev/null; then
   fi
   brew install unzip
 fi
-
-cleanup() { [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]] && rm -rf "$TEMP_DIR"; }
-trap cleanup EXIT
 
 binary_arch() {
   local path="$1"
@@ -63,24 +61,26 @@ fetch_zip_extract_one() {
   local want="$2" # expected binary name inside zip: ffmpeg|ffprobe
   local out="$3"  # destination path
 
-  TEMP_DIR="$(mktemp -d)"
-  local zip="$TEMP_DIR/pkg.zip"
+  # Local temp dir (no global leak)
+  local tmp
+  tmp="$(mktemp -d)"
+  local zip="$tmp/pkg.zip"
 
   echo -e "${GREEN}Fetching ${want} ${FFMPEG_VERSION} (Apple Silicon)...${NC}"
-  curl -fL --progress-bar -o "$zip" "$url"
+  # Robust curl: retries, timeouts, TLS verify (default), progress bar
+  curl -fL --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 120 \
+    --progress-bar -o "$zip" "$url"
 
   echo -e "${GREEN}Extracting ${want}...${NC}"
-  unzip -q -d "$TEMP_DIR" "$zip"
+  unzip -q -d "$tmp" "$zip"
 
-  # Find the binary (some archives contain additional files)
+  # Find an executable named exactly $want (ffmpeg|ffprobe)
   local found
-  found="$(find "$TEMP_DIR" -type f -name "${want}" -perm +111 -maxdepth 3 2>/dev/null | head -n1 || true)"
-  if [[ -z "${found}" ]]; then
-    # fallback: exact name in root
-    [[ -f "$TEMP_DIR/${want}" ]] && found="$TEMP_DIR/${want}"
-  fi
+  found="$(find "$tmp" -type f -name "${want}" -perm -111 -maxdepth 3 2>/dev/null | head -n1 || true)"
+  [[ -z "$found" && -f "$tmp/${want}" ]] && found="$tmp/${want}"
   if [[ -z "${found}" ]]; then
     echo -e "${RED}Error: could not locate '${want}' in downloaded archive.${NC}"
+    rm -rf "$tmp"
     return 1
   fi
 
@@ -90,17 +90,21 @@ fetch_zip_extract_one() {
   echo -e "${GREEN}${want} detected arch:${NC} ${arch}"
   if [[ "$arch" != "arm64" ]]; then
     echo -e "${RED}${want} is not arm64 (got ${arch}). Aborting.${NC}"
+    rm -rf "$tmp"
     return 1
   fi
 
-  # Install
-  mv "$found" "$out"
+  # Install atomically
+  mv -f "$found" "$out"
   chmod +x "$out"
 
   # Version banner
   local v
   v="$("$out" -version 2>/dev/null | head -n1 || echo "unknown")"
   echo -e "${GREEN}Installed ${want}:${NC} ${v}\n"
+
+  # Cleanup this function's temp dir
+  rm -rf "$tmp"
 }
 
 # Optional: overwrite without prompt
@@ -122,17 +126,16 @@ FFPROBE_ARCH="$(binary_arch "$BIN_DIR/ffprobe")"
 echo -e "${GREEN}FFmpeg arch:${NC}   ${FFMPEG_ARCH}"
 echo -e "${GREEN}FFprobe arch:${NC}  ${FFPROBE_ARCH}\n"
 
-echo -e "${GREEN}Step 4: Code-sign status (informational)...${NC}"
-if codesign -dv "$BIN_DIR/ffmpeg" &>/dev/null; then
-  echo -e "${GREEN}FFmpeg is code-signed.${NC}"
-else
-  echo -e "${YELLOW}FFmpeg is not code-signed (ad-hoc signing is acceptable for local use).${NC}"
-fi
-if codesign -dv "$BIN_DIR/ffprobe" &>/dev/null; then
-  echo -e "${GREEN}FFprobe is code-signed.${NC}"
-else
-  echo -e "${YELLOW}FFprobe is not code-signed (ad-hoc signing is acceptable for local use).${NC}"
-fi
+echo -e "${GREEN}Step 4: Ad-hoc signing (optional but recommended)...${NC}"
+# Ad-hoc sign so your hardened app can exec these sidecars cleanly
+codesign --force -s - "$BIN_DIR/ffmpeg" || true
+codesign --force -s - "$BIN_DIR/ffprobe" || true
+
+echo -e "\n${GREEN}Verification:${NC}"
+ls -lh "$BIN_DIR"/
+file "$BIN_DIR/ffmpeg"
+file "$BIN_DIR/ffprobe"
+"$BIN_DIR/ffmpeg" -version | head -n1 || true
 
 echo -e "\n${GREEN}========================================${NC}"
 echo -e "${GREEN}FFmpeg bundling setup complete (arm64 only)!${NC}"
@@ -142,6 +145,6 @@ echo -e "  - $BIN_DIR/ffmpeg"
 echo -e "  - $BIN_DIR/ffprobe\n"
 echo -e "${GREEN}Next steps:${NC}"
 echo -e "  1. Build: ${YELLOW}npm run tauri:build${NC}"
-echo -e "  2. The binaries will be bundled into your app"
+echo -e "  2. Binaries will be bundled to \$RESOURCE/bin/*"
 echo -e "  3. Test the app to ensure detection works\n"
 echo -e "${YELLOW}Note: These are GPL-licensed binaries from osxexperts.net${NC}"

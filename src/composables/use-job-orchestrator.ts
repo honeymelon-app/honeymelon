@@ -1,12 +1,13 @@
 import { ref, watch, onUnmounted } from 'vue';
 
 import { invoke } from '@tauri-apps/api/core';
+import { runFfmpeg } from '@/composables/use-ffmpeg';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type * as NotificationPlugin from '@tauri-apps/plugin-notification';
 
 import { availablePresets, loadCapabilities } from '@/lib/capability';
 import { LIMITS } from '@/lib/constants';
-import { planJob, resolvePreset } from '@/lib/ffmpeg-plan';
+import { planJob } from '@/lib/ffmpeg-plan';
 import { probeMedia } from '@/lib/ffmpeg-probe';
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
 import { JobError, type CapabilitySnapshot, type ProbeSummary, type Tier } from '@/lib/types';
@@ -61,8 +62,6 @@ type NotificationModule = typeof NotificationPlugin;
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
-
-const EXCLUSIVE_VIDEO_CODECS = new Set(['av1', 'prores']);
 
 export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   const requirePresetBeforeStart = options.requirePresetBeforeStart ?? true;
@@ -288,10 +287,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         return false;
       }
 
-      if (shouldDeferQueuedExclusive(nextQueued.presetId)) {
-        return false;
-      }
-
       const job = jobs.startNext();
       if (!job) {
         return false;
@@ -304,20 +299,18 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         jobs.markPlanning(job.id, summary);
 
         const decision = await plan(summary, job.presetId, job.tier, job.path);
-        const exclusive = requiresExclusive(decision);
         const otherActive = activeJobs.value.filter(
           (active) => active.id !== job.id && active.state.status === 'running',
         ).length;
 
-        if (exclusive && otherActive > 0) {
+        if (decision.remuxOnly === false && otherActive > 0) {
           jobs.requeue(job.id);
           return false;
         }
 
-        jobs.setExclusive(job.id, exclusive);
         jobs.markRunning(job.id, decision);
 
-        const started = await run(job.id, decision, exclusive);
+        const started = await run(job.id, decision);
         if (!started) {
           jobs.requeue(job.id);
           if (autoStartNext) {
@@ -358,20 +351,18 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       jobs.markPlanning(jobId, summary);
 
       const decision = await plan(summary, presetId, tier, path);
-      const exclusive = requiresExclusive(decision);
       const otherActive = activeJobs.value.filter(
         (active) => active.id !== jobId && active.state.status === 'running',
       ).length;
 
-      if (exclusive && otherActive > 0) {
+      if (decision.remuxOnly === false && otherActive > 0) {
         jobs.requeue(jobId);
         return;
       }
 
-      jobs.setExclusive(jobId, exclusive);
       jobs.markRunning(jobId, decision);
 
-      const started = await run(jobId, decision, exclusive);
+      const started = await run(jobId, decision);
       if (!started) {
         jobs.requeue(jobId);
         if (autoStartNext) {
@@ -441,11 +432,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     });
   }
 
-  async function run(
-    jobId: string,
-    decision: PlannerDecision,
-    exclusive: boolean,
-  ): Promise<boolean> {
+  async function run(jobId: string, decision: PlannerDecision): Promise<boolean> {
     if (simulate) {
       const simulatedJob = jobs.getJob(jobId);
       const outputPath = buildOutputPath(simulatedJob, decision);
@@ -462,7 +449,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     const outputPath = buildOutputPath(job, decision);
     jobs.setOutputPath(jobId, outputPath);
 
-    const args = ['-y', '-nostdin', '-i', job.path, ...decision.ffmpegArgs];
+    const args = ['-y', '-nostdin', '-i', job.path, ...decision.ffmpegArgs, outputPath];
 
     // Validate FFmpeg arguments before invoking
     if (args.length === 0 || !decision.ffmpegArgs || decision.ffmpegArgs.length === 0) {
@@ -470,20 +457,40 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     }
 
     try {
-      await invokeStartJob({
-        jobId: jobId,
-        args,
-        outputPath: outputPath,
-        exclusive,
-      });
+      // We are now bypassing the Rust-based job runner for direct execution.
+      // This is a significant architectural change. The event listeners for
+      // progress and completion will no longer work as they were tied to the
+      // Rust backend. We will need to re-implement progress parsing and
+      // completion handling here.
+      const result = await runFfmpeg(args);
+
+      if (result.code === 0) {
+        jobs.markCompleted(jobId, outputPath);
+        void notifyJobResult({ jobId, success: true, cancelled: false });
+      } else {
+        const errorMessage = `FFmpeg exited with code ${result.code}: ${result.stderr}`;
+        jobs.markFailed(jobId, errorMessage);
+        void notifyJobResult({
+          jobId,
+          success: false,
+          cancelled: false,
+          exitCode: result.code,
+          message: result.stderr,
+        });
+      }
+
+      if (autoStartNext) {
+        startNextAvailable().catch((error) => {
+          console.error('[orchestrator] Failed to start next job after completion:', error);
+        });
+      }
+
       return true;
     } catch (error) {
       const details = parseErrorDetails(error);
-      if (details.code === 'job_concurrency_limit' || details.code === 'job_exclusive_blocked') {
-        return false;
-      }
-
-      throw new JobError(details.message, details.code);
+      // This path might be taken if the command fails to spawn.
+      jobs.markFailed(jobId, details.message, details.code);
+      return false;
     }
   }
 
@@ -533,19 +540,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     return baseDir ? joinPath(baseDir, sanitizedFileName) : sanitizedFileName;
   }
 
-  async function invokeStartJob(payload: {
-    jobId: string;
-    args: string[];
-    outputPath: string;
-    exclusive: boolean;
-  }) {
-    if (simulate) {
-      return;
-    }
-
-    await invoke('start_job', payload);
-  }
-
   function simulateProgress(jobId: string, outputPath: string) {
     const job = jobs.getJob(jobId);
     const duration = job?.summary?.durationSec ?? 120;
@@ -579,27 +573,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     }, interval);
 
     simulatedJobs.set(jobId, timer);
-  }
-
-  function requiresExclusive(decision: PlannerDecision): boolean {
-    if (decision.remuxOnly) {
-      return false;
-    }
-
-    return EXCLUSIVE_VIDEO_CODECS.has(decision.preset.video.codec);
-  }
-
-  function shouldDeferQueuedExclusive(presetId: string): boolean {
-    const preset = resolvePreset(presetId);
-    if (!preset || preset.remuxOnly) {
-      return false;
-    }
-
-    if (!EXCLUSIVE_VIDEO_CODECS.has(preset.video.codec)) {
-      return false;
-    }
-
-    return activeJobs.value.length > 0;
   }
 
   function slugify(value: string): string {

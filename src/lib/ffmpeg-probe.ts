@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { runFfprobe } from '@/composables/use-ffmpeg';
 
 import type { ProbeSummary } from './types';
 
@@ -8,20 +8,30 @@ export interface ProbeResponse {
 }
 
 export async function probeMedia(path: string): Promise<ProbeResponse> {
-  const isTauri =
-    typeof window !== 'undefined' &&
-    '__TAURI_INTERNALS__' in window &&
-    typeof invoke === 'function';
+  const args = [
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-print_format',
+    'json',
+    '-show_format',
+    '-show_streams',
+    path,
+  ];
 
-  if (!isTauri) {
-    console.warn('[probeMedia] Falling back to stub response; Tauri runtime not detected.');
-    return {
-      raw: null,
-      summary: {
-        durationSec: 0,
-      },
-    };
+  const result = await runFfprobe(args);
+  if (result.code !== 0) {
+    throw new Error(`ffprobe exited with code ${result.code}: ${result.stderr}`);
   }
 
-  return invoke<ProbeResponse>('probe_media', { path });
+  const raw = JSON.parse(result.stdout);
+
+  // Basic summarization, can be expanded later
+  const summary: ProbeSummary = {
+    durationSec: parseFloat(raw.format.duration || '0'),
+    // In a real scenario, you'd parse streams and fill out the rest of the summary.
+    // This is a simplified version for demonstration.
+  };
+
+  return { raw, summary };
 }

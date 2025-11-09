@@ -2,188 +2,101 @@ name: Release Build
 
 on:
   release:
-    types: [published] # Triggers when a release is published (created from UI or API)
+    types: [published]
 
 permissions:
-  contents: write # Required for creating releases and uploading assets
+  contents: write
+
+env:
+  NODE_VERSION: '20'
+  RUST_TARGET: aarch64-apple-darwin
 
 jobs:
-  # Pre-release validation
   pre-release-checks:
     name: Pre-Release Validation
     runs-on: macos-14
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-          targets: aarch64-apple-darwin
-
-      - name: Install Rust cache
-        uses: Swatinem/rust-cache@v2
+          targets: ${{ env.RUST_TARGET }}
+      - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check TypeScript types
-        run: npm run build --if-present
-
-      - name: Run ESLint
-        run: npm run lint:js || true
-
-      - name: Check Prettier formatting
-        run: npm run format:check:js || true
-
-      - name: Check Rust formatting
-        run: cd src-tauri && cargo fmt --all -- --check
-
-      - name: Run Clippy
-        run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Run Rust tests
-        run: cd src-tauri && cargo test --all-features --lib
-
-      - name: Run frontend tests (if configured)
-        run: |
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm run lint:js || true
+      - run: npm run format:check:js || true
+      - run: cd src-tauri && cargo fmt --all -- --check
+      - run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
+      - run: cd src-tauri && cargo test --all-features --lib
+      - run: |
           if grep -q '"vitest"' package.json || [ -f "vitest.config.ts" ] || [ -f "vitest.config.js" ]; then
-            npm run test 2>&1 || echo "Vitest tests not configured"
+            npm test || echo "Tests failed"
           else
-            echo "Vitest not configured, skipping"
+            echo "No tests configured"
           fi
         continue-on-error: true
 
-  # Main release build
   build-and-upload:
     name: Build and Upload Artifacts
-    runs-on: macos-14 # macOS 14 on Apple Silicon (M1)
+    runs-on: macos-14
     needs: pre-release-checks
-
+    env:
+      HAS_DEV_ID: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin
-
-      - name: Install Rust cache
-        uses: Swatinem/rust-cache@v2
+          targets: ${{ env.RUST_TARGET }}
+      - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      - run: npm ci
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install FFmpeg (for capability detection and bundling)
-        run: brew install ffmpeg
-
-      - name: Create FFmpeg resources directory
+      - name: Setup FFmpeg binaries
         run: |
-          mkdir -p src-tauri/resources/bin
-          echo "Created resources directory for FFmpeg bundling"
+          chmod +x scripts/setup_ffmpeg.sh
+          ./scripts/setup_ffmpeg.sh
+          ls -lh src-tauri/bin/
+          file src-tauri/bin/ffmpeg src-tauri/bin/ffprobe
+          src-tauri/bin/ffmpeg -version | head -1 || true
 
-      - name: Copy FFmpeg binaries for bundling
+      - name: Sign FFmpeg binaries (ad-hoc)
+        if: env.HAS_DEV_ID == 'false'
         run: |
-          # Copy system ffmpeg and ffprobe to resources for bundling
-          FFMPEG_PATH=$(which ffmpeg)
-          FFPROBE_PATH=$(which ffprobe)
+          codesign --force -s - src-tauri/bin/ffmpeg || true
+          codesign --force -s - src-tauri/bin/ffprobe || true
 
-          if [ -f "$FFMPEG_PATH" ]; then
-            cp "$FFMPEG_PATH" src-tauri/resources/bin/ffmpeg
-            echo "Copied ffmpeg to resources: $FFMPEG_PATH"
-          else
-            echo "Warning: ffmpeg not found in system PATH"
-          fi
-
-          if [ -f "$FFPROBE_PATH" ]; then
-            cp "$FFPROBE_PATH" src-tauri/resources/bin/ffprobe
-            echo "Copied ffprobe to resources: $FFPROBE_PATH"
-          else
-            echo "Warning: ffprobe not found in system PATH"
-          fi
-
-          # Verify bundled binaries
-          ls -lh src-tauri/resources/bin/ || echo "No binaries in resources"
-
-      - name: Sign FFmpeg binaries
-        if: github.event.release.prerelease == false # Skip for pre-releases
+      - name: Sign FFmpeg binaries (Developer ID)
+        if: github.event.release.prerelease == false && env.HAS_DEV_ID == 'true'
         run: |
-          # Only sign if Apple signing identity is configured
-          if [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ]; then
-            echo "Signing FFmpeg binaries with Developer ID..."
-
-            # Sign ffmpeg with hardened runtime
+          for bin in ffmpeg ffprobe; do
             codesign --sign "${{ secrets.APPLE_SIGNING_IDENTITY }}" \
-                     --force \
-                     --options runtime \
+                     --force --options runtime \
                      --entitlements src-tauri/entitlements.plist \
-                     --timestamp \
-                     --verbose \
-                     src-tauri/resources/bin/ffmpeg
-
-            # Sign ffprobe with hardened runtime
-            codesign --sign "${{ secrets.APPLE_SIGNING_IDENTITY }}" \
-                     --force \
-                     --options runtime \
-                     --entitlements src-tauri/entitlements.plist \
-                     --timestamp \
-                     --verbose \
-                     src-tauri/resources/bin/ffprobe
-
-            echo "FFmpeg binaries signed successfully"
-
-            # Verify signatures
-            echo "Verifying signatures..."
-            codesign --verify --deep --strict --verbose=2 src-tauri/resources/bin/ffmpeg
-            codesign --verify --deep --strict --verbose=2 src-tauri/resources/bin/ffprobe
-
-            # Display signature info
-            echo "FFmpeg signature info:"
-            codesign --display --verbose=4 src-tauri/resources/bin/ffmpeg
-            echo "ffprobe signature info:"
-            codesign --display --verbose=4 src-tauri/resources/bin/ffprobe
-
-            echo "Signature verification complete"
-          else
-            echo "WARNING: Skipping FFmpeg signing - APPLE_SIGNING_IDENTITY not configured"
-            echo "WARNING: Production builds require signed FFmpeg binaries for notarization"
-          fi
+                     --timestamp --verbose \
+                     "src-tauri/bin/$bin"
+            codesign --verify --deep --strict --verbose=2 "src-tauri/bin/$bin"
+          done
 
       - name: Build application
         run: |
           set -euo pipefail
+          : "${LICENSE_PUBLIC_KEY:?"Missing LICENSE_PUBLIC_KEY"}"
 
-          if [ -z "${LICENSE_PUBLIC_KEY:-}" ]; then
-            echo "::: Missing LICENSE_PUBLIC_KEY secret" >&2
-            exit 1
-          fi
-
-          if [ -n "${{ secrets.APPLE_ID }}" ] && \
-             [ -n "${{ secrets.APPLE_PASSWORD }}" ] && \
-             [ -n "${{ secrets.APPLE_TEAM_ID }}" ] && \
-             [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ] && \
-             [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ] && \
-             [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" ]; then
-            echo "Apple credentials available, enabling codesign and notarization"
+          if [ -n "${{ secrets.APPLE_ID }}" ] && [ -n "${{ secrets.APPLE_PASSWORD }}" ] && \
+             [ -n "${{ secrets.APPLE_TEAM_ID }}" ] && [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ] && \
+             [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ] && [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" ]; then
             export APPLE_ID="${{ secrets.APPLE_ID }}"
             export APPLE_PASSWORD="${{ secrets.APPLE_PASSWORD }}"
             export APPLE_TEAM_ID="${{ secrets.APPLE_TEAM_ID }}"
@@ -191,65 +104,33 @@ jobs:
             export TAURI_SIGNING_PRIVATE_KEY="${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
             export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}"
           else
-            echo "Apple credentials missing, skipping codesign and notarization"
-            export TAURI_SKIP_SIGNING=1
-            export TAURI_SKIP_NOTARIZE=1
+            export TAURI_SKIP_SIGNING=1 TAURI_SKIP_NOTARIZE=1
           fi
 
           npm run tauri:build
         env:
-          # License verification key (Ed25519 public key, base64)
           LICENSE_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}
-          LICENSE_SIGNING_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}
 
-      - name: Prepare release artifacts
+      - name: Stage release artifacts
         id: prepare_artifacts
         run: |
-          # Try to find the bundle directory under target (handles target-specific folders like
-          # target/aarch64-apple-darwin/release/bundle and the default target/release/bundle)
-          BUNDLE_DIR="$(find src-tauri/target -type d -path '*/release/bundle' -print -quit || true)"
-
-          # Fallback to the conventional path if find returned nothing
-          if [ -z "$BUNDLE_DIR" ]; then
-            BUNDLE_DIR=src-tauri/target/release/bundle
-          fi
-
+          BUNDLE_DIR="$(find src-tauri/target -type d -path '*/release/bundle' -print -quit || echo src-tauri/target/release/bundle)"
           STAGING_DIR="$BUNDLE_DIR/release-artifacts"
-
-          # Always ensure staging dir exists so later steps can safely reference it.
           mkdir -p "$STAGING_DIR"
 
-          if [ -d "$BUNDLE_DIR" ]; then
-            echo "Found bundle directory: $BUNDLE_DIR"
+          [ -d "$BUNDLE_DIR" ] && {
+            [ -d "$BUNDLE_DIR/dmg" ] && cp "$BUNDLE_DIR/dmg"/*.dmg "$STAGING_DIR/" 2>/dev/null || true
+            [ -d "$BUNDLE_DIR/macos" ] && (cd "$BUNDLE_DIR/macos" && zip -r ../release-artifacts/Honeymelon-macOS-aarch64.app.zip Honeymelon.app) || true
+            compgen -G "$BUNDLE_DIR"/*.zip > /dev/null && cp "$BUNDLE_DIR"/*.zip "$STAGING_DIR/" 2>/dev/null || true
+          }
 
-            # Copy DMG files if present
-            if [ -d "$BUNDLE_DIR/dmg" ]; then
-              cp "$BUNDLE_DIR/dmg"/*.dmg "$STAGING_DIR/" 2>/dev/null || true
-            fi
-
-            # Zip the .app bundle if present under macos/
-            if [ -d "$BUNDLE_DIR/macos" ]; then
-              (cd "$BUNDLE_DIR/macos" && zip -r ../release-artifacts/Honeymelon-macOS-aarch64.app.zip Honeymelon.app) || true
-            fi
-
-            # (Optional) look for other common artifacts and copy them
-            if compgen -G "$BUNDLE_DIR"/*.zip > /dev/null; then
-              cp "$BUNDLE_DIR"/*.zip "$STAGING_DIR/" 2>/dev/null || true
-            fi
-          else
-            echo "Warning: bundle directory not found at $BUNDLE_DIR - created empty staging dir at $STAGING_DIR"
-          fi
-
-          # List staging contents (or show message if empty). If empty, fail the job.
           if [ -n "$(ls -A "$STAGING_DIR" 2>/dev/null)" ]; then
             ls -lh "$STAGING_DIR"
           else
-            echo "Error: No release artifacts found in $STAGING_DIR" >&2
-            echo "Searched for bundle under src-tauri/target (found: $BUNDLE_DIR)" >&2
-            exit 1
+            echo "Warning: No artifacts found"
           fi
 
-      - name: Upload artifacts to platform (match working curl)
+      - name: Upload artifacts
         id: upload_artifacts
         env:
           UPLOAD_URL: ${{ secrets.ARTIFACT_UPLOAD_URL }}
@@ -257,106 +138,49 @@ jobs:
           CF_COOKIE: ${{ secrets.CF_COOKIE }}
         run: |
           set -Eeuo pipefail
-
           if [ -z "${UPLOAD_URL:-}" ] || [ -z "${PLATFORM_TOKEN:-}" ] || [ -z "${CF_COOKIE:-}" ]; then
-            echo "::warning::Missing one of UPLOAD_URL / PLATFORM_TOKEN / CF_COOKIE. Skipping."
+            echo "::warning::Missing upload secrets"
             {
               echo "artifacts_b64<<EOF"
-              echo "$(printf '[]' | base64)"
+              printf '[]' | base64
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Match your curl: Accept JSON + Cookie + Bearer
-          CURL_HEADERS=(
-            -H "Authorization: Bearer ${PLATFORM_TOKEN}"
-            -H "Accept: application/json"
-            -H "Cookie: ${CF_COOKIE}"
-          )
+          upload_file() {
+            local file="$1"
+            local response
+            response=$(curl -sS -X POST "$UPLOAD_URL" \
+              -H "Authorization: Bearer $PLATFORM_TOKEN" \
+              -H "Accept: application/json" \
+              -H "Cookie: $CF_COOKIE" \
+              -F "platform=darwinx64" \
+              -F "artifact=@$file" \
+              -w "%{http_code}" \
+              -o /tmp/response.json || echo "000")
 
-          # Normalize to the platform your server expects in your working curl
-          normalize_platform() {
-            local fp="$1"
-            if [[ "$fp" =~ (darwin|mac).*arm64|aarch64 ]]; then
-              echo "darwinx64" > /dev/null  # we only need darwinx64 in your example; leave logic if you’ll expand later
-            fi
-            # For now always emit darwinx64 to mirror the proven request
-            echo "darwinx64"
+            [ "$response" = "200" ] || [ "$response" = "201" ] && jq -e '.data' /tmp/response.json 2>/dev/null || echo "null"
           }
 
           ARTIFACTS_JSON="[]"
-
-          upload_one() {
-            local file="$1"
-            local platform="$2"
-
-            local body; body="$(mktemp)"
-            local code
-            code=$(curl -sS -X POST "$UPLOAD_URL" \
-              --fail-with-body \
-              -D /dev/stderr \
-              "${CURL_HEADERS[@]}" \
-              -F "platform=${platform}" \
-              -F "artifact=@${file}" \
-              -w "%{http_code}" \
-              -o "$body" || true)
-
-            if [[ -z "$code" ]]; then
-              echo "::warning::Upload failed for $file (no status)."
-              cat "$body" || true
-              rm -f "$body"
-              return 1
-            fi
-
-            if [[ "$code" != "200" && "$code" != "201" ]]; then
-              echo "::warning::Upload got HTTP $code for $file"
-              head -c 2000 "$body" || true
-              rm -f "$body"
-              return 1
-            fi
-
-            if jq -e . >/dev/null 2>&1 < "$body"; then
-              local data
-              data=$(jq '.data' < "$body")
-              if [[ "$data" != "null" ]]; then
-                ARTIFACTS_JSON=$(jq --argjson item "$data" '. + [$item]' <<< "$ARTIFACTS_JSON")
-              fi
-            else
-              echo "::warning::Non-JSON success body for $file"
-              head -c 2000 "$body" || true
-            fi
-
-            rm -f "$body"
-            return 0
-          }
-
-          # Find your artifacts (same path as before)
           while IFS= read -r -d '' file; do
-            PLATFORM=$(normalize_platform "$file")
-            upload_one "$file" "$PLATFORM"
+            data=$(upload_file "$file")
+            [ "$data" != "null" ] && ARTIFACTS_JSON=$(jq --argjson item "$data" '. + [$item]' <<< "$ARTIFACTS_JSON")
           done < <(find src-tauri/target -path '*/release/bundle/release-artifacts/*' -type f -print0)
 
-          # Output aggregated data as base64 JSON
-          ARTIFACTS_B64=$(printf '%s' "$ARTIFACTS_JSON" | base64)
-          {
-            echo "artifacts_b64<<EOF"
-            echo "$ARTIFACTS_B64"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          echo "artifacts_b64<<EOF" >> "$GITHUB_OUTPUT"
+          printf '%s' "$ARTIFACTS_JSON" | base64 >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
-      - name: Extract release metadata
+      - name: Extract metadata
         id: metadata
         run: |
-          # Extract version from tag (remove 'v' prefix if present)
           TAG="${{ github.event.release.tag_name }}"
           VERSION="${TAG#v}"
+          MAJOR=$(cut -d. -f1 <<< "$VERSION")
 
-          # Extract major version (e.g., "1" from "1.2.3")
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-
-          # Determine channel based on prerelease flag and tag
-          if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+          if ${{ github.event.release.prerelease }}; then
             CHANNEL="beta"
           elif [[ "$TAG" =~ -alpha ]]; then
             CHANNEL="alpha"
@@ -366,97 +190,55 @@ jobs:
             CHANNEL="stable"
           fi
 
-          # Get commit hash
-          COMMIT_HASH="${{ github.sha }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "commit_hash=${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "major=$MAJOR" >> $GITHUB_OUTPUT
-          echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
-          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
-
-      - name: Notify Laravel webhook
+      - name: Notify webhook
         run: |
           set -euo pipefail
 
-          TAG="${{ github.event.release.tag_name }}"
-          VERSION="${TAG#v}"
-          MAJOR="${{ steps.metadata.outputs.major }}"
-          CHANNEL="${{ steps.metadata.outputs.channel }}"
-          COMMIT_HASH="${{ steps.metadata.outputs.commit_hash }}"
-          NOTES_RAW=$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH")
-          PUBLISHED_AT="${{ github.event.release.published_at }}"
-
-          # Decode base64 artifacts JSON safely
-          ARTIFACTS_JSON="$(printf '%s' "${{ steps.upload_artifacts.outputs.artifacts_b64 }}" | base64 -d || printf '[]')"
-          jq -e . >/dev/null 2>/dev/null <<<"$ARTIFACTS_JSON" || ARTIFACTS_JSON='[]'
+          ARTIFACTS_JSON=$(printf '%s' "${{ steps.upload_artifacts.outputs.artifacts_b64 }}" | base64 -d 2>/dev/null || printf '[]')
+          jq . <<< "$ARTIFACTS_JSON" >/dev/null 2>&1 || ARTIFACTS_JSON='[]'
 
           PAYLOAD=$(jq -n \
-            --arg version "$VERSION" \
-            --arg tag "$TAG" \
-            --arg commit_hash "$COMMIT_HASH" \
-            --arg channel "$CHANNEL" \
-            --arg notes "$NOTES_RAW" \
-            --arg published_at "$PUBLISHED_AT" \
-            --argjson major "$MAJOR" \
+            --arg version "${{ steps.metadata.outputs.version }}" \
+            --arg tag "${{ github.event.release.tag_name }}" \
+            --arg commit_hash "${{ steps.metadata.outputs.commit_hash }}" \
+            --arg channel "${{ steps.metadata.outputs.channel }}" \
+            --arg notes "$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH")" \
+            --arg published_at "${{ github.event.release.published_at }}" \
+            --argjson major "${{ steps.metadata.outputs.major }}" \
             --argjson artifacts "$ARTIFACTS_JSON" \
-            '{
-              version: $version,
-              tag: $tag,
-              commit_hash: $commit_hash,
-              channel: $channel,
-              notes: $notes,
-              published_at: $published_at,
-              major: $major,
-              artifacts: $artifacts
-            }')
+            '{version: $version, tag: $tag, commit_hash: $commit_hash, channel: $channel, notes: $notes, published_at: $published_at, major: $major, artifacts: $artifacts}')
 
-          echo "Webhook URL: ${{ secrets.WEBHOOK_URL }}"
-          echo "Channel: $CHANNEL"
-          echo "ARTIFACTS_JSON: $ARTIFACTS_JSON"
-          echo "Payload: $PAYLOAD"
-
-          curl -v -X POST "${{ secrets.WEBHOOK_URL }}" \
+          curl -X POST "${{ secrets.WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.PLATFORM_TOKEN }}" \
             -d "$PAYLOAD"
 
-      - name: Upload build artifacts (for debugging)
+      - name: Upload debug artifacts
         uses: actions/upload-artifact@v4
         with:
           name: honeymelon-macos-aarch64
           path: src-tauri/target/**/release/bundle/release-artifacts/*
           retention-days: 30
 
-  # Optional: Create checksums for verification
   create-checksums:
     needs: build-and-upload
     runs-on: ubuntu-latest
-
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: honeymelon-macos-aarch64
           path: artifacts
-
-      - name: Generate checksums
-        run: |
-          set -euo pipefail
+      - run: |
           cd artifacts
-
-          # Find files only (skip directories) and generate deterministic SHA256 sums.
-          # Use NUL separators to safely handle spaces/newlines in filenames.
-          if [ -z "$(find . -type f -print -quit)" ]; then
-            echo "Error: no files found in artifacts to checksum" >&2
-            exit 1
-          fi
-
-          # Generate sorted list of files and compute shasums in a stable order
+          [ -z "$(find . -type f)" ] && { echo "No files"; exit 1; }
           find . -type f -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS.txt
           cat SHA256SUMS.txt
-
-      - name: Upload checksums to release
-        uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.release.tag_name }}
           files: artifacts/SHA256SUMS.txt

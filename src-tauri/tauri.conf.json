@@ -60,7 +60,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["resources/bin/ffmpeg", "resources/bin/ffprobe"],
+    "resources": ["bin/ffmpeg", "bin/ffprobe"],
     "category": "public.app-category.productivity",
     "copyright": "Copyright © 2025 Honeymelon",
     "shortDescription": "Media converter with remux-first FFmpeg workflow for Apple Silicon",
@@ -87,6 +87,14 @@
           "height": 400
         }
       }
+    }
+  },
+  "plugins": {
+    "shell": {
+      "scope": [
+        { "name": "ffmpeg", "cmd": "$RESOURCE/bin/ffmpeg" },
+        { "name": "ffprobe", "cmd": "$RESOURCE/bin/ffprobe" }
+      ]
     }
   }
 }

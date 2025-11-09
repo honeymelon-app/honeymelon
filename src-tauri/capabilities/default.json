@@ -12,6 +12,14 @@
     "core:event:allow-emit",
     "core:webview:allow-internal-toggle-devtools",
     "opener:default",
-    "notification:default"
+    "notification:default",
+    "shell:allow",
+    {
+      "identifier": "shell:allow-command",
+      "commands": [
+        { "name": "ffmpeg", "program": "$RESOURCE/bin/ffmpeg" },
+        { "name": "ffprobe", "program": "$RESOURCE/bin/ffprobe" }
+      ]
+    }
   ]
 }

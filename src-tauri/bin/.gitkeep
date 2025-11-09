@@ -1,0 +1,2 @@
+# This file keeps the bin directory in git
+# FFmpeg and FFprobe binaries will be downloaded to this directory
