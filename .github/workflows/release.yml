@@ -301,12 +301,9 @@ jobs:
             fi
           done
 
-          # Base64 encode the JSON to avoid shell interpretation issues
-          ARTIFACTS_B64=$(printf '%s' "$ARTIFACTS_JSON" | base64)
-
           {
-            echo "artifacts_b64<<EOF"
-            echo "$ARTIFACTS_B64"
+            echo "artifacts<<EOF"
+            echo "$ARTIFACTS_JSON"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -350,10 +347,8 @@ jobs:
           COMMIT_HASH="${{ steps.metadata.outputs.commit_hash }}"
           NOTES_RAW=$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH")
           PUBLISHED_AT="${{ github.event.release.published_at }}"
-
-          # Decode base64 artifacts JSON safely
-          ARTIFACTS_JSON="$(printf '%s' "${{ steps.upload_artifacts.outputs.artifacts_b64 }}" | base64 -d || printf '[]')"
-          jq -e . >/dev/null 2>&1 <<<"$ARTIFACTS_JSON" || ARTIFACTS_JSON='[]'
+          ARTIFACTS="${{ steps.upload_artifacts.outputs.artifacts }}"
+          ARTIFACTS_JSON="${ARTIFACTS:-[]}"
 
           PAYLOAD=$(jq -n \
             --arg version "$VERSION" \
@@ -375,7 +370,12 @@ jobs:
               artifacts: $artifacts
             }')
 
-          curl -X POST "${{ secrets.LARAVEL_WEBHOOK_URL }}" \
+          echo "Webhook URL: ${{ secrets.LARAVEL_WEBHOOK_URL }}"
+          echo "Channel: $CHANNEL"
+          echo "ARTIFACTS_JSON: $ARTIFACTS_JSON"
+          echo "Payload: $PAYLOAD"
+
+          curl -v -X POST "${{ secrets.LARAVEL_WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.LARAVEL_WEBHOOK_TOKEN }}" \
             -d "$PAYLOAD"
