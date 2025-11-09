@@ -13,12 +13,13 @@
     "core:webview:allow-internal-toggle-devtools",
     "opener:default",
     "notification:default",
-    "shell:allow",
+    "shell:default",
+    "shell:allow-spawn",
     {
-      "identifier": "shell:allow-command",
-      "commands": [
-        { "name": "ffmpeg", "program": "$RESOURCE/bin/ffmpeg" },
-        { "name": "ffprobe", "program": "$RESOURCE/bin/ffprobe" }
+      "identifier": "shell:allow-execute",
+      "scope": [
+        { "name": "ffmpeg", "cmd": "$RESOURCE/bin/ffmpeg", "args": true },
+        { "name": "ffprobe", "cmd": "$RESOURCE/bin/ffprobe", "args": true }
       ]
     }
   ]
