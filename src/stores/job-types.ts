@@ -1,0 +1,44 @@
+import type { PlannerDecision } from '@/lib/ffmpeg-plan';
+import type { JobState, ProbeSummary, Tier } from '@/lib/types';
+
+export interface JobRecord {
+  id: string;
+  path: string;
+  presetId: string;
+  tier: Tier;
+  state: JobState;
+  summary?: ProbeSummary;
+  decision?: PlannerDecision;
+  exclusive?: boolean;
+  outputPath?: string;
+  logs?: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type JobId = string;
+
+export const MAX_TERMINAL_JOBS = 50;
+
+export function isActiveState(state: JobState): boolean {
+  return state.status === 'probing' || state.status === 'planning' || state.status === 'running';
+}
+
+export function isTerminalState(state: JobState): boolean {
+  return state.status === 'completed' || state.status === 'failed' || state.status === 'cancelled';
+}
+
+export function now(): number {
+  return Date.now();
+}
+
+export function createJobId(): JobId {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `job-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function readEnqueuedAt(state: JobState): number {
+  return state.enqueuedAt;
+}

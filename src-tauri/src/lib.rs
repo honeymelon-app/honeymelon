@@ -27,9 +27,9 @@ mod binary_resolver;
 mod error;
 mod ffmpeg_capabilities;
 mod ffmpeg_probe;
-mod ffmpeg_runner;
 mod fs_utils;
 mod license;
+mod runner;
 
 use error::AppError;
 use tauri::{Emitter, Manager};
@@ -134,7 +134,7 @@ async fn start_job(
     output_path: String,
     exclusive: bool,
 ) -> Result<(), AppError> {
-    ffmpeg_runner::start_job(app, job_id, args, output_path, exclusive)
+    runner::start_job(app, job_id, args, output_path, exclusive)
 }
 
 /**
@@ -148,7 +148,7 @@ async fn start_job(
  */
 #[tauri::command]
 async fn cancel_job(job_id: String) -> Result<bool, AppError> {
-    ffmpeg_runner::cancel_job(&job_id)
+    runner::cancel_job(&job_id)
 }
 
 /**
@@ -161,7 +161,7 @@ async fn cancel_job(job_id: String) -> Result<bool, AppError> {
  */
 #[tauri::command]
 async fn set_max_concurrency(limit: usize) {
-    ffmpeg_runner::set_max_concurrency(limit);
+    runner::set_max_concurrency(limit);
 }
 
 /**
