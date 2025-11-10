@@ -110,7 +110,7 @@ This project includes code and dependencies from third-party sources. Please see
 
 ## License Compliance
 
-Honeymelon is licensed under the MIT License with an optional commercial license available. See [LICENSE](../LICENSE) and [COMMERCIAL_LICENSE.md](../COMMERCIAL_LICENSE.md) for details.
+Honeymelon is proprietary software. See [LICENSE](../LICENSE) for terms. FFmpeg is licensed under LGPL v2.1+ and runs out-of-process (process-separated, no linking).
 
 ---
 

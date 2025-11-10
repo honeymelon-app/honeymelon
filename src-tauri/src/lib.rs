@@ -10,6 +10,7 @@
  * with file dialogs, system menus, and notification support.
  *
  * Key modules:
+ * - binary_resolver: Centralized FFmpeg/FFprobe binary path resolution
  * - ffmpeg_capabilities: Detects available FFmpeg codecs and formats
  * - ffmpeg_probe: Analyzes media files to extract metadata
  * - ffmpeg_runner: Executes FFmpeg conversion jobs
@@ -22,6 +23,7 @@
  * threads to avoid blocking the main UI thread. All media processing is done asynchronously
  * with proper error handling and progress reporting.
  */
+mod binary_resolver;
 mod error;
 mod ffmpeg_capabilities;
 mod ffmpeg_probe;

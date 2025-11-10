@@ -150,7 +150,7 @@ Potential areas for expansion:
 - GPU memory management for hardware-accelerated codecs
 - Advanced error recovery and retry mechanisms
 */
-use crate::{error::AppError, ffmpeg_capabilities::candidate_ffmpeg_paths};
+use crate::{binary_resolver, error::AppError};
 
 use once_cell::sync::Lazy;
 use serde::Serialize;
@@ -838,7 +838,7 @@ impl FfmpegRunner {
     `Some(OsString)` with executable path if found, `None` otherwise
     */
     fn resolve_ffmpeg_path(&self, app: &AppHandle) -> Option<OsString> {
-        candidate_ffmpeg_paths(app)
+        binary_resolver::resolve_ffmpeg_paths(app)
             .into_iter()
             .find(|candidate| Path::new(&candidate).exists())
     }

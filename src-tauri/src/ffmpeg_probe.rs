@@ -77,10 +77,10 @@ Potential areas for expansion:
 */
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{ffi::OsString, path::PathBuf, process::Command};
-use tauri::{AppHandle, Manager};
+use std::{ffi::OsString, process::Command};
+use tauri::AppHandle;
 
-use crate::{error::AppError, ffmpeg_capabilities::is_valid_binary};
+use crate::error::AppError;
 
 /** Color space metadata extracted from video streams.
 
@@ -396,35 +396,12 @@ attempting execution of invalid or missing binaries.
 # Returns
 Vector of `OsString` paths to try, in priority order
 */
+/// Resolves candidate ffprobe paths using the centralized BinaryResolver.
+///
+/// This function delegates to the shared `binary_resolver` module to maintain DRY principles
+/// and ensure consistent path resolution across the application.
 fn candidate_ffprobe_paths(app: &AppHandle) -> Vec<OsString> {
-    let mut candidates: Vec<OsString> = Vec::new();
-
-    /** Helper function to add a path to candidates if it's a valid executable */
-    fn push_if_valid(list: &mut Vec<OsString>, path: PathBuf) {
-        if is_valid_binary(&path) {
-            list.push(path.into_os_string());
-        }
-    }
-
-    // Priority 1: Environment variable override for custom installations
-    if let Ok(override_path) = std::env::var("HONEYMELON_FFPROBE_PATH") {
-        push_if_valid(&mut candidates, PathBuf::from(override_path));
-    }
-
-    // Priority 2: Development-bundled binary for local development
-    let dev_bundled_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/bin/ffprobe");
-    push_if_valid(&mut candidates, dev_bundled_path);
-
-    // Priority 3: Application-bundled binary for packaged distributions
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        let bundled = resource_dir.join("bin/ffprobe");
-        push_if_valid(&mut candidates, bundled);
-    }
-
-    // Priority 4: System PATH fallback for standard installations
-    candidates.push(OsString::from("ffprobe"));
-
-    candidates
+    crate::binary_resolver::resolve_ffprobe_paths(app)
 }
 
 /** Transforms raw `ffprobe` output into an application-optimized summary.

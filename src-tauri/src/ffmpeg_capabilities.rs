@@ -18,13 +18,7 @@
  * 4. Cache the results for future use
  */
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::BTreeSet,
-    ffi::OsString,
-    fs,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{collections::BTreeSet, ffi::OsString, fs, path::PathBuf, process::Command};
 #[cfg(target_os = "macos")]
 use std::{collections::HashSet, ffi::OsStr};
 use tauri::{AppHandle, Manager};
@@ -245,62 +239,15 @@ fn run_ffmpeg(app: &AppHandle, args: &[&str]) -> Result<String, AppError> {
  *
  * Returns a vector of `OsString` paths to try, in order of preference.
  */
+/// Resolves candidate FFmpeg paths using the centralized BinaryResolver.
+///
+/// This function delegates to the shared `binary_resolver` module to maintain DRY principles
+/// and ensure consistent path resolution across the application.
+///
+/// # Returns
+/// A vector of candidate paths in priority order (env var → dev bundle → app bundle → PATH)
 pub fn candidate_ffmpeg_paths(app: &AppHandle) -> Vec<OsString> {
-    let mut candidates: Vec<OsString> = Vec::new();
-
-    /**
-     * Helper function to add a path to candidates if it's a valid binary.
-     */
-    fn push_if_valid(list: &mut Vec<OsString>, path: PathBuf) {
-        if is_valid_binary(&path) {
-            list.push(path.into_os_string());
-        }
-    }
-
-    // 1. Environment variable override (highest priority)
-    if let Ok(override_path) = std::env::var("HONEYMELON_FFMPEG_PATH") {
-        push_if_valid(&mut candidates, PathBuf::from(override_path));
-    }
-
-    // 2. Development bundled binary (for `tauri dev`)
-    let dev_bundled_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/bin/ffmpeg");
-    push_if_valid(&mut candidates, dev_bundled_path);
-
-    // 3. Production bundled binary
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        let bundled = resource_dir.join("bin/ffmpeg");
-        push_if_valid(&mut candidates, bundled);
-    }
-
-    // 4. System PATH (lowest priority)
-    candidates.push(OsString::from("ffmpeg"));
-
-    candidates
-}
-
-/**
- * Checks if a given path points to a valid executable binary.
- *
- * Performs basic validation to ensure the path exists, is a file,
- * and has non-zero size (basic check for valid executable).
- *
- * # Arguments
- *
- * * `path` - Path to the potential binary file
- *
- * # Returns
- *
- * Returns `true` if the path appears to be a valid binary, `false` otherwise.
- */
-pub(crate) fn is_valid_binary(path: &Path) -> bool {
-    if !path.exists() || !path.is_file() {
-        return false;
-    }
-
-    match path.metadata() {
-        Ok(meta) => meta.len() > 0,
-        Err(_) => false,
-    }
+    crate::binary_resolver::resolve_ffmpeg_paths(app)
 }
 
 /**

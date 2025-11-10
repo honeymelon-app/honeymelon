@@ -12,6 +12,7 @@ import { probeMedia } from '@/lib/ffmpeg-probe';
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
 import { JobError, type CapabilitySnapshot, type ProbeSummary, type Tier } from '@/lib/types';
 import { joinPath, pathBasename, pathDirname, stripExtension } from '@/lib/utils';
+import { ErrorHandler } from '@/lib/error-handler';
 import { useJobsStore } from '@/stores/jobs';
 import { usePrefsStore } from '@/stores/prefs';
 import { storeToRefs } from 'pinia';
@@ -56,7 +57,6 @@ const PROGRESS_EVENT = 'ffmpeg://progress';
 const COMPLETION_EVENT = 'ffmpeg://completion';
 const STDERR_EVENT = 'ffmpeg://stderr';
 
-type ProgressMetrics = ProgressEventPayload['progress'];
 type NotificationModule = typeof NotificationPlugin;
 
 function isTauriRuntime(): boolean {
@@ -131,27 +131,29 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
           return;
         }
 
-        const rawFallback = parseProgressFromRaw(payload?.raw);
-        const mergedProgress = mergeProgressMetrics(payload?.progress, rawFallback);
+        // Use Rust-parsed progress metrics directly (no frontend parsing needed)
+        if (payload.progress) {
+          const progressUpdate: {
+            processedSeconds?: number;
+            fps?: number;
+            speed?: number;
+          } = {};
 
-        const progressUpdate: {
-          processedSeconds?: number;
-          fps?: number;
-          speed?: number;
-        } = {};
-        if (mergedProgress?.processedSeconds !== undefined) {
-          progressUpdate.processedSeconds = mergedProgress.processedSeconds;
-        }
-        if (mergedProgress?.fps !== undefined) {
-          progressUpdate.fps = mergedProgress.fps;
-        }
-        if (mergedProgress?.speed !== undefined) {
-          progressUpdate.speed = mergedProgress.speed;
+          if (payload.progress.processedSeconds !== undefined) {
+            progressUpdate.processedSeconds = payload.progress.processedSeconds;
+          }
+          if (payload.progress.fps !== undefined) {
+            progressUpdate.fps = payload.progress.fps;
+          }
+          if (payload.progress.speed !== undefined) {
+            progressUpdate.speed = payload.progress.speed;
+          }
+
+          if (Object.keys(progressUpdate).length > 0) {
+            jobs.updateProgress(payload.jobId, progressUpdate);
+          }
         }
 
-        if (Object.keys(progressUpdate).length > 0) {
-          jobs.updateProgress(payload.jobId, progressUpdate);
-        }
         if (payload.raw) {
           jobs.appendLog(payload.jobId, payload.raw);
         }
@@ -226,11 +228,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
           jobs.markCompleted(payload.jobId, job?.outputPath ?? '');
           void notifyJobResult(payload);
         } else {
-          const errorMessage =
-            payload.message ??
-            (payload.exitCode !== undefined && payload.exitCode !== null
-              ? `FFmpeg exited with code ${payload.exitCode}`
-              : 'FFmpeg process terminated unexpectedly.');
+          const errorMessage = ErrorHandler.formatCompletionError(payload);
           jobs.markFailed(payload.jobId, errorMessage, payload.code ?? undefined);
           void notifyJobResult(payload);
         }
@@ -321,7 +319,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         }
         return true;
       } catch (error) {
-        const details = parseErrorDetails(error);
+        const details = ErrorHandler.parseErrorDetails(error);
         jobs.markFailed(job.id, details.message, details.code);
         return false;
       }
@@ -372,7 +370,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         }
       }
     } catch (error) {
-      const details = parseErrorDetails(error);
+      const details = ErrorHandler.parseErrorDetails(error);
       jobs.markFailed(jobId, details.message, details.code);
     }
   }
@@ -487,7 +485,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
 
       return true;
     } catch (error) {
-      const details = parseErrorDetails(error);
+      const details = ErrorHandler.parseErrorDetails(error);
       // This path might be taken if the command fails to spawn.
       jobs.markFailed(jobId, details.message, details.code);
       return false;
@@ -607,17 +605,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     return leadingSlash ? `/${sanitized}` : sanitized;
   }
 
-  function parseErrorDetails(error: unknown): { message: string; code?: string } {
-    if (typeof error === 'object' && error !== null) {
-      const maybe = error as Record<string, unknown>;
-      const message = typeof maybe.message === 'string' ? maybe.message : String(error);
-      const code = typeof maybe.code === 'string' ? maybe.code : undefined;
-      return { message, code };
-    }
-
-    return { message: String(error) };
-  }
-
   function wait(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -728,125 +715,4 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     cancel,
     capabilities,
   };
-}
-
-function mergeProgressMetrics(
-  primary?: ProgressMetrics,
-  fallback?: ProgressMetrics | null,
-): ProgressMetrics | undefined {
-  if (!primary && !fallback) {
-    return undefined;
-  }
-
-  const merged: ProgressMetrics = {
-    processedSeconds: primary?.processedSeconds ?? fallback?.processedSeconds,
-    fps: primary?.fps ?? fallback?.fps,
-    speed: primary?.speed ?? fallback?.speed,
-  };
-
-  const hasValue =
-    merged.processedSeconds !== undefined || merged.fps !== undefined || merged.speed !== undefined;
-
-  return hasValue ? merged : undefined;
-}
-
-function parseProgressFromRaw(raw?: string | null): ProgressMetrics | null {
-  if (!raw) {
-    return null;
-  }
-
-  const trimmed = raw.trim();
-  if (!trimmed.length) {
-    return null;
-  }
-
-  const metrics: ProgressMetrics = {};
-  let matched = false;
-
-  const handlePair = (keyInput: string, valueInput: string) => {
-    const key = keyInput.trim();
-    const value = valueInput.trim();
-
-    switch (key) {
-      case 'out_time':
-      case 'time': {
-        const seconds = parseTimecode(value);
-        if (seconds !== null) {
-          metrics.processedSeconds = seconds;
-          matched = true;
-        }
-        break;
-      }
-      case 'out_time_ms': {
-        const numeric = Number.parseFloat(value);
-        if (Number.isFinite(numeric)) {
-          metrics.processedSeconds = numeric / 1000;
-          matched = true;
-        }
-        break;
-      }
-      case 'fps': {
-        const numeric = Number.parseFloat(value);
-        if (Number.isFinite(numeric)) {
-          metrics.fps = numeric;
-          matched = true;
-        }
-        break;
-      }
-      case 'speed': {
-        const cleaned = value.replace(/x$/i, '');
-        const numeric = Number.parseFloat(cleaned);
-        if (Number.isFinite(numeric)) {
-          metrics.speed = numeric;
-          matched = true;
-        }
-        break;
-      }
-      default:
-        break;
-    }
-  };
-
-  const singleField = trimmed.match(/^([^=]+)=(.+)$/);
-  if (singleField) {
-    handlePair(singleField[1], singleField[2]);
-  } else {
-    const tokens = trimmed.split(/\s+/);
-    for (const token of tokens) {
-      if (!token.includes('=')) {
-        continue;
-      }
-      const [key, value = ''] = token.split('=');
-      handlePair(key, value);
-    }
-  }
-
-  return matched ? metrics : null;
-}
-
-function parseTimecode(input: string): number | null {
-  if (!input.length) {
-    return null;
-  }
-
-  if (/^\d+(?:\.\d+)?$/.test(input)) {
-    const numeric = Number.parseFloat(input);
-    return Number.isFinite(numeric) ? numeric : null;
-  }
-
-  const parts = input.split(':');
-  if (parts.length !== 3) {
-    return null;
-  }
-
-  const [hoursRaw, minutesRaw, secondsRaw] = parts;
-  const hours = Number.parseInt(hoursRaw, 10);
-  const minutes = Number.parseInt(minutesRaw, 10);
-  const seconds = Number.parseFloat(secondsRaw);
-
-  if ([hours, minutes, seconds].some((value) => Number.isNaN(value))) {
-    return null;
-  }
-
-  return hours * 3600 + minutes * 60 + seconds;
 }
