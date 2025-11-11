@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VideoPlanner, resolveTierDefaults, resolveVideoProfile } from '../video-planner';
-import type { CapabilitySnapshot, Preset, ProbeSummary, Tier } from '../../types';
+import type { CapabilitySnapshot, Preset, ProbeSummary } from '../../types';
 import type { VideoEncoderSelectionStrategy } from '../../strategies/encoder-strategy';
 
 describe('VideoPlanner', () => {
@@ -30,17 +30,12 @@ describe('VideoPlanner', () => {
   };
 
   const mockSummary: ProbeSummary = {
-    format: 'mp4',
-    duration: 120,
     durationSec: 120,
     vcodec: 'h264',
     acodec: 'aac',
     width: 1920,
     height: 1080,
     fps: 30,
-    hasVideo: true,
-    hasAudio: true,
-    hasSubtitles: false,
   };
 
   let planner: VideoPlanner;
@@ -72,7 +67,6 @@ describe('VideoPlanner', () => {
         const summaryNoVideo: ProbeSummary = {
           ...mockSummary,
           vcodec: undefined,
-          hasVideo: false,
         };
 
         const result = planner.plan(summaryNoVideo, basePreset, 'balanced', warnings);
@@ -86,7 +80,6 @@ describe('VideoPlanner', () => {
         const summaryNoVideo: ProbeSummary = {
           ...mockSummary,
           vcodec: undefined,
-          hasVideo: false,
         };
 
         planner.plan(summaryNoVideo, basePreset, 'balanced', warnings);
@@ -446,7 +439,7 @@ describe('VideoPlanner', () => {
       const preset: Preset = {
         ...basePreset,
         container: 'png',
-        video: { codec: 'unknown' },
+        video: { codec: 'unknown' as any },
       };
 
       plannerWithStrategy.planImage(preset, warnings);

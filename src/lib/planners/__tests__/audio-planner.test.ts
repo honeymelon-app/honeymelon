@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AudioPlanner } from '../audio-planner';
-import type { CapabilitySnapshot, Preset, ProbeSummary, Tier } from '../../types';
+import type { CapabilitySnapshot, Preset, ProbeSummary } from '../../types';
 import type { AudioEncoderSelectionStrategy } from '../../strategies/encoder-strategy';
 
 describe('AudioPlanner', () => {
@@ -21,24 +21,20 @@ describe('AudioPlanner', () => {
     audio: {
       codec: 'aac',
       tiers: {
-        fast: { bitrate: '128k' },
-        balanced: { bitrate: '192k' },
-        high: { bitrate: '256k' },
+        fast: { bitrateK: 128 },
+        balanced: { bitrateK: 192 },
+        high: { bitrateK: 256 },
       },
     },
     subs: { mode: 'drop' },
   };
 
   const mockSummary: ProbeSummary = {
-    format: 'mp4',
-    duration: 120,
+    durationSec: 120,
     acodec: 'aac',
     vcodec: 'h264',
     width: 1920,
     height: 1080,
-    hasVideo: true,
-    hasAudio: true,
-    hasSubtitles: false,
   };
 
   let planner: AudioPlanner;
@@ -69,7 +65,6 @@ describe('AudioPlanner', () => {
       const summaryNoAudio: ProbeSummary = {
         ...mockSummary,
         acodec: undefined,
-        hasAudio: false,
       };
 
       const result = planner.plan(summaryNoAudio, basePreset, 'balanced', warnings);
@@ -83,7 +78,6 @@ describe('AudioPlanner', () => {
       const summaryNoAudio: ProbeSummary = {
         ...mockSummary,
         acodec: undefined,
-        hasAudio: false,
       };
 
       planner.plan(summaryNoAudio, basePreset, 'balanced', warnings);
@@ -255,9 +249,9 @@ describe('AudioPlanner', () => {
         audio: {
           codec: 'aac',
           tiers: {
-            fast: { bitrate: '96k' },
-            balanced: { bitrate: '128k' },
-            high: { bitrate: '192k' },
+            fast: { bitrateK: 96 },
+            balanced: { bitrateK: 128 },
+            high: { bitrateK: 192 },
           },
         },
       };
@@ -265,7 +259,7 @@ describe('AudioPlanner', () => {
       const result = planner.plan(mockSummary, preset, 'fast', warnings);
 
       expect(result.tierResult.tier).toBe('fast');
-      expect(result.tierResult.value?.bitrate).toBe('96k');
+      expect(result.tierResult.value?.bitrateK).toBe(96);
     });
 
     it('should resolve tier defaults for balanced tier', () => {
@@ -274,9 +268,9 @@ describe('AudioPlanner', () => {
         audio: {
           codec: 'opus',
           tiers: {
-            fast: { bitrate: '64k' },
-            balanced: { bitrate: '96k' },
-            high: { bitrate: '128k' },
+            fast: { bitrateK: 64 },
+            balanced: { bitrateK: 96 },
+            high: { bitrateK: 128 },
           },
         },
       };
@@ -284,7 +278,7 @@ describe('AudioPlanner', () => {
       const result = planner.plan(mockSummary, preset, 'balanced', warnings);
 
       expect(result.tierResult.tier).toBe('balanced');
-      expect(result.tierResult.value?.bitrate).toBe('96k');
+      expect(result.tierResult.value?.bitrateK).toBe(96);
     });
 
     it('should resolve tier defaults for high tier', () => {
@@ -293,9 +287,9 @@ describe('AudioPlanner', () => {
         audio: {
           codec: 'aac',
           tiers: {
-            fast: { bitrate: '128k' },
-            balanced: { bitrate: '192k' },
-            high: { bitrate: '256k' },
+            fast: { bitrateK: 128 },
+            balanced: { bitrateK: 192 },
+            high: { bitrateK: 256 },
           },
         },
       };
@@ -303,7 +297,7 @@ describe('AudioPlanner', () => {
       const result = planner.plan(mockSummary, preset, 'high', warnings);
 
       expect(result.tierResult.tier).toBe('high');
-      expect(result.tierResult.value?.bitrate).toBe('256k');
+      expect(result.tierResult.value?.bitrateK).toBe(256);
     });
   });
 

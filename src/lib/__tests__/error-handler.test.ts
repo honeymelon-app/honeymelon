@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ErrorHandler, type ErrorDetails, type CompletionPayload } from '../error-handler';
+import { ErrorHandler, type CompletionPayload } from '../error-handler';
 
 describe('ErrorHandler', () => {
   describe('parseErrorDetails', () => {

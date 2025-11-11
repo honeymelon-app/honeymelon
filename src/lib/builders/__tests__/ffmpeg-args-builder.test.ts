@@ -197,10 +197,12 @@ describe('FFmpegArgsBuilder', () => {
       const builder = new FFmpegArgsBuilder();
       const videoAction: VideoAction = {
         action: 'drop',
+        encoder: null,
         note: 'Video dropped',
       };
       const tierResult: VideoTierResult<TierDefaults['video']> = {
         tier: 'balanced',
+        usedFallback: false,
         value: undefined,
       };
 
@@ -219,6 +221,7 @@ describe('FFmpegArgsBuilder', () => {
       };
       const tierResult: VideoTierResult<TierDefaults['video']> = {
         tier: 'balanced',
+        usedFallback: false,
         value: undefined,
       };
 
@@ -247,6 +250,7 @@ describe('FFmpegArgsBuilder', () => {
           crf: 23,
           profile: 'high',
         },
+        usedFallback: false,
       };
 
       const result = builder.withVideo(videoAction, tierResult, basePreset).build();
@@ -276,6 +280,7 @@ describe('FFmpegArgsBuilder', () => {
       };
       const tierResult: VideoTierResult<TierDefaults['video']> = {
         tier: 'high',
+        usedFallback: false,
         value: {
           crf: 18,
         },
@@ -288,10 +293,8 @@ describe('FFmpegArgsBuilder', () => {
         },
       };
       const summary: ProbeSummary = {
-        format: 'mp4',
-        duration: 120,
+        durationSec: 120,
         vcodec: 'h264',
-        hasVideo: true,
         color: {
           primaries: 'bt709',
           trc: 'bt709',
@@ -319,6 +322,7 @@ describe('FFmpegArgsBuilder', () => {
       };
       const tierResult: VideoTierResult<TierDefaults['video']> = {
         tier: 'high',
+        usedFallback: false,
         value: { crf: 18 },
       };
       const preset: Preset = {
@@ -329,10 +333,8 @@ describe('FFmpegArgsBuilder', () => {
         },
       };
       const summary: ProbeSummary = {
-        format: 'mp4',
-        duration: 120,
+        durationSec: 120,
         vcodec: 'h264',
-        hasVideo: true,
         color: {
           primaries: 'bt709',
         },
@@ -355,6 +357,7 @@ describe('FFmpegArgsBuilder', () => {
       };
       const tierResult: VideoTierResult<TierDefaults['video']> = {
         tier: 'high',
+        usedFallback: false,
         value: {
           profile: '422hq',
         },
@@ -376,10 +379,12 @@ describe('FFmpegArgsBuilder', () => {
       const builder = new FFmpegArgsBuilder();
       const audioAction: AudioAction = {
         action: 'drop',
+        encoder: null,
         note: 'Audio dropped',
       };
       const tierResult: VideoTierResult<TierDefaults['audio']> = {
         tier: 'balanced',
+        usedFallback: false,
         value: undefined,
       };
 
@@ -399,6 +404,7 @@ describe('FFmpegArgsBuilder', () => {
       const tierResult: VideoTierResult<TierDefaults['audio']> = {
         tier: 'balanced',
         value: undefined,
+        usedFallback: false,
       };
 
       const result = builder.withAudio(audioAction, tierResult, basePreset).build();
@@ -422,6 +428,7 @@ describe('FFmpegArgsBuilder', () => {
         value: {
           bitrateK: 192,
         },
+        usedFallback: false,
       };
 
       const result = builder.withAudio(audioAction, tierResult, basePreset).build();
@@ -443,6 +450,7 @@ describe('FFmpegArgsBuilder', () => {
       };
       const tierResult: VideoTierResult<TierDefaults['audio']> = {
         tier: 'balanced',
+        usedFallback: false,
         value: {},
       };
 
@@ -461,6 +469,7 @@ describe('FFmpegArgsBuilder', () => {
       };
       const tierResult: VideoTierResult<TierDefaults['audio']> = {
         tier: 'high',
+        usedFallback: false,
         value: {
           quality: 8,
         },
@@ -481,6 +490,7 @@ describe('FFmpegArgsBuilder', () => {
       };
       const tierResult: VideoTierResult<TierDefaults['audio']> = {
         tier: 'balanced',
+        usedFallback: false,
         value: {
           bitrateK: 128,
         },

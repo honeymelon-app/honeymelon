@@ -18,15 +18,11 @@ describe('ffmpeg-probe', () => {
 
   describe('probeMedia', () => {
     const mockProbeSummary: ProbeSummary = {
-      format: 'mp4',
-      duration: 120.5,
-      videoCodec: 'h264',
-      audioCodec: 'aac',
+      durationSec: 120.5,
+      vcodec: 'h264',
+      acodec: 'aac',
       width: 1920,
       height: 1080,
-      hasVideo: true,
-      hasAudio: true,
-      hasSubtitles: false,
     };
 
     const mockProbeResponse: ProbeResponse = {
@@ -125,8 +121,7 @@ describe('ffmpeg-probe', () => {
         raw: {},
         summary: {
           ...mockProbeSummary,
-          hasSubtitles: true,
-          subtitleCodecs: ['srt', 'ass'],
+          hasTextSubs: true,
         },
       };
 
@@ -134,20 +129,15 @@ describe('ffmpeg-probe', () => {
 
       const result = await probeMedia('/video/with/subs.mkv');
 
-      expect(result.summary.hasSubtitles).toBe(true);
-      expect(result.summary.subtitleCodecs).toEqual(['srt', 'ass']);
+      expect(result.summary.hasTextSubs).toBe(true);
     });
 
     it('should handle audio-only file', async () => {
       const audioOnlyResponse: ProbeResponse = {
         raw: {},
         summary: {
-          format: 'mp3',
-          duration: 180.0,
-          audioCodec: 'mp3',
-          hasVideo: false,
-          hasAudio: true,
-          hasSubtitles: false,
+          durationSec: 180.0,
+          acodec: 'mp3',
         },
       };
 
@@ -155,9 +145,8 @@ describe('ffmpeg-probe', () => {
 
       const result = await probeMedia('/audio/track.mp3');
 
-      expect(result.summary.hasVideo).toBe(false);
-      expect(result.summary.hasAudio).toBe(true);
-      expect(result.summary.videoCodec).toBeUndefined();
+      expect(result.summary.vcodec).toBeUndefined();
+      expect(result.summary.acodec).toBe('mp3');
     });
 
     it('should handle paths with special characters', async () => {

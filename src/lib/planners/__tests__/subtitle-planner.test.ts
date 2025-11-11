@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SubtitlePlanner, SUBTITLE_CONVERT_CODEC } from '../subtitle-planner';
-import type { Preset, ProbeSummary, ContainerRule } from '../../types';
+import type { Preset, ProbeSummary } from '../../types';
+import type { ContainerRule } from '../../container-rules';
 
 describe('SubtitlePlanner', () => {
   const basePreset: Preset = {
     id: 'test-preset',
     label: 'Test Preset',
-    mediaKind: 'video',
     container: 'mp4',
+    outputExtension: 'mp4',
+    mediaKind: 'video',
     sourceContainers: ['mp4'],
     video: { codec: 'h264' },
     audio: { codec: 'aac' },
@@ -15,21 +17,17 @@ describe('SubtitlePlanner', () => {
   };
 
   const baseSummary: ProbeSummary = {
-    format: 'mp4',
-    duration: 120,
+    durationSec: 120,
     acodec: 'aac',
     vcodec: 'h264',
     width: 1920,
     height: 1080,
-    hasVideo: true,
-    hasAudio: true,
-    hasSubtitles: false,
     hasTextSubs: false,
     hasImageSubs: false,
   };
 
   const mp4Rule: ContainerRule = {
-    container: 'mp4',
+    label: 'MP4',
     video: 'any',
     audio: 'any',
     subtitles: {
@@ -39,7 +37,7 @@ describe('SubtitlePlanner', () => {
   };
 
   const mkvRule: ContainerRule = {
-    container: 'mkv',
+    label: 'MKV',
     video: 'any',
     audio: 'any',
     subtitles: {
@@ -135,7 +133,7 @@ describe('SubtitlePlanner', () => {
       };
 
       const restrictiveRule: ContainerRule = {
-        container: 'webm',
+        label: 'Restrictive',
         video: 'any',
         audio: 'any',
         subtitles: {
@@ -252,7 +250,7 @@ describe('SubtitlePlanner', () => {
       };
 
       const restrictiveRule: ContainerRule = {
-        container: 'webm',
+        label: 'Restrictive',
         video: 'any',
         audio: 'any',
         subtitles: {
