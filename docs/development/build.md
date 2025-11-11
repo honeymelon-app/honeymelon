@@ -454,10 +454,10 @@ For advanced topics like custom FFmpeg builds, debug builds, clean builds, and C
 
 ## Related Documentation
 
-- [README.md](../../README.md) - User-facing documentation
-- [CLAUDE.md](../../CLAUDE.md) - Codebase architecture guide
-- [CONTRIBUTING.md](./CONTRIBUTING.md) - Contribution guidelines
-- [AGENTS.md](./AGENTS.md) - Commit conventions
+- [README.md](../README.md) - User-facing documentation
+- [CLAUDE.md](./claude.md) - Codebase architecture guide
+- [CONTRIBUTING.md](./contributing.md) - Contribution guidelines
+- [AGENTS.md](./agents.md) - Commit conventions
 
 ## Support
 

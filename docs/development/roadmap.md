@@ -69,13 +69,13 @@ For the complete, detailed roadmap including:
 - Development priorities
 - Roadmap maintenance information
 
-See the [complete product roadmap](../roadmap.md)
+See the [complete product roadmap](/ROADMAP)
 
 ## Quick Links
 
 - **Feature Requests**: [GitHub Issues](https://github.com/honeymelon-app/honeymelon/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/honeymelon-app/honeymelon/discussions)
-- **Current Version Features**: [Complete Roadmap - v0.0.1](../roadmap.md#version-001--foundation--core-features)
+- **Current Version Features**: [Complete Roadmap - v0.0.1](/ROADMAP#version-001--foundation--core-features)
 
 ---
 
