@@ -188,7 +188,7 @@ jobs:
       - name: Run Vitest frontend tests with coverage
         run: |
           if grep -q '"vitest"' package.json || [ -f "vitest.config.ts" ] || [ -f "vitest.config.js" ]; then
-            npm run test:unit:coverage -- --reporter=json --reporter=text
+            npm run test:unit:coverage -- --reporter=default
           else
             echo "Vitest not configured, skipping frontend tests"
           fi
