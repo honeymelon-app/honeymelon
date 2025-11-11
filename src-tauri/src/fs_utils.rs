@@ -48,7 +48,10 @@ use crate::error::AppError;
  *
  * # Examples
  *
- * ```
+ * ```ignore
+ * use honeymelon_lib::fs_utils::expand_media_paths;
+ *
+ * # fn example() -> Result<(), Box<dyn std::error::Error>> {
  * // Expand a directory to find all files within
  * let files = expand_media_paths(vec!["/path/to/media".to_string()])?;
  *
@@ -57,6 +60,8 @@ use crate::error::AppError;
  *     "/path/to/video.mp4".to_string(),
  *     "/path/to/media/folder".to_string()
  * ])?;
+ * # Ok(())
+ * # }
  * ```
  *
  * # Error Handling

@@ -183,7 +183,7 @@ fn test_file_extension_handling() {
 
 #[test]
 fn test_temp_file_workflow() {
-    // Simulate the temp file workflow used in ffmpeg_runner
+    // Simulate the temp file workflow used in the runner modules (atomic temp file workflow)
     let temp_dir = TempDir::new().unwrap();
     let output_path = temp_dir.path().join("output.mp4");
     let temp_path = temp_dir.path().join("output.mp4.tmp");
@@ -243,7 +243,7 @@ fn test_progress_parsing_workflow() {
 fn test_atomic_operations() {
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-    // Test atomic operations used in ffmpeg_runner
+    // Test atomic operations used in the runner modules
     let cancelled = AtomicBool::new(false);
     assert!(!cancelled.load(Ordering::SeqCst));
 

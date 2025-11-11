@@ -87,7 +87,27 @@
           "height": 400
         }
       }
-    }
+    },
+    "fileAssociations": [
+      {
+        "ext": ["mp4", "m4v", "mov", "mkv", "webm", "avi"],
+        "name": "Video File",
+        "role": "Editor",
+        "mimeType": "video/*"
+      },
+      {
+        "ext": ["mp3", "m4a", "aac", "flac", "wav", "ogg", "opus"],
+        "name": "Audio File",
+        "role": "Editor",
+        "mimeType": "audio/*"
+      },
+      {
+        "ext": ["png", "jpg", "jpeg", "gif", "webp"],
+        "name": "Image File",
+        "role": "Editor",
+        "mimeType": "image/*"
+      }
+    ]
   },
   "plugins": {}
 }

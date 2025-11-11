@@ -12,6 +12,7 @@ honeymelon/
 │   └── **/*.rs               # Rust tests (inline)
 └── e2e/
     └── tests/                # E2E tests
+
 ```
 
 ## Frontend Testing
@@ -36,6 +37,7 @@ npm run test:unit:ui
 
 # Coverage
 npm run test:unit:coverage
+
 ```
 
 ### Writing Unit Tests
@@ -160,18 +162,21 @@ describe('Jobs Store', () => {
 ```bash
 cd src-tauri
 cargo test
+
 ```
 
 **With output**:
 
 ```bash
 cargo test -- --nocapture
+
 ```
 
 **Specific test**:
 
 ```bash
 cargo test test_name
+
 ```
 
 ### Writing Rust Tests
@@ -204,6 +209,7 @@ mod tests {
         parse_ffprobe_output("not json").unwrap();
     }
 }
+
 ```
 
 **Async Tests**:
@@ -228,6 +234,7 @@ mod tests {
         assert!(result.is_err());
     }
 }
+
 ```
 
 **Integration Tests**:
@@ -249,6 +256,7 @@ async fn test_full_conversion() {
     // Cleanup
     std::fs::remove_file(output).ok();
 }
+
 ```
 
 ### Test Coverage
@@ -258,6 +266,7 @@ async fn test_full_conversion() {
 ```bash
 cargo install cargo-tarpaulin
 cargo tarpaulin --out Html
+
 ```
 
 ## End-to-End Testing
@@ -281,6 +290,7 @@ npm run test:e2e:debug
 
 # Specific test
 npx playwright test -c e2e/playwright.config.ts conversion.spec.ts
+
 ```
 
 ### Writing E2E Tests
@@ -364,10 +374,12 @@ export async function waitForJobCompletion(window: Page, jobId: string) {
 Store test media files in `test_files/`:
 
 ```
+
 test_files/
 ├── small.mp4         # 1 second, 640x480
 ├── sample.mkv        # 5 seconds, 1920x1080
 └── audio.m4a         # Audio-only file
+
 ```
 
 ### Generating Test Files
@@ -377,6 +389,7 @@ test_files/
 ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=30 \
   -f lavfi -i sine=frequency=1000:duration=1 \
   -pix_fmt yuv420p test_files/small.mp4
+
 ```
 
 ## Mocking
@@ -529,6 +542,7 @@ afterEach(() => {
 
 ```bash
 npm run test:unit:ui
+
 ```
 
 Opens interactive UI for debugging tests.

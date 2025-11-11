@@ -42,6 +42,7 @@ stateDiagram-v2
     Running --> Failed
     Queued --> Cancelled
     Running --> Cancelled
+
 ```
 
 - **Queued**: Waiting to be processed
@@ -95,17 +96,21 @@ For each stream (video, audio), the planner determines one of three actions:
 **Remux Plan** (MKV with H.264 → MP4)
 
 ```
+
 Video: H.264 → Copy (compatible with MP4)
 Audio: AAC → Copy (compatible with MP4)
 Result: Fast remux, no quality loss
+
 ```
 
 **Transcode Plan** (MKV with VP9 → MP4)
 
 ```
+
 Video: VP9 → Transcode to H.264 (VP9 not in MP4)
 Audio: Opus → Transcode to AAC (Opus not in MP4)
 Result: Full transcode required
+
 ```
 
 ### Step 3: Execution
@@ -117,6 +122,7 @@ ffmpeg -i input.mkv \
   -c:v libx264 -preset medium -crf 23 \
   -c:a aac -b:a 192k \
   output.mp4
+
 ```
 
 Progress is tracked by parsing FFmpeg's stderr output:
@@ -164,12 +170,15 @@ Once a job reaches **Completed** or **Failed** state:
 By default, converted files are saved:
 
 ```
+
 [source directory]/[filename]-converted.[extension]
+
 ```
 
 For example:
 
 ```
+
 Input:  ~/Videos/movie.mkv
 Output: ~/Videos/movie-converted.mp4
 ```

@@ -4,7 +4,7 @@ This directory contains build and setup scripts for Honeymelon.
 
 ## Available Scripts
 
-### `download-ffmpeg.sh`
+### `download-ffmpeg.js`
 
 Downloads and sets up FFmpeg and FFprobe binaries for bundling into the Honeymelon app.
 
@@ -15,7 +15,7 @@ Downloads and sets up FFmpeg and FFprobe binaries for bundling into the Honeymel
 npm run download-ffmpeg
 
 # Direct execution
-./scripts/download-ffmpeg.sh
+node scripts/download-ffmpeg.js
 ```
 
 **What it does:**

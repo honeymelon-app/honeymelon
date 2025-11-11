@@ -12,6 +12,7 @@ graph LR
     D --> E[FFmpeg Command]
     E --> F[Execute Stage]
     F --> G[Output File]
+
 ```
 
 Each stage has specific responsibilities and can fail independently, allowing for precise error handling and reporting.
@@ -20,19 +21,21 @@ Each stage has specific responsibilities and can fail independently, allowing fo
 
 **Purpose**: Extract comprehensive metadata from the source file using FFprobe.
 
-### Implementation
+### Probe: Implementation
 
 **Location**: [src/lib/ffmpeg-probe.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/lib/ffmpeg-probe.ts) (frontend) and [src-tauri/src/ffmpeg_probe.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_probe.rs) (backend)
 
 **Process**:
 
 1. Frontend invokes Tauri command `probe_media`
-2. Rust spawns FFprobe process:
+1. Rust spawns FFprobe process:
+
    ```rust
    ffprobe -v quiet -print_format json -show_format -show_streams input.mp4
    ```
-3. Parse JSON output to extract metadata
-4. Return structured data to frontend
+
+1. Parse JSON output to extract metadata
+1. Return structured data to frontend
 
 ### Extracted Metadata
 
@@ -76,7 +79,7 @@ Each error is caught and reported with a user-friendly message.
 
 **Purpose**: Determine the optimal conversion strategy based on probe results, selected preset, and quality tier.
 
-### Implementation
+### Plan: Implementation
 
 **Location**: [src/lib/ffmpeg-plan.ts](../../src/lib/ffmpeg-plan.ts)
 
@@ -146,6 +149,7 @@ if (probe.videoCodec === 'vp9' && targetContainer === 'mp4') {
 
 ```bash
 -c:v libx264 -preset medium -crf 23
+
 ```
 
 **Parameters based on quality tier**:
@@ -187,9 +191,9 @@ interface FFmpegPlan {
 
 ### Example Plans
 
-**Example 1: Remux MKV → MP4**
+#### Example 1: Remux MKV → MP4
 
-```
+```text
 Input: video.mkv (H.264 + AAC)
 Preset: video-to-mp4
 Quality: Fast
@@ -201,11 +205,12 @@ Plan:
 
 FFmpeg Command:
   ffmpeg -i video.mkv -c:v copy -c:a copy output.mp4
-```
-
-**Example 2: Transcode MKV → MP4**
 
 ```
+
+#### Example 2: Transcode MKV → MP4
+
+```text
 Input: video.mkv (VP9 + Opus)
 Preset: video-to-mp4
 Quality: Balanced
@@ -220,11 +225,12 @@ FFmpeg Command:
     -c:v libx264 -preset medium -crf 23 \
     -c:a aac -b:a 192k \
     output.mp4
-```
-
-**Example 3: High Quality Archive**
 
 ```
+
+#### Example 3: High Quality Archive
+
+```text
 Input: video.mov (ProRes + PCM)
 Preset: video-to-mkv
 Quality: High
@@ -239,15 +245,16 @@ FFmpeg Command:
     -c:v libx265 -preset slow -crf 18 \
     -c:a flac \
     output.mkv
+
 ```
 
 ## Stage 3: Execute
 
 **Purpose**: Run FFmpeg with the generated plan and monitor progress.
 
-### Implementation
+### Execute: Implementation
 
-**Location**: [src-tauri/src/ffmpeg_runner.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_runner.rs) (backend) and [src/composables/use-job-orchestrator.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/composables/use-job-orchestrator.ts) (frontend)
+**Location**: runner modules under `src-tauri/src/runner` (backend) and `src/composables/use-job-orchestrator.ts` (frontend)
 
 ### Process
 
@@ -262,8 +269,9 @@ FFmpeg Command:
 
 FFmpeg outputs progress to stderr:
 
-```
+```text
 frame= 150 fps= 30 q=28.0 size= 1024kB time=00:00:05.00 bitrate=1677.7kbits/s speed=1.0x
+
 ```
 
 **Parsed Fields**:
@@ -278,6 +286,7 @@ frame= 150 fps= 30 q=28.0 size= 1024kB time=00:00:05.00 bitrate=1677.7kbits/s sp
 ```rust
 let percentage = (current_time / total_duration) * 100.0;
 let eta = (total_duration - current_time) / speed;
+
 ```
 
 ### Event Emission
@@ -293,6 +302,7 @@ app.emit("ffmpeg://progress", ProgressPayload {
     eta_seconds: 15.0,
     speed: "1.0x".to_string(),
 })?;
+
 ```
 
 Frontend listens and updates UI:
@@ -348,6 +358,7 @@ When encoding H.264/H.265 on Apple Silicon:
 
 # Hardware encoder (faster, good quality)
 -c:v h264_videotoolbox
+
 ```
 
 Automatically selected based on:
@@ -364,6 +375,7 @@ For optimal bitrate control:
 
 ```bash
 ffmpeg -i input.mp4 -c:v libx264 -b:v 2M -pass 1 -f null /dev/null
+
 ```
 
 **Pass 2**: Encode with analysis
@@ -422,7 +434,7 @@ Typical performance by operation:
 | VP9       | 3-10      | 0.1-0.4x        | Web streaming    |
 | AV1       | 1-5       | 0.04-0.2x       | Next-gen web     |
 
-_FPS values for 1080p content on M1 Mac_
+### FPS values for 1080p content on M1 Mac
 
 ## Next Steps
 

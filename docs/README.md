@@ -42,6 +42,7 @@ docs/
     ├── license-compliance.md
     ├── commercial-license.md
     └── third-party-notices.md
+
 ```
 
 ## Development
@@ -62,6 +63,7 @@ npm run docs:build
 
 # Preview production build
 npm run docs:preview
+
 ```
 
 ### Development Server
@@ -119,7 +121,9 @@ npm install
 ```bash [pnpm]
 pnpm install
 \```
+
 :::
+
 ````
 `````
 
@@ -128,22 +132,26 @@ pnpm install
 #### Mermaid Diagrams
 
 ````markdown
+
 ```mermaid
 graph LR
     A[Start] --> B[End]
 ```
+
 `````
 
 ### Adding a New Page
 
 1. Create a new `.md` file in the appropriate directory
 2. Add frontmatter (optional):
+
    ```markdown
    ---
    title: Page Title
    description: Page description
    ---
    ```
+
 3. Write content in Markdown
 4. Update sidebar configuration in `.vitepress/config.ts`
 
@@ -162,6 +170,7 @@ Use relative paths:
 
 ```bash
 npm run docs:build
+
 ```
 
 Output will be in `docs/.vitepress/dist/`

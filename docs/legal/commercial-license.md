@@ -51,6 +51,7 @@ While Honeymelon is proprietary, it uses FFmpeg which is licensed under LGPL v2.
 Honeymelon App (Proprietary)
     ↓ (spawns separate process)
 FFmpeg Binary (LGPL v2.1)
+
 ```
 
 Communication occurs exclusively through:
@@ -84,6 +85,7 @@ When authorized to distribute Honeymelon, you must include:
 ### Recommended App Bundle Structure
 
 ```
+
 Honeymelon.app/
 └── Contents/
     ├── MacOS/

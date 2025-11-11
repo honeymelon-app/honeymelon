@@ -36,9 +36,10 @@ Before you begin, ensure you have:
    ```
 
 4. **Verify setup**:
-   ```bash
-   npm run tauri:dev
-   ```
+
+```bash
+npm run tauri:dev
+```
 
 The app should launch successfully.
 
@@ -74,20 +75,23 @@ The app should launch successfully.
    ```
 
 4. **Push and create PR**:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+
+```bash
+git push origin feature/your-feature-name
+```
 
 ### Commit Messages
 
 We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
+
 <type>(<scope>): <subject>
 
 <body>
 
 <footer>
+
 ```
 
 **Types**:
@@ -108,11 +112,13 @@ feat(jobs): add pause/resume functionality
 fix(ffmpeg): handle spaces in file paths
 docs(architecture): update pipeline diagram
 test(stores): add job state transition tests
+
 ```
 
 ## Project Structure
 
 ```
+
 honeymelon/
 ├── src/                    # Vue frontend
 │   ├── app.vue            # Root component
@@ -131,6 +137,7 @@ honeymelon/
 ├── docs/                  # Documentation
 ├── e2e/                   # E2E tests
 └── public/                # Static assets
+
 ```
 
 ## Code Style
@@ -148,6 +155,7 @@ npm run lint:fix
 
 # Format code
 npm run format
+
 ```
 
 **Key conventions**:
@@ -187,6 +195,7 @@ npm run lint:rust
 
 # Format Rust code
 npm run format:rust
+
 ```
 
 **Key conventions**:
@@ -212,6 +221,7 @@ npm run format:rust
 pub async fn probe_media(file_path: &str) -> Result<ProbeResult, String> {
     // Implementation
 }
+
 ```
 
 ## Testing
@@ -222,18 +232,21 @@ pub async fn probe_media(file_path: &str) -> Result<ProbeResult, String> {
 
 ```bash
 npm run test:unit
+
 ```
 
 **Watch mode**:
 
 ```bash
 npm run test:unit:watch
+
 ```
 
 **Coverage**:
 
 ```bash
 npm run test:unit:coverage
+
 ```
 
 **Writing tests**:
@@ -267,6 +280,7 @@ describe('JobQueueItem', () => {
 ```bash
 cd src-tauri
 cargo test
+
 ```
 
 **Writing tests**:
@@ -289,6 +303,7 @@ mod tests {
         assert!(result.is_ok());
     }
 }
+
 ```
 
 ### E2E Tests
@@ -297,12 +312,14 @@ mod tests {
 
 ```bash
 npm run test:e2e
+
 ```
 
 **UI mode**:
 
 ```bash
 npm run test:e2e:ui
+
 ```
 
 **Writing E2E tests**:
@@ -425,6 +442,7 @@ Closes #123
 ```bash
 npm update
 npm audit fix
+
 ```
 
 **Backend**:
@@ -433,6 +451,7 @@ npm audit fix
 cd src-tauri
 cargo update
 cargo audit
+
 ```
 
 **Verify**:
@@ -440,6 +459,7 @@ cargo audit
 ```bash
 npm run test
 npm run build
+
 ```
 
 ## Debugging
@@ -474,6 +494,7 @@ println!("Debug: {:?}", value);
 
 // Or use dbg! macro
 dbg!(value);
+
 ```
 
 **Logs**:

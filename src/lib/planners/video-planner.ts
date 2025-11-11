@@ -7,20 +7,10 @@ import type {
   TierDefaults,
   VCodec,
 } from '../types';
-
-const VIDEO_ENCODERS: Record<VCodec, string[] | string | null> = {
-  copy: 'copy',
-  none: null,
-  h264: ['h264_videotoolbox', 'libx264'],
-  hevc: ['hevc_videotoolbox', 'libx265'],
-  vp9: ['libvpx-vp9'],
-  av1: ['libaom-av1', 'libsvtav1'],
-  gif: 'gif',
-  prores: ['prores_videotoolbox', 'prores_ks'],
-  png: 'png',
-  mjpeg: 'mjpeg',
-  webp: 'libwebp',
-};
+import {
+  DEFAULT_VIDEO_STRATEGY,
+  type VideoEncoderSelectionStrategy,
+} from '../strategies/encoder-strategy';
 
 const TIER_PRIORITY: Tier[] = ['balanced', 'fast', 'high'];
 
@@ -34,31 +24,6 @@ export interface VideoTierResult<T = unknown> {
   tier: Tier;
   value?: T;
   usedFallback: boolean;
-}
-
-function selectBestEncoder(
-  encoders: string[] | string | null,
-  capabilities?: CapabilitySnapshot,
-): string | null {
-  if (encoders === null || encoders === 'copy') {
-    return encoders;
-  }
-
-  if (typeof encoders === 'string') {
-    return encoders;
-  }
-
-  if (!capabilities) {
-    return encoders[encoders.length - 1] ?? null;
-  }
-
-  for (const encoder of encoders) {
-    if (capabilities.videoEncoders.has(encoder)) {
-      return encoder;
-    }
-  }
-
-  return encoders[encoders.length - 1] ?? null;
 }
 
 function normalizeCodec(value: string | undefined): string | undefined {
@@ -120,7 +85,10 @@ function resolveVideoProfile(codec: VCodec, profile: string): string | undefined
 }
 
 export class VideoPlanner {
-  constructor(private capabilities?: CapabilitySnapshot) {}
+  constructor(
+    private capabilities?: CapabilitySnapshot,
+    private encoderStrategy: VideoEncoderSelectionStrategy = DEFAULT_VIDEO_STRATEGY,
+  ) {}
 
   plan(
     summary: ProbeSummary,
@@ -135,7 +103,7 @@ export class VideoPlanner {
     const sourceVideoCodec = normalizeCodec(summary.vcodec);
 
     let action: 'copy' | 'transcode' | 'drop';
-    let encoder = selectBestEncoder(VIDEO_ENCODERS[preset.video.codec], this.capabilities);
+    let encoder = this.encoderStrategy.selectEncoder(preset.video.codec, this.capabilities);
     let note: string;
 
     if (preset.video.codec === 'none') {
@@ -158,26 +126,16 @@ export class VideoPlanner {
       const selectedEncoder = encoder ?? preset.video.codec;
       encoder = selectedEncoder;
 
-      const encoderOptions = VIDEO_ENCODERS[preset.video.codec];
       const isHardwareAccelerated =
         selectedEncoder.includes('videotoolbox') ||
         selectedEncoder.includes('_qsv') ||
         selectedEncoder.includes('_nvenc');
 
-      if (
-        encoderOptions &&
-        this.capabilities &&
-        typeof encoderOptions !== 'string' &&
-        Array.isArray(encoderOptions)
-      ) {
-        const hasAnyEncoder = encoderOptions.some((enc) =>
-          this.capabilities!.videoEncoders.has(enc),
+      // Check if encoder is available in capabilities
+      if (this.capabilities && encoder && !this.capabilities.videoEncoders.has(encoder)) {
+        warnings.push(
+          `Encoder ${encoder} for ${preset.video.codec} is not available; transcode may fail.`,
         );
-        if (!hasAnyEncoder) {
-          warnings.push(
-            `None of the encoders for ${preset.video.codec} are available; transcode may fail.`,
-          );
-        }
       }
 
       const accelerationNote = isHardwareAccelerated ? ' (hardware accelerated)' : '';
@@ -267,15 +225,11 @@ export class VideoPlanner {
     const notes: string[] = [];
     const args: string[] = [];
 
-    const encoder = selectBestEncoder(VIDEO_ENCODERS[preset.video.codec], this.capabilities);
+    const encoder = this.encoderStrategy.selectEncoder(preset.video.codec, this.capabilities);
 
     if (!encoder) {
       warnings.push(`Unknown image codec: ${preset.video.codec}`);
-    } else if (
-      typeof encoder === 'string' &&
-      this.capabilities &&
-      !this.capabilities.videoEncoders.has(encoder)
-    ) {
+    } else if (this.capabilities && !this.capabilities.videoEncoders.has(encoder)) {
       warnings.push(`Encoder ${encoder} not reported by FFmpeg; conversion may fail.`);
     }
 

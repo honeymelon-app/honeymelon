@@ -22,6 +22,7 @@ e2e/
 │   ├── preset-selection.spec.ts # Preset UI tests
 │   └── conversion-flow.spec.ts  # End-to-end conversion tests
 └── README.md                  # This file
+
 ```
 
 ## Running Tests
@@ -41,32 +42,37 @@ e2e/
    ```
 
 3. Build the Tauri app (required for E2E tests):
-   ```bash
-   npm run tauri:build
-   ```
+
+```bash
+npm run tauri:build
+```
 
 ### Run All Tests
 
 ```bash
 npm run test:e2e
+
 ```
 
 ### Run Tests in UI Mode
 
 ```bash
 npm run test:e2e:ui
+
 ```
 
 ### Run Specific Test File
 
 ```bash
 npx playwright test e2e/tests/app-launch.spec.ts
+
 ```
 
 ### Debug Tests
 
 ```bash
 npm run test:e2e:debug
+
 ```
 
 ## Writing Tests

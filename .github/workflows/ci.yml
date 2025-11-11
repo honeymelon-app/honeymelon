@@ -88,9 +88,7 @@ jobs:
         run: cd src-tauri && cargo fmt --all -- --check
 
       - name: Download FFmpeg binaries
-        run: |
-          chmod +x scripts/download-ffmpeg.sh
-          ./scripts/download-ffmpeg.sh
+        run: npm run download-ffmpeg
 
       - name: Run Clippy (Rust linter)
         run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings

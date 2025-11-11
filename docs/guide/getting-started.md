@@ -42,6 +42,7 @@ source $HOME/.cargo/env
 node --version
 npm --version
 cargo --version
+
 ```
 
 #### Step 2: Clone the Repository
@@ -49,12 +50,14 @@ cargo --version
 ```bash
 git clone https://github.com/honeymelon-app/honeymelon.git
 cd honeymelon
+
 ```
 
 #### Step 3: Install Node Dependencies
 
 ```bash
 npm install
+
 ```
 
 This will also automatically download FFmpeg binaries (or you can skip this by setting `SKIP_FFMPEG_DOWNLOAD=1`).
@@ -67,6 +70,7 @@ npm run tauri:dev
 
 # For production build
 npm run tauri:build
+
 ```
 
 The production build will create a `.dmg` file in `src-tauri/target/release/bundle/dmg/`.
@@ -85,6 +89,7 @@ If you have FFmpeg installed on your system, Honeymelon can use it:
 
 ```bash
 brew install ffmpeg
+
 ```
 
 The application will automatically detect system FFmpeg if bundled binaries are not found.

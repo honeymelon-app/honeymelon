@@ -1,7 +1,8 @@
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
-import type { ProbeSummary } from '@/lib/types';
+import type { ProbeSummary, JobState } from '@/lib/types';
 import { now, readEnqueuedAt, type JobId } from './job-types';
 import type { JobQueueComposable } from './job-queue';
+import { globalJobObserver } from '@/observers/job-observer';
 
 export interface JobStateComposable {
   markProbing: (id: JobId) => void;
@@ -24,14 +25,20 @@ export function useJobState(queue: JobQueueComposable): JobStateComposable {
       if (job.state.status !== 'queued') {
         return job;
       }
+      const oldState = job.state;
       const startedAt = now();
+      const newState: JobState = {
+        status: 'probing',
+        enqueuedAt: job.state.enqueuedAt,
+        startedAt,
+      };
+
+      // Notify observers of state change
+      globalJobObserver.onStateChange(id, oldState, newState);
+
       return {
         ...job,
-        state: {
-          status: 'probing',
-          enqueuedAt: job.state.enqueuedAt,
-          startedAt,
-        },
+        state: newState,
       };
     });
   }

@@ -30,6 +30,7 @@ Honeymelon's licensing compliance is built on a fundamental architectural princi
 │   - No shared memory                │
 │   - No library linking              │
 └─────────────────────────────────────┘
+
 ```
 
 ---
@@ -38,7 +39,7 @@ Honeymelon's licensing compliance is built on a fundamental architectural princi
 
 ### How Honeymelon Executes FFmpeg
 
-**File**: `src-tauri/src/ffmpeg_runner.rs`
+**File**: runner modules under `src-tauri/src/runner` (formerly `src-tauri/src/ffmpeg_runner.rs`)
 
 ```rust
 // FFmpeg is spawned as a separate process
@@ -47,12 +48,14 @@ let child = Command::new(ffmpeg_path)
     .stdout(Stdio::piped())
     .stderr(Stdio::piped())
     .spawn()?;
+
 ```
 
 This is **process execution**, identical to running a command in Terminal:
 
 ```bash
-$ ffmpeg -i input.mp4 output.mp4
+ffmpeg -i input.mp4 output.mp4
+
 ```
 
 ### What This Means Legally
@@ -78,6 +81,7 @@ From LGPL v2.1, Section 6:
 ### Required Files in App Bundle
 
 ```
+
 Honeymelon.app/
 └── Contents/
     ├── MacOS/
@@ -90,6 +94,7 @@ Honeymelon.app/
     │       ├── ffmpeg              # LGPL binary
     │       └── ffprobe             # LGPL binary
     └── Info.plist
+
 ```
 
 ### Automated Bundle Script
@@ -114,6 +119,7 @@ cp LICENSES/FFMPEG-LGPL.txt "$RESOURCES/FFMPEG-LICENSE.txt"
 cp THIRD_PARTY_NOTICES.md "$RESOURCES/THIRD-PARTY-NOTICES.txt"
 
 echo " License files bundled successfully"
+
 ```
 
 **Usage**:
@@ -121,6 +127,7 @@ echo " License files bundled successfully"
 ```bash
 chmod +x scripts/bundle-licenses.sh
 ./scripts/bundle-licenses.sh "src-tauri/target/release/bundle/macos/Honeymelon.app"
+
 ```
 
 ---
@@ -199,11 +206,13 @@ onMounted(async () => {
 ### What to Include in the DMG
 
 ```
+
 Honeymelon_0.1.0_aarch64.dmg
 ├── Honeymelon.app              # Main application
 ├── LICENSE.txt                 # Honeymelon MIT License
 ├── FFMPEG-LICENSE.txt          # FFmpeg LGPL License
 └── THIRD_PARTY_NOTICES.txt     # All dependencies
+
 ```
 
 ### DMG Build Script
@@ -236,6 +245,7 @@ hdiutil create -volname "Honeymelon" \
   "Honeymelon_${VERSION}_aarch64.dmg"
 
 echo " DMG created with all license files"
+
 ```
 
 ---
@@ -255,6 +265,7 @@ To minimize patent and licensing concerns, build FFmpeg with:
   --enable-version3 \           # LGPL v2.1+
   --arch=arm64 \                # Apple Silicon
   --prefix=/usr/local
+
 ```
 
 ### Codecs to Avoid (GPL/Patent Issues)

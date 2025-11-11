@@ -20,6 +20,7 @@ Honeymelon automatically generates presets for all valid source-to-target format
   videoCodec: "h264",
   audioCodec: "aac"
 }
+
 ```
 
 This means you'll always have access to the right presets based on your file type.
@@ -78,9 +79,11 @@ Each preset supports three quality tiers that control encoding parameters:
 **Example**:
 
 ```
+
 Source: video.mkv (H.264 + AAC)
 Target: video-to-mp4 (Fast)
 Result: Remux (copy both streams) - 500+ fps
+
 ```
 
 ### Balanced (Optimized)
@@ -108,9 +111,11 @@ Result: Remux (copy both streams) - 500+ fps
 **Example**:
 
 ```
+
 Source: video.mov (ProRes + PCM)
 Target: video-to-mp4 (Balanced)
 Result: Transcode to H.264/AAC - 30-60 fps
+
 ```
 
 ### High (Maximum Quality)
@@ -138,9 +143,11 @@ Result: Transcode to H.264/AAC - 30-60 fps
 **Example**:
 
 ```
+
 Source: video.mov (4K ProRes)
 Target: video-to-mkv (High)
 Result: H.265 with high bitrate - 10-20 fps
+
 ```
 
 ## Understanding CRF (Constant Rate Factor)
@@ -178,6 +185,7 @@ graph TD
     B -->|Audio Only| D[Suggest audio-to-m4a]
     C --> E[User Can Change Preset]
     D --> E
+
 ```
 
 You can always change the preset before starting the conversion.

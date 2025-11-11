@@ -89,6 +89,7 @@ graph TB
     Backend -->|Spawn & Stream| FFmpeg
     FFprobe -.->|JSON Output| Backend
     FFmpeg -.->|Progress Events| Backend
+
 ```
 
 **Benefits**:
@@ -118,6 +119,7 @@ sequenceDiagram
     FFmpeg-->>Backend: Exit Code
     Backend-->>Store: emit('ffmpeg://completion')
     Store-->>UI: Job Complete
+
 ```
 
 **Key Events**:
@@ -143,6 +145,7 @@ stateDiagram-v2
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]
+
 ```
 
 Each state has specific data associated with it (discriminated unions).
@@ -150,6 +153,7 @@ Each state has specific data associated with it (discriminated unions).
 ## Directory Structure
 
 ```
+
 honeymelon/
 ├── src/                          # Vue frontend
 │   ├── app.vue                   # Root component
@@ -180,7 +184,7 @@ honeymelon/
 │   ├── src/
 │   │   ├── lib.rs               # Main entry, menu bar
 │   │   ├── ffmpeg_probe.rs      # FFprobe spawning
-│   │   ├── ffmpeg_runner.rs     # FFmpeg execution
+│   │   ├── runner/              # FFmpeg execution (split into modules under `src-tauri/src/runner`)
 │   │   ├── ffmpeg_capabilities.rs  # Encoder detection
 │   │   ├── fs_utils.rs          # File operations
 │   │   └── error.rs             # Error handling
@@ -192,6 +196,7 @@ honeymelon/
 ├── e2e/                          # Playwright tests
 └── public/                       # Static assets
     └── bin/                      # Bundled FFmpeg binaries
+
 ```
 
 ## Data Flow
@@ -204,6 +209,7 @@ graph LR
     B --> C[Jobs Store]
     C --> D[Create Job State]
     D --> E[UI Updates]
+
 ```
 
 ### Converting a File
@@ -221,6 +227,7 @@ graph TD
     I --> J[Stream Progress]
     J --> K[Complete/Fail]
     K --> L[Update UI]
+
 ```
 
 ## Communication Layers
@@ -244,6 +251,7 @@ const result = await invoke('probe_media', {
 async fn probe_media(file_path: String) -> Result<ProbeResult, String> {
     // Execute FFprobe and return results
 }
+
 ```
 
 **Event Pattern** (Backend → Frontend):
@@ -251,6 +259,7 @@ async fn probe_media(file_path: String) -> Result<ProbeResult, String> {
 ```rust
 // Backend emits event
 app.emit("ffmpeg://progress", ProgressPayload { ... })?;
+
 ```
 
 ```typescript
@@ -281,6 +290,7 @@ let reader = BufReader::new(stderr);
 for line in reader.lines() {
     // Parse progress and emit events
 }
+
 ```
 
 ## Type Safety
@@ -309,6 +319,7 @@ struct ProbeResult {
     width: u32,
     height: u32,
 }
+
 ```
 
 ### Type Consistency
@@ -381,6 +392,7 @@ Rust types are serialized to JSON and deserialized in TypeScript, maintaining ty
 
 ```bash
 npm run tauri:dev
+
 ```
 
 - Hot module replacement (HMR) for Vue

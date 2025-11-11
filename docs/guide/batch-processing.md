@@ -30,6 +30,7 @@ Videos/
   │   ├── clip1.mov
   │   └── clip2.mp4
   └── project.txt (ignored)
+
 ```
 
 Result: 4 video files added to the queue, text file ignored.
@@ -58,6 +59,7 @@ graph LR
     A --> C[Slot 2: Running]
     A --> D[Waiting...]
     A --> E[Waiting...]
+
 ```
 
 ### Concurrency Configuration
@@ -226,13 +228,16 @@ If a job fails:
 **By Source Directory** (default)
 
 ```
+
 Input:  ~/Videos/movie1.mkv
 Output: ~/Videos/movie1-converted.mp4
+
 ```
 
 **Custom Output Directory**
 
 ```
+
 Input:  ~/Videos/movie1.mkv
 Output: ~/Converted/movie1-converted.mp4
 ```

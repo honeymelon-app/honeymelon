@@ -44,7 +44,7 @@ The application follows a three-stage conversion pipeline implemented across fro
      - If codec matches but container differs → copy if container allows
      - Otherwise → transcode with tier-specific quality settings
 
-3. **Execute** ([src-tauri/src/ffmpeg_runner.rs](src-tauri/src/ffmpeg_runner.rs))
+3. **Execute** (runner modules under `src-tauri/src/runner`)
    - Rust side spawns FFmpeg as child process
    - Parses stderr for progress events (time, fps, speed)
    - Emits `ffmpeg://progress` and `ffmpeg://completion` events to frontend
@@ -106,7 +106,7 @@ Exposed commands:
 
 - `lib.rs` — Tauri command handler registration
 - `ffmpeg_probe.rs` — ffprobe command execution and JSON parsing
-- `ffmpeg_runner.rs` — FFmpeg process spawning, progress parsing, event emission
+- runner modules (`src-tauri/src/runner`) — FFmpeg process spawning, progress parsing, event emission
 - `ffmpeg_capabilities.rs` — Encoder/format detection
 - `fs_utils.rs` — Recursive media file discovery
 - `error.rs` — Unified error type for Tauri commands

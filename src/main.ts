@@ -41,21 +41,20 @@ if (import.meta.env.PROD) {
 }
 
 // Global error handler for uncaught Vue errors
-app.config.errorHandler = (err, instance, info) => {
-  console.error('[Global Error Handler]', err);
-  console.error('Component:', instance);
-  console.error('Error Info:', info);
-
+app.config.errorHandler = (_err, _instance, _info) => {
+  // console.error('[Global Error Handler]', err);
+  // console.error('Component:', instance);
+  // console.error('Error Info:', info);
   // In production, you could send this to an error tracking service
   // For now, we'll just log it to the console
 };
 
 // Global warning handler (development only)
 if (import.meta.env.DEV) {
-  app.config.warnHandler = (msg, instance, trace) => {
-    console.warn('[Vue Warning]', msg);
-    console.warn('Component:', instance);
-    console.warn('Trace:', trace);
+  app.config.warnHandler = (_msg, _instance, _trace) => {
+    // console.warn('[Vue Warning]', msg);
+    // console.warn('Component:', instance);
+    // console.warn('Trace:', trace);
   };
 }
 

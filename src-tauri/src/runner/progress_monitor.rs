@@ -24,7 +24,6 @@ pub struct RunningProcess {
     /// Circular buffer of recent log lines
     pub logs: Mutex<VecDeque<String>>,
 }
-
 impl RunningProcess {
     pub fn new(child: Child) -> Self {
         Self {
@@ -33,6 +32,9 @@ impl RunningProcess {
             logs: Mutex::new(VecDeque::with_capacity(256)),
         }
     }
+
+    // `new_mock` removed: no longer required by local tests. Use real `Child` in
+    // integration tests or create small test helpers inside those test modules.
 
     pub fn mark_cancelled(&self) {
         self.cancelled.store(true, Ordering::SeqCst);

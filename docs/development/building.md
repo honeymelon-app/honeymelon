@@ -14,6 +14,7 @@ Install Xcode Command Line Tools:
 
 ```bash
 xcode-select --install
+
 ```
 
 ### Required Tools
@@ -24,6 +25,7 @@ Install via Homebrew:
 
 ```bash
 brew install node
+
 ```
 
 Or download from [nodejs.org](https://nodejs.org)
@@ -33,6 +35,7 @@ Verify installation:
 ```bash
 node --version  # Should be 18+
 npm --version
+
 ```
 
 #### Rust
@@ -42,6 +45,7 @@ Install Rust toolchain:
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source $HOME/.cargo/env
+
 ```
 
 Verify installation:
@@ -49,12 +53,14 @@ Verify installation:
 ```bash
 rustc --version
 cargo --version
+
 ```
 
 Ensure you have the Apple Silicon target:
 
 ```bash
 rustup target add aarch64-apple-darwin
+
 ```
 
 ## Clone the Repository
@@ -62,12 +68,14 @@ rustup target add aarch64-apple-darwin
 ```bash
 git clone https://github.com/honeymelon-app/honeymelon.git
 cd honeymelon
+
 ```
 
 ## Install Dependencies
 
 ```bash
 npm install
+
 ```
 
 This will:
@@ -82,6 +90,7 @@ If you want to skip automatic FFmpeg download:
 
 ```bash
 SKIP_FFMPEG_DOWNLOAD=1 npm install
+
 ```
 
 ## Development Build
@@ -90,6 +99,7 @@ SKIP_FFMPEG_DOWNLOAD=1 npm install
 
 ```bash
 npm run tauri:dev
+
 ```
 
 This launches the app in development mode with:
@@ -111,6 +121,7 @@ This launches the app in development mode with:
 
 ```bash
 npm run tauri:build
+
 ```
 
 This creates:
@@ -125,11 +136,13 @@ This creates:
 Build artifacts are located at:
 
 ```
+
 src-tauri/target/release/bundle/
 ├── dmg/
 │   └── Honeymelon_0.1.0_aarch64.dmg
 └── macos/
     └── Honeymelon.app
+
 ```
 
 ### Build for Universal Binary
@@ -138,6 +151,7 @@ To create a universal binary (Intel + Apple Silicon):
 
 ```bash
 npm run tauri:build:universal
+
 ```
 
 ::: warning
@@ -201,6 +215,7 @@ lto = true
 opt-level = "z"  # Optimize for size
 strip = true     # Remove debug symbols
 panic = "abort"  # Smaller binary
+
 ```
 
 ## Build Optimizations
@@ -236,6 +251,7 @@ panic = "abort"  # Smaller binary
 
 ```bash
 error: linker `cc` not found
+
 ```
 
 Solution: Install Xcode Command Line Tools
@@ -244,6 +260,7 @@ Solution: Install Xcode Command Line Tools
 
 ```bash
 Error: Cannot find module 'vite'
+
 ```
 
 Solution:
@@ -251,12 +268,14 @@ Solution:
 ```bash
 rm -rf node_modules package-lock.json
 npm install
+
 ```
 
 **Rust Compilation Errors**:
 
 ```bash
 error: could not compile `honeymelon`
+
 ```
 
 Solution:
@@ -265,12 +284,14 @@ Solution:
 cd src-tauri
 cargo clean
 cargo build
+
 ```
 
 ### TypeScript Errors
 
 ```bash
 npm run type-check
+
 ```
 
 Fix type errors before building.
@@ -286,6 +307,7 @@ brew install michaeleisel/zld/zld
 # Add to ~/.cargo/config.toml
 [target.aarch64-apple-darwin]
 rustflags = ["-C", "link-arg=-fuse-ld=/opt/homebrew/bin/zld"]
+
 ```
 
 **Speed up Node builds**:
@@ -295,6 +317,7 @@ rustflags = ["-C", "link-arg=-fuse-ld=/opt/homebrew/bin/zld"]
 npm install -g pnpm
 pnpm install
 pnpm run build
+
 ```
 
 ## Advanced Builds
@@ -304,6 +327,7 @@ pnpm run build
 ```bash
 cd src-tauri
 cargo build --profile release-with-debug
+
 ```
 
 Add to `Cargo.toml`:
@@ -313,6 +337,7 @@ Add to `Cargo.toml`:
 inherits = "release"
 debug = true
 strip = false
+
 ```
 
 ### Custom Build Targets
@@ -321,12 +346,14 @@ strip = false
 
 ```bash
 npm run tauri:build --target aarch64-apple-darwin
+
 ```
 
 **Universal Binary**:
 
 ```bash
 npm run tauri:build --target universal-apple-darwin
+
 ```
 
 ### Cross-Compilation

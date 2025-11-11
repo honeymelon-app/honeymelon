@@ -1,0 +1,7 @@
+node_modules/
+dist/
+public/
+src-tauri/target/
+.vite/
+.docs/
+.DS_Store

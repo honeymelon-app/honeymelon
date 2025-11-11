@@ -6,51 +6,57 @@ Honeymelon uses Pinia for reactive state management with discriminated union typ
 
 ### Jobs Store
 
-**Location**: [src/stores/jobs.ts](../../src/stores/jobs.ts)
+**Location**: `src/stores/` — split into `job-queue.ts`, `job-state.ts`, `job-progress.ts`, `job-logs.ts`, with a facade `jobs.ts` that composes them.
 
-Manages the conversion job queue and job lifecycle.
+Manages the conversion job queue and job lifecycle. The public API is exposed via the `useJobsStore()` facade which composes the focused composables.
 
 ```typescript
-export const useJobsStore = defineStore('jobs', () => {
-  const jobs = ref<Job[]>([])
-  const concurrencyLimit = ref(2)
+// Usage (facade):
+const jobs = useJobsStore();
 
-  function addJob(sourceFile: string, preset: Preset) { ... }
-  function startJob(jobId: string) { ... }
-  function cancelJob(jobId: string) { ... }
-  function updateJobProgress(jobId: string, progress: Progress) { ... }
+// Enqueue a file
+const id = jobs.enqueue('/path/to/file.mp4', 'preset-id', 'balanced');
 
-  return { jobs, addJob, startJob, cancelJob, updateJobProgress }
-})
+// Start next job (facade delegates to underlying composables)
+jobs.startNext();
+
+// Subscribe to progress via computed store values
+const running = jobs.activeJobs;
 ```
 
 ### Preferences Store
 
-**Location**: [src/stores/prefs.ts](../../src/stores/prefs.ts)
+**Location**: `src/stores/prefs.ts` (uses a persistent store via `tauri-plugin-store` on desktop builds, and falls back to in-memory/localStorage in non-Tauri environments for tests)
 
-Manages user preferences and application settings.
+Manages user preferences and application settings. The implementation persists preferences using the Tauri `Store` API (file-backed) when running as a desktop app.
 
 ```typescript
-export const usePrefsStore = defineStore('prefs', () => {
-  const outputDirectory = ref<string | null>(null)
-  const filenameSuffix = ref('-converted')
-  const concurrentJobs = ref(2)
-  const defaultQuality = ref<QualityTier>('balanced')
-  const hwAccelEnabled = ref(true)
+// Example usage inside a composable
+import { Store } from '@tauri-apps/plugin-store';
 
-  function save() { ... }
-  function load() { ... }
+const store = new Store('.settings.dat');
 
-  return {
-    outputDirectory,
-    filenameSuffix,
-    concurrentJobs,
-    defaultQuality,
-    hwAccelEnabled,
-    save,
-    load
+export function usePrefs() {
+  const outputDirectory = ref<string | null>(null);
+
+  async function load() {
+    const stored = await store.get('prefs');
+    if (stored) {
+      outputDirectory.value = stored.outputDirectory ?? null;
+      // ... load other prefs
+    }
   }
-})
+
+  async function save() {
+    await store.set('prefs', {
+      outputDirectory: outputDirectory.value,
+      // ... other prefs
+    });
+    await store.save();
+  }
+
+  return { outputDirectory, load, save };
+}
 ```
 
 ## Job State Machine
@@ -127,6 +133,7 @@ stateDiagram-v2
     running --> failed: conversionError()
     queued --> cancelled: cancelJob()
     running --> cancelled: cancelJob()
+
 ```
 
 ### Type-Safe Updates

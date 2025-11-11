@@ -1,7 +1,7 @@
 import { computed, ref, type Ref, type ComputedRef } from 'vue';
 import type { Tier } from '@/lib/types';
+import { PRESETS } from '@/lib/presets';
 import {
-  createJobId,
   isActiveState,
   isTerminalState,
   MAX_TERMINAL_JOBS,
@@ -9,6 +9,8 @@ import {
   type JobId,
   type JobRecord,
 } from './job-types';
+import { JobFactory } from '@/factories/job-factory';
+import { jobRepository, type JobRepository } from '@/repositories/job-repository';
 
 export interface JobQueueComposable {
   jobsMap: Ref<Map<string, JobRecord>>;
@@ -28,11 +30,19 @@ export interface JobQueueComposable {
   pruneTerminalJobs: () => void;
   startNext: () => JobRecord | undefined;
   peekNext: () => JobRecord | undefined;
+  repository: JobRepository;
 }
 
 export function useJobQueue(): JobQueueComposable {
-  const jobsMap = ref<Map<string, JobRecord>>(new Map());
+  // Get a direct reference to the repository's map for reactivity
+  // This ensures all store instances share the same reactive map
+  const jobsMap = ref(jobRepository.getInternalMap()) as Ref<Map<string, JobRecord>>;
   const maxConcurrency = ref(2);
+
+  // Helper to trigger reactivity after repository mutations
+  const triggerReactivity = () => {
+    jobsMap.value = new Map(jobRepository.getInternalMap());
+  };
 
   const jobs = computed(() => Array.from(jobsMap.value.values()));
   const queuedJobs = computed(() => jobs.value.filter((job) => job.state.status === 'queued'));
@@ -45,61 +55,85 @@ export function useJobQueue(): JobQueueComposable {
   }
 
   function enqueue(path: string, presetId: string, tier: Tier = 'balanced'): JobId | null {
-    for (const job of jobsMap.value.values()) {
-      if (job.path === path) {
-        return null;
-      }
+    // Check for duplicates using repository
+    const existingJobs = jobRepository.getByPath(path);
+    if (existingJobs.length > 0) {
+      return null;
     }
-    const createdAt = now();
-    const id = createJobId();
-    const record: JobRecord = {
-      id,
-      path,
-      presetId,
-      tier,
-      state: {
-        status: 'queued',
-        enqueuedAt: createdAt,
-      },
-      logs: [],
-      createdAt,
-      updatedAt: createdAt,
-    };
 
-    jobsMap.value.set(id, record);
-    return id;
+    // Find preset
+    const preset = PRESETS.find((p) => p.id === presetId);
+    if (!preset) {
+      console.warn(`[job-queue] Preset ${presetId} not found`);
+      return null;
+    }
+
+    // Use factory to create job with proper initialization
+    const record = JobFactory.create(path, preset, tier);
+    record.logs = [];
+
+    // Save via repository
+    jobRepository.save(record);
+    triggerReactivity();
+    return record.id;
   }
 
   function enqueueMany(paths: string[], presetId: string, tier: Tier = 'balanced'): JobId[] {
-    return paths
-      .map((path) => enqueue(path, presetId, tier))
-      .filter((id): id is JobId => id !== null);
+    // Find preset once for all jobs
+    const preset = PRESETS.find((p) => p.id === presetId);
+    if (!preset) {
+      console.warn(`[job-queue] Preset ${presetId} not found`);
+      return [];
+    }
+
+    // Use factory to create multiple jobs efficiently
+    const records = JobFactory.createMany(paths, preset, tier);
+
+    // Filter duplicates and save via repository
+    const ids: JobId[] = [];
+    for (const record of records) {
+      // Check for duplicate path using repository
+      const isDuplicate = jobRepository.getByPath(record.path).length > 0;
+      if (!isDuplicate) {
+        record.logs = [];
+        jobRepository.save(record);
+        ids.push(record.id);
+      }
+    }
+
+    if (ids.length > 0) {
+      triggerReactivity();
+    }
+
+    return ids;
   }
 
   function getJob(id: JobId): JobRecord | undefined {
-    return jobsMap.value.get(id);
+    return jobRepository.getById(id);
   }
 
   function updateJob(id: JobId, updater: (job: JobRecord) => JobRecord) {
-    const record = jobsMap.value.get(id);
+    const record = jobRepository.getById(id);
     if (!record) {
       return;
     }
     const updated = updater({ ...record });
     updated.updatedAt = now();
-    jobsMap.value.set(id, updated);
+    jobRepository.save(updated);
+    triggerReactivity();
   }
 
   function removeJob(id: JobId) {
-    jobsMap.value.delete(id);
+    jobRepository.delete(id);
+    triggerReactivity();
   }
 
   function clearCompleted() {
-    for (const [id, job] of jobsMap.value.entries()) {
-      if (isTerminalState(job.state)) {
-        jobsMap.value.delete(id);
-      }
+    const terminalJobs = jobRepository.getByStatuses(['completed', 'failed', 'cancelled']);
+    for (const job of terminalJobs) {
+      jobRepository.delete(job.id);
     }
+    triggerReactivity();
   }
 
   function pruneTerminalJobs() {
@@ -107,7 +141,8 @@ export function useJobQueue(): JobQueueComposable {
     if (terminal.length > MAX_TERMINAL_JOBS) {
       const sorted = [...terminal].sort((a, b) => b.updatedAt - a.updatedAt);
       const toRemove = sorted.slice(MAX_TERMINAL_JOBS);
-      toRemove.forEach((job) => removeJob(job.id));
+      toRemove.forEach((job) => jobRepository.delete(job.id));
+      triggerReactivity();
     }
   }
 
@@ -145,5 +180,6 @@ export function useJobQueue(): JobQueueComposable {
     pruneTerminalJobs,
     startNext,
     peekNext,
+    repository: jobRepository,
   };
 }

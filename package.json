@@ -25,9 +25,11 @@
     "remove:emojis:dry": "node scripts/remove-emojis.js --dry-run",
     "remove:emojis:src": "node scripts/remove-emojis.js --include \"^/src/\"",
     "version:update": "node scripts/update-version.js",
-    "download-ffmpeg": "bash scripts/download-ffmpeg.sh",
-    "postinstall": "bash scripts/download-ffmpeg.sh || echo 'FFmpeg download skipped (optional)'",
-    "lint": "npm run lint:js && npm run lint:rust",
+    "download-ffmpeg": "node scripts/download-ffmpeg.js",
+    "postinstall": "node scripts/download-ffmpeg.js || echo 'FFmpeg download skipped (optional)'",
+    "lint": "npm run lint:js && npm run lint:md && npm run lint:rust",
+    "lint:md": "markdownlint --config .markdownlint.json '**/*.md' 'docs/**/*.md'",
+    "format:md": "prettier --write \"**/*.md\"",
     "lint:js": "eslint . --ext .js,.ts,.vue,.mjs,.cjs",
     "lint:js:fix": "eslint . --ext .js,.ts,.vue,.mjs,.cjs --fix",
     "lint:rust": "cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings",
@@ -106,6 +108,7 @@
     "vitepress": "^2.0.0-alpha.12",
     "vitest": "^4.0.5",
     "vue-eslint-parser": "^9.4.3",
-    "vue-tsc": "^2.1.10"
+    "vue-tsc": "^2.1.10",
+    "markdownlint-cli": "^0.34.0"
   }
 }

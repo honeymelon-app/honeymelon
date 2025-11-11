@@ -28,12 +28,14 @@ use serde::Serialize;
  *
  * # Examples
  *
- * ```
+ * ```ignore
+ * use honeymelon_lib::error::AppError;
+ *
  * // Create a custom error
  * let error = AppError::new("validation_error", "Invalid input provided");
  *
  * // Convert from standard library errors
- * let io_error: std::io::Error = ...;
+ * let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
  * let app_error: AppError = io_error.into();
  * ```
  */
@@ -57,8 +59,11 @@ impl AppError {
      *
      * # Examples
      *
-     * ```
+     * ```ignore
+     * use honeymelon_lib::error::AppError;
+     *
      * let error = AppError::new("file_not_found", "The specified file does not exist");
+     * let details = "timeout";
      * let error = AppError::new("network_error", format!("Connection failed: {}", details));
      * ```
      */

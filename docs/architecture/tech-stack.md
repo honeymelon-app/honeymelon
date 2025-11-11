@@ -31,6 +31,7 @@ graph TB
 
     Frontend <--> |IPC| Backend
     Backend <--> |Spawn| External
+
 ```
 
 ## Frontend Stack
@@ -199,6 +200,7 @@ async fn convert_file(input: String, output: String) -> Result<(), String> {
     child.wait().await.map_err(|e| e.to_string())?;
     Ok(())
 }
+
 ```
 
 ### Tauri 2
@@ -248,6 +250,7 @@ async fn main() {
         task.await.unwrap();
     }
 }
+
 ```
 
 ### Serde
@@ -272,6 +275,7 @@ struct ProbeResult {
 
 // Serialize to JSON for frontend
 let json = serde_json::to_string(&probe_result)?;
+
 ```
 
 ## External Tools
@@ -341,6 +345,7 @@ let json = serde_json::to_string(&probe_result)?;
 
 ```bash
 npm run tauri:dev
+
 ```
 
 - Vite dev server with HMR

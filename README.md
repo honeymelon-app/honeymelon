@@ -138,6 +138,7 @@ npm run tauri dev
 
 # 4. Or run frontend only (no FFmpeg access)
 npm run dev
+
 ```
 
 ---
@@ -148,7 +149,7 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 
 ### Stage 1: Probe
 
-**Extract comprehensive metadata from input files**
+## Extract comprehensive metadata from input files
 
 - **Backend**: Executes `ffprobe` with JSON output (`-print_format json -show_format -show_streams`)
 - **Parsing**: Normalizes codec names, handles multiple frame rate formats, categorizes subtitle types
@@ -165,7 +166,7 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 
 ### Stage 2: Plan
 
-**Determine optimal conversion strategy (copy vs. transcode)**
+## Determine optimal conversion strategy (copy vs. transcode)
 
 - **Decision Logic**: Matches source codec against target preset codec—if identical, uses stream copy; otherwise transcodes
 - **Container Rules**: Validates codec compatibility (e.g., MP4 only supports H.264/HEVC/AV1 video, AAC/ALAC audio)
@@ -184,7 +185,7 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 
 ### Stage 3: Execute
 
-**Spawn FFmpeg process with real-time progress tracking**
+## Spawn FFmpeg process with real-time progress tracking
 
 - **Concurrency Control**: Atomic validation with configurable limits (default: 2 concurrent jobs)
 - **Exclusive Mode**: Heavy codecs (AV1, ProRes) block other jobs to prevent resource exhaustion
@@ -192,7 +193,7 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 - **Progress Parsing**: Background thread parses stderr for time/fps/speed metrics, emits Tauri events
 - **Security**: Command injection prevention validates all arguments before spawning
 
-**Implementation**: [ffmpeg_runner.rs](src-tauri/src/ffmpeg_runner.rs) (1223 lines, Rust) + [use-job-orchestrator.ts](src/composables/use-job-orchestrator.ts) (frontend orchestration)
+**Implementation**: runner modules under `src-tauri/src/runner/` (e.g. `mod.rs`, `process_spawner.rs`, `progress_monitor.rs`, `output_manager.rs`, `validator.rs`, `concurrency.rs`) + `src/composables/use-job-orchestrator.ts` (frontend orchestration)
 
 **Event System**:
 
@@ -233,16 +234,25 @@ src/
 │   ├── presets.ts          # Dynamic preset generation
 │   └── types.ts            # TypeScript definitions
 ├── stores/                 # Pinia state
-│   ├── jobs.ts             # Job queue state machine
+│   ├── job-queue.ts        # Job queue operations (enqueue/start/peek)
+│   ├── job-state.ts        # Job state transitions (probing/planning/running)
+│   ├── job-progress.ts     # Progress tracking utilities
+│   ├── job-logs.ts         # Circular job log buffer
 │   └── prefs.ts            # User preferences
 ├── composables/            # Vue composables
 │   └── use-job-orchestrator.ts  # Main orchestrator
 └── components/             # Vue UI components
 
 src-tauri/src/
-├── ffmpeg_runner.rs        # Process orchestration (1223 lines)
-├── ffmpeg_probe.rs         # Media probing (957 lines)
-├── ffmpeg_capabilities.rs  # Capability detection (782 lines)
+├── runner/                 # FFmpeg process orchestration split into focused modules
+│   ├── mod.rs
+│   ├── process_spawner.rs
+│   ├── progress_monitor.rs
+│   ├── output_manager.rs
+│   ├── validator.rs
+│   └── concurrency.rs
+├── ffmpeg_probe.rs         # Media probing
+├── ffmpeg_capabilities.rs  # Capability detection
 ├── fs_utils.rs             # File discovery
 └── error.rs                # Unified error handling
 ```

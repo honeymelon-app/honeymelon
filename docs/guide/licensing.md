@@ -19,6 +19,7 @@ Workflow in the Laravel project (run from `platform/`):
 
 ```bash
 php artisan license:generate-keys
+
 ```
 
 The command prints a base64 encoded Ed25519 public/private keypair. Store the values in infrastructure secrets. The public key is safe to embed in the desktop app; the private key must never leave the backend.
@@ -28,6 +29,7 @@ Update the Laravel environment:
 ```env
 LICENSE_SIGNING_PUBLIC_KEY=base64_public_key
 LICENSE_SIGNING_PRIVATE_KEY=base64_private_key
+
 ```
 
 For the desktop app, inject the public key at build time. The verifier looks for one of:

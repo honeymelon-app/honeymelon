@@ -20,8 +20,46 @@ function muxerForContainer(container: Container): string | undefined {
   return CONTAINER_TO_MUXER[container];
 }
 
+/**
+ * Video codec options for the builder
+ */
+export interface VideoOptions {
+  bitrate?: number; // in kbps
+  maxrate?: number; // in kbps
+  bufsize?: number; // in kbps
+  crf?: number;
+  profile?: string;
+  preset?: string;
+}
+
+/**
+ * Audio codec options for the builder
+ */
+export interface AudioOptions {
+  bitrate?: number; // in kbps
+  sampleRate?: number;
+  channels?: number;
+}
+
+/**
+ * FFmpegArgsBuilder - Fluent interface for building FFmpeg command arguments
+ *
+ * Implements the Builder design pattern to construct complex FFmpeg command lines
+ * in a readable and maintainable way.
+ *
+ * @example
+ * ```ts
+ * const args = new FFmpegArgsBuilder()
+ *   .withInput('/path/to/input.mp4')
+ *   .withProgress()
+ *   .withVideoCodec('libx264', { crf: 23, preset: 'medium' })
+ *   .withAudioCodec('aac', { bitrate: 128 })
+ *   .withOutput('/path/to/output.mp4')
+ *   .build();
+ * ```
+ */
 export class FFmpegArgsBuilder {
-  private args: string[] = ['-progress', 'pipe:2', '-nostats'];
+  private args: string[] = [];
   private notes: string[] = [];
 
   withVideo(
@@ -148,6 +186,109 @@ export class FFmpegArgsBuilder {
 
   addNote(note: string): this {
     this.notes.push(note);
+    return this;
+  }
+
+  /**
+   * Adds input file path
+   * @param path - Path to input file
+   */
+  withInput(path: string): this {
+    this.args.push('-i', path);
+    return this;
+  }
+
+  /**
+   * Enables progress reporting to stderr
+   */
+  withProgress(): this {
+    if (!this.args.includes('-progress')) {
+      this.args.push('-progress', 'pipe:2', '-nostats');
+    }
+    return this;
+  }
+
+  /**
+   * Adds video codec with options
+   * @param codec - Video codec name (e.g., 'libx264')
+   * @param options - Video encoding options
+   */
+  withVideoCodec(codec: string, options?: VideoOptions): this {
+    this.args.push('-c:v', codec);
+
+    if (options) {
+      if (options.bitrate !== undefined) {
+        this.args.push('-b:v', `${options.bitrate}k`);
+      }
+      if (options.maxrate !== undefined) {
+        this.args.push('-maxrate', `${options.maxrate}k`);
+      }
+      if (options.bufsize !== undefined) {
+        this.args.push('-bufsize', `${options.bufsize}k`);
+      }
+      if (options.crf !== undefined) {
+        this.args.push('-crf', options.crf.toString());
+      }
+      if (options.profile) {
+        this.args.push('-profile:v', options.profile);
+      }
+      if (options.preset) {
+        this.args.push('-preset', options.preset);
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds audio codec with options
+   * @param codec - Audio codec name (e.g., 'aac')
+   * @param options - Audio encoding options
+   */
+  withAudioCodec(codec: string, options?: AudioOptions): this {
+    this.args.push('-c:a', codec);
+
+    if (options) {
+      if (options.bitrate !== undefined) {
+        this.args.push('-b:a', `${options.bitrate}k`);
+      }
+      if (options.sampleRate !== undefined) {
+        this.args.push('-ar', options.sampleRate.toString());
+      }
+      if (options.channels !== undefined) {
+        this.args.push('-ac', options.channels.toString());
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Adds output file path
+   * @param path - Path to output file
+   */
+  withOutput(path: string): this {
+    this.args.push(path);
+    return this;
+  }
+
+  /**
+   * Overwrite output files without asking
+   */
+  withOverwrite(): this {
+    if (!this.args.includes('-y')) {
+      this.args.unshift('-y');
+    }
+    return this;
+  }
+
+  /**
+   * Disable stdin interaction
+   */
+  withNoStdin(): this {
+    if (!this.args.includes('-nostdin')) {
+      this.args.push('-nostdin');
+    }
     return this;
   }
 

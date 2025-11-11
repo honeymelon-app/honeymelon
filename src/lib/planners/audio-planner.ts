@@ -1,25 +1,10 @@
-import type {
-  ACodec,
-  CapabilitySnapshot,
-  Preset,
-  ProbeSummary,
-  Tier,
-  TierDefaults,
-} from '../types';
+import type { CapabilitySnapshot, Preset, ProbeSummary, Tier, TierDefaults } from '../types';
 import type { VideoTierResult } from './video-planner';
 import { resolveTierDefaults } from './video-planner';
-
-const AUDIO_ENCODERS: Record<ACodec, string | null> = {
-  copy: 'copy',
-  none: null,
-  aac: 'aac',
-  alac: 'alac',
-  mp3: 'libmp3lame',
-  opus: 'libopus',
-  vorbis: 'libvorbis',
-  flac: 'flac',
-  pcm_s16le: 'pcm_s16le',
-};
+import {
+  DEFAULT_AUDIO_STRATEGY,
+  type AudioEncoderSelectionStrategy,
+} from '../strategies/encoder-strategy';
 
 export interface AudioAction {
   action: 'copy' | 'transcode' | 'drop';
@@ -32,7 +17,10 @@ function normalizeCodec(value: string | undefined): string | undefined {
 }
 
 export class AudioPlanner {
-  constructor(private capabilities?: CapabilitySnapshot) {}
+  constructor(
+    private capabilities?: CapabilitySnapshot,
+    private encoderStrategy: AudioEncoderSelectionStrategy = DEFAULT_AUDIO_STRATEGY,
+  ) {}
 
   plan(
     summary: ProbeSummary,
@@ -47,7 +35,7 @@ export class AudioPlanner {
     const sourceAudioCodec = normalizeCodec(summary.acodec);
 
     let action: 'copy' | 'transcode' | 'drop';
-    let encoder = AUDIO_ENCODERS[preset.audio.codec] ?? undefined;
+    let encoder = this.encoderStrategy.selectEncoder(preset.audio.codec, this.capabilities);
     let note: string;
 
     if (preset.audio.codec === 'none') {
@@ -68,14 +56,12 @@ export class AudioPlanner {
     } else {
       action = 'transcode';
       encoder = encoder ?? preset.audio.codec;
-      const requiredEncoder = AUDIO_ENCODERS[preset.audio.codec];
-      if (
-        requiredEncoder &&
-        this.capabilities &&
-        !this.capabilities.audioEncoders.has(requiredEncoder)
-      ) {
-        warnings.push(`Encoder ${requiredEncoder} not reported by FFmpeg; transcode may fail.`);
+
+      // Check if encoder is available in capabilities
+      if (this.capabilities && encoder && !this.capabilities.audioEncoders.has(encoder)) {
+        warnings.push(`Encoder ${encoder} not reported by FFmpeg; transcode may fail.`);
       }
+
       note = `Audio: transcode ${sourceAudioCodec ?? 'unknown'} → ${preset.audio.codec} with ${encoder}.`;
     }
 

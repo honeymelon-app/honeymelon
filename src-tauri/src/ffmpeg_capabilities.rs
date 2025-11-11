@@ -269,7 +269,7 @@ pub fn candidate_ffmpeg_paths(app: &AppHandle) -> Vec<OsString> {
  *
  * # Example Output Parsing
  *
- * ```
+ * ```text
  *  V..... h264           H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
  *  A..... aac            AAC (Advanced Audio Coding)
  *  S..... ass            ASS (Advanced SSA) subtitle
@@ -328,7 +328,7 @@ fn parse_encoders(output: &str) -> (Vec<String>, Vec<String>) {
  *
  * # Example Output Parsing
  *
- * ```
+ * ```text
  *  D  matroska             Matroska
  *  E  mp4                  MP4 (MPEG-4 Part 14)
  * DE mov,mp4,m4a,3gp,3g2,mj2 QuickTime / MOV
@@ -378,7 +378,7 @@ fn parse_formats(output: &str) -> Vec<String> {
  *
  * # Example Output Parsing
  *
- * ```
+ * ```text
  * scale               V->V       Scale the input video to width:height size
  * *scale_cuda         V->V       GPU accelerated scaling (not available)
  * transpose           V->V       Transpose rows with columns

@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useJobsStore } from '../jobs';
+import { PRESETS } from '@/lib/presets';
+import { jobRepository } from '@/repositories/job-repository';
+
+// Use actual preset IDs from the codebase
+const TEST_PRESET_1 = PRESETS[0].id; // First available preset
+const TEST_PRESET_2 = PRESETS[1]?.id || PRESETS[0].id; // Second or fallback to first
 
 describe('jobs store', () => {
   beforeEach(() => {
+    // Clear the repository singleton before each test
+    jobRepository.clear();
     setActivePinia(createPinia());
     vi.useFakeTimers();
   });
@@ -48,27 +56,27 @@ describe('jobs store', () => {
   describe('enqueue', () => {
     it('should add job to queue', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path/to/video.mp4', 'mp4-h264');
+      const jobId = store.enqueue('/path/to/video.mp4', TEST_PRESET_1);
 
       expect(jobId).toBeTruthy();
       expect(store.jobs.length).toBe(1);
       expect(store.jobs[0].path).toBe('/path/to/video.mp4');
-      expect(store.jobs[0].presetId).toBe('mp4-h264');
+      expect(store.jobs[0].presetId).toBe(TEST_PRESET_1);
       expect(store.jobs[0].state.status).toBe('queued');
     });
 
     it('should assign unique job IDs', () => {
       const store = useJobsStore();
-      const id1 = store.enqueue('/path1.mp4', 'preset1');
-      const id2 = store.enqueue('/path2.mp4', 'preset2');
+      const id1 = store.enqueue('/path1.mp4', TEST_PRESET_1);
+      const id2 = store.enqueue('/path2.mp4', TEST_PRESET_2);
 
       expect(id1).not.toBe(id2);
     });
 
     it('should return null for duplicate paths', () => {
       const store = useJobsStore();
-      const id1 = store.enqueue('/path/to/video.mp4', 'mp4-h264');
-      const duplicate = store.enqueue('/path/to/video.mp4', 'mp4-h265');
+      const id1 = store.enqueue('/path/to/video.mp4', TEST_PRESET_1);
+      const duplicate = store.enqueue('/path/to/video.mp4', TEST_PRESET_2);
 
       expect(id1).toBeTruthy();
       expect(duplicate).toBeNull();
@@ -77,7 +85,7 @@ describe('jobs store', () => {
 
     it('should use default tier if not specified', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path/to/video.mp4', 'mp4-h264');
+      const jobId = store.enqueue('/path/to/video.mp4', TEST_PRESET_1);
       const job = store.getJob(jobId!);
 
       expect(job?.tier).toBe('balanced');
@@ -85,7 +93,7 @@ describe('jobs store', () => {
 
     it('should accept custom tier', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path/to/video.mp4', 'mp4-h264', 'high');
+      const jobId = store.enqueue('/path/to/video.mp4', TEST_PRESET_1, 'high');
       const job = store.getJob(jobId!);
 
       expect(job?.tier).toBe('high');
@@ -93,7 +101,7 @@ describe('jobs store', () => {
 
     it('should initialize empty logs array', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path/to/video.mp4', 'mp4-h264');
+      const jobId = store.enqueue('/path/to/video.mp4', TEST_PRESET_1);
       const job = store.getJob(jobId!);
 
       expect(job?.logs).toEqual([]);
@@ -104,7 +112,7 @@ describe('jobs store', () => {
     it('should enqueue multiple jobs', () => {
       const store = useJobsStore();
       const paths = ['/path1.mp4', '/path2.mkv', '/path3.webm'];
-      const jobIds = store.enqueueMany(paths, 'mp4-h264');
+      const jobIds = store.enqueueMany(paths, TEST_PRESET_1);
 
       expect(jobIds.length).toBe(3);
       expect(store.jobs.length).toBe(3);
@@ -113,7 +121,7 @@ describe('jobs store', () => {
     it('should filter out duplicate paths', () => {
       const store = useJobsStore();
       const paths = ['/path1.mp4', '/path1.mp4', '/path2.mp4'];
-      const jobIds = store.enqueueMany(paths, 'mp4-h264');
+      const jobIds = store.enqueueMany(paths, TEST_PRESET_1);
 
       expect(jobIds.length).toBe(2);
       expect(store.jobs.length).toBe(2);
@@ -121,7 +129,7 @@ describe('jobs store', () => {
 
     it('should return empty array for empty input', () => {
       const store = useJobsStore();
-      const jobIds = store.enqueueMany([], 'mp4-h264');
+      const jobIds = store.enqueueMany([], TEST_PRESET_1);
 
       expect(jobIds).toEqual([]);
     });
@@ -130,7 +138,7 @@ describe('jobs store', () => {
   describe('job state transitions', () => {
     it('should transition from queued to probing', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.markProbing(jobId!);
 
       const job = store.getJob(jobId!);
@@ -139,7 +147,7 @@ describe('jobs store', () => {
 
     it('should transition from probing to planning', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.markProbing(jobId!);
       store.markPlanning(jobId!, {
         durationSec: 120,
@@ -155,7 +163,7 @@ describe('jobs store', () => {
 
     it('should transition from planning to running', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.markProbing(jobId!);
       store.markPlanning(jobId!, { durationSec: 120 });
       store.markRunning(jobId!, {
@@ -172,7 +180,7 @@ describe('jobs store', () => {
 
     it('should transition from running to completed', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.markRunning(jobId!, {} as any);
       store.markCompleted(jobId!, '/output/path.mp4');
 
@@ -183,7 +191,7 @@ describe('jobs store', () => {
 
     it('should transition from running to failed', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.markRunning(jobId!, {} as any);
       store.markFailed(jobId!, 'Error message', 'error_code');
 
@@ -197,7 +205,7 @@ describe('jobs store', () => {
 
     it('should handle cancel from queued state', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.cancelJob(jobId!);
 
       const job = store.getJob(jobId!);
@@ -206,7 +214,7 @@ describe('jobs store', () => {
 
     it('should handle requeue from terminal state', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.markCompleted(jobId!, '/output.mp4');
       store.requeue(jobId!);
 
@@ -218,7 +226,7 @@ describe('jobs store', () => {
   describe('logs management', () => {
     it('should append log lines', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
 
       store.appendLog(jobId!, 'Log line 1');
       store.appendLog(jobId!, 'Log line 2');
@@ -229,7 +237,7 @@ describe('jobs store', () => {
 
     it('should limit logs to 500 lines', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
 
       for (let i = 0; i < 600; i++) {
         store.appendLog(jobId!, `Log line ${i}`);
@@ -243,7 +251,7 @@ describe('jobs store', () => {
 
     it('should clear logs', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
 
       store.appendLog(jobId!, 'Log 1');
       store.appendLog(jobId!, 'Log 2');
@@ -255,7 +263,7 @@ describe('jobs store', () => {
 
     it('should set logs replacing existing', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
 
       store.appendLog(jobId!, 'Old log');
       store.setLogs(jobId!, ['New log 1', 'New log 2']);
@@ -268,7 +276,7 @@ describe('jobs store', () => {
   describe('progress tracking', () => {
     it('should update progress for running job', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.markRunning(jobId!, {} as any);
       store.updateProgress(jobId!, {
         processedSeconds: 30,
@@ -284,7 +292,7 @@ describe('jobs store', () => {
 
     it('should calculate ratio from processedSeconds and duration', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.markPlanning(jobId!, { durationSec: 100 });
       store.markRunning(jobId!, {} as any);
       store.updateProgress(jobId!, { processedSeconds: 50 });
@@ -297,7 +305,7 @@ describe('jobs store', () => {
 
     it('should not update progress for non-running jobs', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.updateProgress(jobId!, { processedSeconds: 50 });
 
       const job = store.getJob(jobId!);
@@ -308,7 +316,7 @@ describe('jobs store', () => {
   describe('removeJob', () => {
     it('should remove job from store', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
 
       expect(store.jobs.length).toBe(1);
       store.removeJob(jobId!);
@@ -324,20 +332,20 @@ describe('jobs store', () => {
   describe('updateJobPreset', () => {
     it('should update job preset', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset1');
-      store.updateJobPreset(jobId!, 'preset2');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
+      store.updateJobPreset(jobId!, TEST_PRESET_2);
 
       const job = store.getJob(jobId!);
-      expect(job?.presetId).toBe('preset2');
+      expect(job?.presetId).toBe(TEST_PRESET_2);
     });
   });
 
   describe('clearCompleted', () => {
     it('should remove completed jobs', () => {
       const store = useJobsStore();
-      const id1 = store.enqueue('/path1.mp4', 'preset');
-      const id2 = store.enqueue('/path2.mp4', 'preset');
-      const id3 = store.enqueue('/path3.mp4', 'preset');
+      const id1 = store.enqueue('/path1.mp4', TEST_PRESET_1);
+      const id2 = store.enqueue('/path2.mp4', TEST_PRESET_1);
+      const id3 = store.enqueue('/path3.mp4', TEST_PRESET_1);
 
       store.markCompleted(id1!, '/output1.mp4');
       store.markFailed(id2!, 'error');
@@ -355,7 +363,7 @@ describe('jobs store', () => {
       const store = useJobsStore();
       store.setConcurrency(2);
 
-      const id1 = store.enqueue('/path1.mp4', 'preset');
+      const id1 = store.enqueue('/path1.mp4', TEST_PRESET_1);
       store.enqueue('/path2.mp4', 'preset');
 
       const started = store.startNext();
@@ -368,7 +376,7 @@ describe('jobs store', () => {
       const store = useJobsStore();
       store.setConcurrency(1);
 
-      const id1 = store.enqueue('/path1.mp4', 'preset');
+      const id1 = store.enqueue('/path1.mp4', TEST_PRESET_1);
       store.enqueue('/path2.mp4', 'preset');
 
       store.markRunning(id1!, {} as any);
@@ -387,7 +395,7 @@ describe('jobs store', () => {
   describe('peekNext', () => {
     it('should return next queued job without starting', () => {
       const store = useJobsStore();
-      const id1 = store.enqueue('/path1.mp4', 'preset');
+      const id1 = store.enqueue('/path1.mp4', TEST_PRESET_1);
 
       const peeked = store.peekNext();
       expect(peeked?.id).toBe(id1);
@@ -404,9 +412,9 @@ describe('jobs store', () => {
   describe('computed properties', () => {
     it('should track active jobs', () => {
       const store = useJobsStore();
-      const id1 = store.enqueue('/path1.mp4', 'preset');
-      const id2 = store.enqueue('/path2.mp4', 'preset');
-      const id3 = store.enqueue('/path3.mp4', 'preset');
+      const id1 = store.enqueue('/path1.mp4', TEST_PRESET_1);
+      const id2 = store.enqueue('/path2.mp4', TEST_PRESET_1);
+      const id3 = store.enqueue('/path3.mp4', TEST_PRESET_1);
 
       store.markRunning(id1!, {} as any);
       store.markProbing(id2!);
@@ -419,7 +427,7 @@ describe('jobs store', () => {
 
     it('should calculate running ETA', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.markPlanning(jobId!, { durationSec: 100 });
       store.markRunning(jobId!, {} as any);
       store.updateProgress(jobId!, { processedSeconds: 25 });
@@ -437,7 +445,7 @@ describe('jobs store', () => {
   describe('exclusive jobs', () => {
     it('should mark job as exclusive', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.setExclusive(jobId!, true);
 
       const job = store.getJob(jobId!);
@@ -446,7 +454,7 @@ describe('jobs store', () => {
 
     it('should track hasExclusiveActive', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.setExclusive(jobId!, true);
       store.markRunning(jobId!, {} as any);
 
@@ -455,7 +463,7 @@ describe('jobs store', () => {
 
     it('should clear exclusive flag on completion', () => {
       const store = useJobsStore();
-      const jobId = store.enqueue('/path.mp4', 'preset');
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.setExclusive(jobId!, true);
       store.markRunning(jobId!, {} as any);
       store.markCompleted(jobId!, '/output.mp4');

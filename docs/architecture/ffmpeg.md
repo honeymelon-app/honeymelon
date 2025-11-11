@@ -36,15 +36,17 @@ Honeymelon searches for FFmpeg binaries in this order:
 
 ### 1. Bundled Binaries
 
-```
+```text
 public/bin/ffmpeg
 public/bin/ffprobe
+
 ```
 
 Downloaded automatically during `npm install` or manually via:
 
 ```bash
 npm run download-ffmpeg
+
 ```
 
 **Included in app bundle** for distribution.
@@ -54,16 +56,18 @@ npm run download-ffmpeg
 ```bash
 export FFMPEG_PATH=/custom/path/to/ffmpeg
 export FFPROBE_PATH=/custom/path/to/ffprobe
+
 ```
 
 ### 3. System Installation
 
 Standard paths checked:
 
-```
+```text
 /usr/local/bin/ffmpeg
 /opt/homebrew/bin/ffmpeg
 /usr/bin/ffmpeg
+
 ```
 
 ### 4. User Configured
@@ -72,7 +76,7 @@ Set in Preferences → FFmpeg Settings.
 
 ### Implementation
 
-**Location**: [src-tauri/src/ffmpeg_runner.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_runner.rs)
+**Location**: runner modules under `src-tauri/src/runner` (see `src-tauri/src/runner/mod.rs` and its submodules)
 
 ```rust
 fn resolve_ffmpeg_path() -> Result<PathBuf> {
@@ -93,6 +97,7 @@ fn resolve_ffmpeg_path() -> Result<PathBuf> {
 
     Err("FFmpeg not found".into())
 }
+
 ```
 
 ## FFprobe Integration
@@ -112,6 +117,7 @@ ffprobe \
   -show_format \
   -show_streams \
   input.mp4
+
 ```
 
 **Arguments**:
@@ -140,6 +146,7 @@ struct Stream {
     height: Option<u32>,
     // ... more fields
 }
+
 ```
 
 Parse JSON with `serde_json`:
@@ -151,26 +158,28 @@ let output = Command::new(&ffprobe_path)
 
 let probe_result: FFprobeOutput =
     serde_json::from_slice(&output.stdout)?;
+
 ```
 
-### Error Handling
+### FFprobe: Error Handling
 
 Common FFprobe errors:
 
 ```rust
 match result {
-    Err(e) if e.contains("Invalid data") => {
-        return Err("Corrupted file".into())
-    },
-    Err(e) if e.contains("No such file") => {
-        return Err("File not found".into())
-    },
-    Err(e) => return Err(format!("FFprobe error: {}", e)),
-    Ok(data) => data,
+        Err(e) if e.contains("Invalid data") => {
+                return Err("Corrupted file".into())
+        },
+        Err(e) if e.contains("No such file") => {
+                return Err("File not found".into())
+        },
+        Err(e) => return Err(format!("FFprobe error: {}", e)),
+        Ok(data) => data,
 }
+
 ```
 
-## FFmpeg Integration
+## FFmpeg Execution
 
 ### Command Construction
 
@@ -207,11 +216,12 @@ function buildFFmpegCommand(plan: FFmpegPlan): string[] {
 ```bash
 ['-i', 'input.mkv', '-c:v', 'libx264', '-preset', 'medium',
  '-crf', '23', '-c:a', 'aac', '-b:a', '192k', 'output.mp4']
+
 ```
 
 ### Process Spawning
 
-**Location**: [src-tauri/src/ffmpeg_runner.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_runner.rs)
+**Location**: runner modules under `src-tauri/src/runner` (see `src-tauri/src/runner/mod.rs` and its submodules)
 
 ```rust
 use std::process::{Command, Stdio};
@@ -235,14 +245,16 @@ while let Some(line) = lines.next_line().await? {
 }
 
 let status = child.wait().await?;
+
 ```
 
 ### Progress Parsing
 
 FFmpeg outputs progress to **stderr**:
 
-```
+```text
 frame=  150 fps= 30 q=28.0 size=    1024kB time=00:00:05.00 bitrate=1677.7kbits/s speed=1.0x
+
 ```
 
 **Regex Pattern**:
@@ -252,6 +264,7 @@ static PROGRESS_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"frame=\s*(\d+) fps=\s*([\d.]+) .* time=(\S+) .* speed=\s*([\d.]+)x")
         .unwrap()
 });
+
 ```
 
 **Parse Function**:
@@ -267,6 +280,7 @@ fn parse_progress(line: &str) -> Option<Progress> {
         speed: caps[4].parse().ok()?,
     })
 }
+
 ```
 
 ### Event Streaming
@@ -283,6 +297,7 @@ app.emit("ffmpeg://progress", ProgressPayload {
     eta_seconds,
     speed_factor,
 })?;
+
 ```
 
 Frontend receives via Tauri events:
@@ -307,6 +322,7 @@ FFmpeg supports hardware encoding via VideoToolbox:
 
 # H.265 hardware encoding
 -c:v hevc_videotoolbox
+
 ```
 
 ### Automatic Selection
@@ -341,11 +357,11 @@ function selectEncoder(codec: string, hwAccel: boolean): string {
 
 ## Capability Detection
 
-### Purpose
+### Capability: Purpose
 
 Detect which encoders are available in the user's FFmpeg installation.
 
-### Implementation
+### Capability: Implementation
 
 **Location**: [src-tauri/src/ffmpeg_capabilities.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_capabilities.rs)
 
@@ -353,16 +369,18 @@ Detect which encoders are available in the user's FFmpeg installation.
 
 ```bash
 ffmpeg -encoders -hide_banner
+
 ```
 
 **Output**:
 
-```
+```text
 Encoders:
  V..... libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
  V..... libx265              libx265 H.265 / HEVC
  V..... h264_videotoolbox    VideoToolbox H.264 Encoder
  A..... aac                  AAC (Advanced Audio Coding)
+
 ```
 
 **Parse**:
@@ -391,6 +409,7 @@ fn parse_encoders(output: &str) -> Vec<String> {
         })
         .collect()
 }
+
 ```
 
 ### Filtering Presets
@@ -433,6 +452,7 @@ match status.code() {
         emit_cancelled_event(job_id)?;
     }
 }
+
 ```
 
 ### Common FFmpeg Errors
@@ -465,6 +485,7 @@ fn extract_error(stderr: &str) -> String {
         .unwrap_or("Unknown error")
         .to_string()
 }
+
 ```
 
 ## Process Management
@@ -491,6 +512,7 @@ pub async fn cancel_job(job_id: &str) -> Result<()> {
         Err("Job not found".into())
     }
 }
+
 ```
 
 ### Timeout Handling
@@ -513,6 +535,7 @@ match result {
         handle_timeout()
     }
 }
+
 ```
 
 ## Testing FFmpeg Integration
@@ -531,6 +554,7 @@ mod tests {
         assert_eq!(result.video_codec, Some("h264".to_string()));
     }
 }
+
 ```
 
 ### Integration Tests

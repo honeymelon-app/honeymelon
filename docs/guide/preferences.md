@@ -33,6 +33,7 @@ Same as source:
 Custom directory (~/Converted):
   Input:  ~/Videos/movie.mkv
   Output: ~/Converted/movie-converted.mp4
+
 ```
 
 **Recommendation**: Use "Same as source" for mixed workflows, custom directory for organized batch processing.
@@ -52,10 +53,12 @@ Custom directory (~/Converted):
 **Examples**:
 
 ```
+
 -converted:     movie-converted.mp4
 -h264:          movie-h264.mp4
 -optimized:     movie-optimized.mp4
 No suffix:      movie.mp4 (may overwrite!)
+
 ```
 
 **Recommendation**: Always use a suffix to avoid accidental overwrites.
@@ -125,9 +128,11 @@ See [Presets & Quality](/guide/presets) for detailed explanations.
 **Example**:
 
 ```
+
 /usr/local/bin/ffmpeg
 /opt/homebrew/bin/ffmpeg
 ~/custom-ffmpeg/bin/ffmpeg
+
 ```
 
 ::: tip
@@ -271,7 +276,9 @@ This will erase all custom settings. Consider exporting preferences first (when 
 Preferences are stored at:
 
 ```
+
 ~/Library/Application Support/com.honeymelon.app/settings.json
+
 ```
 
 Advanced users can manually edit this file (⚠️ use caution).
@@ -281,37 +288,44 @@ Advanced users can manually edit this file (⚠️ use caution).
 ### For Content Creators
 
 ```
+
 Output Directory: Custom (e.g., ~/Exports)
 Filename Suffix: -youtube or -export
 Concurrent Jobs: 2-3
 Default Quality: Balanced
 Hardware Acceleration: Enabled
+
 ```
 
 ### For Archivists
 
 ```
+
 Output Directory: Custom (e.g., ~/Archive)
 Filename Suffix: -archived
 Concurrent Jobs: 1-2
 Default Quality: High
 Hardware Acceleration: Disabled (for max quality)
 Preserve Metadata: Enabled
+
 ```
 
 ### For Quick Conversions
 
 ```
+
 Output Directory: Same as source
 Filename Suffix: -converted
 Concurrent Jobs: 4-6
 Default Quality: Fast
 Hardware Acceleration: Enabled
+
 ```
 
 ### For Batch Processing
 
 ```
+
 Output Directory: Custom (organized folder)
 Filename Suffix: Custom (descriptive)
 Concurrent Jobs: 3-4

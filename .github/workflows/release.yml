@@ -65,8 +65,7 @@ jobs:
 
       - name: Setup FFmpeg binaries
         run: |
-          chmod +x scripts/download-ffmpeg.sh
-          ./scripts/download-ffmpeg.sh
+          npm run download-ffmpeg
           ls -lh src-tauri/bin/
           file src-tauri/bin/ffmpeg src-tauri/bin/ffprobe
           src-tauri/bin/ffmpeg -version | head -1 || true

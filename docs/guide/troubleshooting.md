@@ -49,6 +49,7 @@ This guide helps you resolve common issues with Honeymelon.
 
 ```bash
 ffmpeg -version
+
 ```
 
 **Minimum required**: FFmpeg 4.4+
@@ -58,6 +59,7 @@ ffmpeg -version
 
 ```bash
 brew upgrade ffmpeg
+
 ```
 
 ### Hardware Acceleration Not Working
@@ -81,6 +83,7 @@ brew upgrade ffmpeg
    Should show:
 
    ```
+
    h264_videotoolbox
    hevc_videotoolbox
    ```
@@ -99,6 +102,7 @@ brew upgrade ffmpeg
 1. **Corrupted source file**:
    - Try opening file in another player (QuickTime, VLC)
    - Run FFprobe manually:
+
      ```bash
      ffprobe /path/to/file.mkv
      ```
@@ -352,6 +356,7 @@ Or use terminal:
 
 ```bash
 xattr -cr /Applications/Honeymelon.app
+
 ```
 
 ### File Access Permissions
@@ -404,6 +409,7 @@ xattr -cr /Applications/Honeymelon.app
    ```
 
 4. **Xcode Command Line Tools**:
+
    ```bash
    xcode-select --install
    ```
@@ -436,7 +442,9 @@ xattr -cr /Applications/Honeymelon.app
 Application logs are located at:
 
 ```
+
 ~/Library/Logs/com.honeymelon.app/
+
 ```
 
 ### Enable Debug Mode
@@ -493,6 +501,7 @@ If you can't resolve the issue:
 
 ```bash
 brew reinstall ffmpeg
+
 ```
 
 ### "Invalid data found when processing input"

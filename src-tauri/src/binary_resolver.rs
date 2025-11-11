@@ -8,7 +8,7 @@
 //! 4. System PATH fallback
 //!
 //! This eliminates code duplication across ffmpeg_probe.rs, ffmpeg_capabilities.rs,
-//! and ffmpeg_runner.rs modules.
+//! and the runner modules under `src-tauri/src/runner`.
 
 use std::ffi::OsString;
 use std::fs;
@@ -52,8 +52,12 @@ impl BinaryType {
 /// A vector of candidate paths in priority order. The first valid path should be used.
 ///
 /// # Example
-/// ```rust
-/// let candidates = resolve_binary_paths(BinaryType::FFmpeg, &app);
+/// ```ignore
+/// use honeymelon_lib::binary_resolver::{BinaryType, resolve_binary_paths};
+/// use std::process::Command;
+/// # use tauri::AppHandle;
+/// # fn example(app: &AppHandle) {
+/// let candidates = resolve_binary_paths(BinaryType::FFmpeg, app);
 /// // Try each candidate until one works
 /// for path in candidates {
 ///     if let Ok(output) = Command::new(&path).arg("-version").output() {
@@ -61,6 +65,7 @@ impl BinaryType {
 ///         break;
 ///     }
 /// }
+/// # }
 /// ```
 pub fn resolve_binary_paths(binary_type: BinaryType, app: &AppHandle) -> Vec<OsString> {
     let mut candidates: Vec<OsString> = Vec::new();
