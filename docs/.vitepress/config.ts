@@ -30,6 +30,7 @@ export default defineConfig({
         text: 'v0.1.0',
         items: [
           { text: 'Changelog', link: '/changelog' },
+          { text: 'Roadmap', link: '/roadmap' },
           { text: 'Contributing', link: '/development/contributing' },
         ],
       },
@@ -58,6 +59,15 @@ export default defineConfig({
           items: [
             { text: 'Supported Formats', link: '/guide/supported-formats' },
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
+            { text: 'Getting Support', link: '/guide/support' },
+          ],
+        },
+        {
+          text: 'Legal & Privacy',
+          items: [
+            { text: 'License Activation', link: '/guide/licensing' },
+            { text: 'Privacy Policy', link: '/guide/privacy' },
+            { text: 'EULA', link: '/legal/eula' },
           ],
         },
       ],
@@ -70,6 +80,7 @@ export default defineConfig({
             { text: 'FFmpeg Integration', link: '/architecture/ffmpeg' },
             { text: 'State Management', link: '/architecture/state' },
             { text: 'Tech Stack', link: '/architecture/tech-stack' },
+            { text: 'Decision Records (ADR)', link: '/architecture/adr' },
           ],
         },
       ],
@@ -78,10 +89,12 @@ export default defineConfig({
           text: 'Development',
           items: [
             { text: 'Contributing', link: '/development/contributing' },
-            { text: 'Building from Source', link: '/development/building' },
+            { text: 'Building from Source', link: '/development/build' },
             { text: 'Testing', link: '/development/testing' },
             { text: 'Working with AI Agents', link: '/development/agents' },
             { text: 'Working with Claude', link: '/development/claude' },
+            { text: 'Codebase Enhancement Plan', link: '/development/enhancement-plan' },
+            { text: 'Roadmap', link: '/development/roadmap' },
           ],
         },
       ],
@@ -90,6 +103,7 @@ export default defineConfig({
           text: 'Legal',
           items: [
             { text: 'License Compliance', link: '/legal/license-compliance' },
+            { text: 'EULA', link: '/legal/eula' },
             { text: 'Commercial License', link: '/legal/commercial-license' },
             { text: 'Third Party Notices', link: '/legal/third-party-notices' },
           ],

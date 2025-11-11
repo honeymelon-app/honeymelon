@@ -1,7 +1,9 @@
 import { computed, type ComputedRef } from 'vue';
-import type { JobProgress } from '@/lib/types';
-import type { JobId } from './job-types';
+
 import type { JobQueueComposable } from './job-queue';
+import type { JobId } from './job-types';
+
+import type { JobProgress } from '@/lib/types';
 
 export interface JobProgressComposable {
   runningEtaSeconds: ComputedRef<number | null>;

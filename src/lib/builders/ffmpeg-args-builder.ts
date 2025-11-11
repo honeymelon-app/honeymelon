@@ -1,8 +1,8 @@
-import type { Container, ProbeSummary, Preset, TierDefaults } from '../types';
-import type { VideoAction, VideoTierResult } from '../planners/video-planner';
-import { resolveVideoProfile } from '../planners/video-planner';
 import type { AudioAction } from '../planners/audio-planner';
 import { SUBTITLE_CONVERT_CODEC, type SubtitlePlanDecision } from '../planners/subtitle-planner';
+import type { VideoAction, VideoTierResult } from '../planners/video-planner';
+import { resolveVideoProfile } from '../planners/video-planner';
+import type { Container, ProbeSummary, Preset, TierDefaults } from '../types';
 
 const CONTAINER_TO_MUXER: Partial<Record<Container, string>> = {
   mp4: 'mp4',

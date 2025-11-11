@@ -1,3 +1,8 @@
+---
+title: Conversion Pipeline
+description: Detailed walkthrough of Honeymelon's probe, plan, and execute stages for media conversion.
+---
+
 # Conversion Pipeline
 
 The conversion pipeline is the heart of Honeymelon, transforming user intent into optimized FFmpeg commands. It consists of three sequential stages: **Probe**, **Plan**, and **Execute**.

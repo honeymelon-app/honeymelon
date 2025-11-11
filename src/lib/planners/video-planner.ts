@@ -1,4 +1,8 @@
 import { LIMITS, DEFAULTS } from '../constants';
+import {
+  DEFAULT_VIDEO_STRATEGY,
+  type VideoEncoderSelectionStrategy,
+} from '../strategies/encoder-strategy';
 import type {
   CapabilitySnapshot,
   Preset,
@@ -7,10 +11,6 @@ import type {
   TierDefaults,
   VCodec,
 } from '../types';
-import {
-  DEFAULT_VIDEO_STRATEGY,
-  type VideoEncoderSelectionStrategy,
-} from '../strategies/encoder-strategy';
 
 const TIER_PRIORITY: Tier[] = ['balanced', 'fast', 'high'];
 

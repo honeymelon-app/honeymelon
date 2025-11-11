@@ -12,8 +12,8 @@
 
 import { invoke } from '@tauri-apps/api/core';
 
-import type { CapabilitySnapshot, Preset } from './types';
 import { PRESETS } from './presets';
+import type { CapabilitySnapshot, Preset } from './types';
 
 /**
  * Empty capability snapshot for fallback scenarios.

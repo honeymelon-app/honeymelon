@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { File, CheckCircle2, XCircle, Clock, Loader2, AlertCircle } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Component } from 'vue';
+
 import type { JobState } from '@/lib/types';
-import { File, CheckCircle2, XCircle, Clock, Loader2, AlertCircle } from 'lucide-vue-next';
 
 interface JobStatusBadgeProps {
   state: JobState;

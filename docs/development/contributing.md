@@ -1,3 +1,8 @@
+---
+title: Contributing to Honeymelon
+description: Guidelines for setting up the project, proposing changes, and collaborating on Honeymelon development.
+---
+
 # Contributing to Honeymelon
 
 Thank you for your interest in contributing to Honeymelon! This guide will help you get started with development and explain our contribution workflow.

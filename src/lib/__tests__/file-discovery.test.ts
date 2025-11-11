@@ -1,5 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MEDIA_EXTENSIONS, discoverDroppedEntries } from '../file-discovery';
+
+// Mock Tauri invoke function
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
+}));
+
+import { invoke } from '@tauri-apps/api/core';
 
 describe('file-discovery', () => {
   describe('MEDIA_EXTENSIONS', () => {
@@ -407,6 +414,227 @@ describe('file-discovery', () => {
       expect(result[0]).toHaveProperty('name');
       expect(typeof result[0].path).toBe('string');
       expect(typeof result[0].name).toBe('string');
+    });
+  });
+
+  describe('discoverDroppedEntries - Tauri environment', () => {
+    const mockInvoke = vi.mocked(invoke);
+
+    beforeEach(() => {
+      mockInvoke.mockReset();
+      // Set up Tauri runtime environment
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globalThis.window as any) = {
+        __TAURI_INTERNALS__: {},
+      };
+    });
+
+    it('should expand paths via Tauri invoke', async () => {
+      const mockFiles = [{ name: 'video.mp4', path: '/path/to/video.mp4' } as unknown as File];
+
+      mockInvoke.mockResolvedValue(['/path/to/video.mp4']);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(mockInvoke).toHaveBeenCalledWith('expand_media_paths', {
+        paths: ['/path/to/video.mp4'],
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        path: '/path/to/video.mp4',
+        name: 'video.mp4',
+      });
+    });
+
+    it('should expand directory paths to multiple files', async () => {
+      const mockFiles = [{ name: 'folder', path: '/path/to/folder' } as unknown as File];
+
+      mockInvoke.mockResolvedValue([
+        '/path/to/folder/video1.mp4',
+        '/path/to/folder/video2.mkv',
+        '/path/to/folder/audio.mp3',
+      ]);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(result).toHaveLength(3);
+      expect(result.map((r) => r.name)).toEqual(['video1.mp4', 'video2.mkv', 'audio.mp3']);
+    });
+
+    it('should filter out non-media files from expanded paths', async () => {
+      const mockFiles = [{ name: 'folder', path: '/path/to/folder' } as unknown as File];
+
+      mockInvoke.mockResolvedValue([
+        '/path/to/folder/video.mp4',
+        '/path/to/folder/readme.txt',
+        '/path/to/folder/image.jpg',
+      ]);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(result).toHaveLength(2);
+      expect(result.map((r) => r.name)).toEqual(['video.mp4', 'image.jpg']);
+    });
+
+    it('should deduplicate expanded paths', async () => {
+      const mockFiles = [
+        { name: 'video.mp4', path: '/path/to/video.mp4' } as unknown as File,
+        { name: 'video.mp4', path: '/path/to/video.mp4' } as unknown as File,
+      ];
+
+      mockInvoke.mockResolvedValue(['/path/to/video.mp4', '/path/to/video.mp4']);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].path).toBe('/path/to/video.mp4');
+    });
+
+    it('should handle invoke error by falling back to candidates', async () => {
+      const mockFiles = [{ name: 'video.mp4', path: '/path/to/video.mp4' } as unknown as File];
+
+      mockInvoke.mockRejectedValue(new Error('Tauri invoke failed'));
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].path).toBe('/path/to/video.mp4');
+    });
+
+    it('should use fallback entries when no candidates', async () => {
+      const mockFiles = [{ name: 'video.mp4', path: '' } as unknown as File];
+
+      // Should not call invoke when no candidates
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(mockInvoke).not.toHaveBeenCalled();
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('video.mp4');
+    });
+
+    it('should filter candidates with empty or whitespace paths', async () => {
+      const mockFiles = [
+        { name: 'video1.mp4', path: '/path/to/video1.mp4' } as unknown as File,
+        { name: 'video2.mp4', path: '   ' } as unknown as File,
+        { name: 'video3.mp4', path: '' } as unknown as File,
+      ];
+
+      mockInvoke.mockResolvedValue(['/path/to/video1.mp4']);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(mockInvoke).toHaveBeenCalledWith('expand_media_paths', {
+        paths: ['/path/to/video1.mp4'],
+      });
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle expanded paths with no media extensions', async () => {
+      const mockFiles = [{ name: 'folder', path: '/path/to/folder' } as unknown as File];
+
+      mockInvoke.mockResolvedValue(['/path/to/folder/readme.txt', '/path/to/folder/config.json']);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      // Should fall back to fallback entries if unique set is empty
+      // But fallback also filters by extension, so result should be empty
+      expect(result).toHaveLength(0);
+    });
+
+    it('should extract basename from expanded paths', async () => {
+      const mockFiles = [{ name: 'folder', path: '/path/to/folder' } as unknown as File];
+
+      mockInvoke.mockResolvedValue(['/path/to/folder/subfolder/video.mp4']);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(result[0].name).toBe('video.mp4');
+      expect(result[0].path).toBe('/path/to/folder/subfolder/video.mp4');
+    });
+
+    it('should handle Windows-style paths in Tauri', async () => {
+      const mockFiles = [
+        { name: 'video.mp4', path: 'C:\\Users\\test\\video.mp4' } as unknown as File,
+      ];
+
+      mockInvoke.mockResolvedValue(['C:\\Users\\test\\video.mp4']);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(result[0].path).toBe('C:\\Users\\test\\video.mp4');
+      expect(result[0].name).toBe('video.mp4');
+    });
+
+    it('should warn when no valid paths found', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockFiles = [{ name: 'readme.txt', path: '' } as unknown as File];
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[file-discovery] Unable to resolve filesystem paths for selected files; no entries enqueued.',
+      );
+      expect(result).toHaveLength(0);
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should warn when invoke fails', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockFiles = [{ name: 'video.mp4', path: '/path/to/video.mp4' } as unknown as File];
+
+      const error = new Error('Invoke failed');
+      mockInvoke.mockRejectedValue(error);
+
+      await discoverDroppedEntries(mockFiles);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[file-discovery] Failed to expand paths via Tauri command',
+        error,
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should use fallback when expanded paths filtered out', async () => {
+      const mockFiles = [{ name: 'video.mp4', path: '/path/to/video.mp4' } as unknown as File];
+
+      mockInvoke.mockResolvedValue([
+        '/path/to/readme.txt', // Non-media file
+      ]);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      // Should fall back to fallback entries
+      expect(result).toHaveLength(1);
+      expect(result[0].path).toBe('/path/to/video.mp4');
+      expect(result[0].name).toBe('video.mp4');
+    });
+
+    it('should handle mixed valid and invalid extensions in fallback', async () => {
+      const mockFiles = [
+        { name: 'video.mp4', path: '/path/to/video.mp4' } as unknown as File,
+        { name: 'readme.txt', path: '/path/to/readme.txt' } as unknown as File,
+      ];
+
+      mockInvoke.mockResolvedValue([]);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      // Only video.mp4 should be in fallback (txt filtered out)
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('video.mp4');
+    });
+
+    it('should handle paths with case-insensitive extensions', async () => {
+      const mockFiles = [{ name: 'video.MP4', path: '/path/to/video.MP4' } as unknown as File];
+
+      mockInvoke.mockResolvedValue(['/path/to/video.MP4']);
+
+      const result = await discoverDroppedEntries(mockFiles);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].path).toBe('/path/to/video.MP4');
     });
   });
 });

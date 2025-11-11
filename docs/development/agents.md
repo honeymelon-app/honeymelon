@@ -1,3 +1,8 @@
+---
+title: Repository Guidelines
+description: Coding, testing, and security expectations for contributors and automation agents working on Honeymelon.
+---
+
 # Repository Guidelines
 
 ## Project Structure & Module Organization

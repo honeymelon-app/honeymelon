@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { type HTMLAttributes, computed } from 'vue';
 import { TabsList, type TabsListProps, useForwardProps } from 'reka-ui';
+import { type HTMLAttributes, computed } from 'vue';
+
 import { cn } from '@/lib/utils';
 
 const props = defineProps<TabsListProps & { class?: HTMLAttributes['class'] }>();

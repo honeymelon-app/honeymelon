@@ -1,3 +1,8 @@
+---
+title: Testing Strategy
+description: Learn how Honeymelon approaches unit, integration, and end-to-end testing across the stack.
+---
+
 # Testing
 
 Honeymelon has comprehensive test coverage across frontend, backend, and end-to-end scenarios. This guide explains our testing strategy and how to write effective tests.

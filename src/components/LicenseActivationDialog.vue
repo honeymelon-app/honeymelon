@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { ShieldCheck, Loader2, Trash2, CircleAlert, KeySquare } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
+import { computed, ref, watch } from 'vue';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,12 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLicenseStore } from '@/stores/license';
-import { ShieldCheck, Loader2, Trash2, CircleAlert, KeySquare } from 'lucide-vue-next';
 
 const licenseStore = useLicenseStore();
 const {

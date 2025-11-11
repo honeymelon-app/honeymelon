@@ -1,116 +1,74 @@
+---
+title: Changelog
+description: Release history of Honeymelon with highlights for each public version.
+---
+
+<!-- NOTE: Keep this file in sync with /CHANGELOG.md at the repository root. -->
+
 # Changelog
 
-All notable changes to Honeymelon will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.1/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to Honeymelon are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.0.1] - 2025-11-11
+
+Initial public release of Honeymelon.
+
 ### Added
 
-- VitePress documentation site with comprehensive guides
-- Architecture documentation covering conversion pipeline, FFmpeg integration, state management, and tech stack
-- Development guides for contributing, building, and testing
-- User guides for converting files, presets, batch processing, and preferences
+- Remux-first FFmpeg workflow for lossless stream copying
+- Three-stage conversion pipeline: Probe -> Plan -> Execute
+- Preset system with quality tiers (fast, balanced, high)
+- Support for H.264, HEVC, VP9, and AV1 video codecs
+- Support for AAC, Opus, and other audio codecs
+- MP4, WebM, MOV, and MKV container support
+- Real-time progress tracking with FFmpeg process management
+- Job queue with concurrency limiting
+- Drag-and-drop media file interface
+- FFmpeg capability detection and automatic preset filtering
+- Batch conversion support with exclusive locks for heavy codecs (AV1, ProRes)
+- Subtitle handling (keep, convert, drop)
+- Color metadata preservation during transcoding
+- Custom FFmpeg path configuration
+- Output directory settings
+- Recursive media file discovery for dropped folders
 
 ### Changed
 
-- Project converted from open source to closed source (proprietary)
-- Enhanced accessibility features
-- Improved CI workflow
+- Rust backend now loads `.env` at build time and forwards `LICENSE_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
+- Added `dotenvy` to Rust build dependencies.
+- Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification.
+- Replaced dynamic imports of Tauri API modules with static imports to resolve Vite warnings (`license.ts`, `use-file-handler.ts`, `use-job-orchestrator.ts`, `file-discovery.ts`, `DestinationChooser.vue`).
+- Added documentation and inline comments across Rust modules (`lib.rs`, `license.rs`, `ffmpeg_capabilities.rs`).
+- Embedded custom macOS `Info.plist` overrides to require native arm64 execution, enforce Retina support, and predeclare camera/microphone usage descriptions for notarization.
+- Limited bundling to DMG artifacts to avoid redundant `.app` archives on Apple Silicon builds.
 
-### Fixed
+### Documentation
 
-- Build issues resolved
-- Various bug fixes and improvements
+- README with feature overview
+- BUILD guide with compilation instructions for macOS
+- CONTRIBUTING guide with development workflow
+- CODE_OF_CONDUCT (Contributor Covenant)
+- CLAUDE assistant guide and AGENTS repository guidelines
+- THIRD_PARTY_NOTICES for dependencies
+- LICENSE_COMPLIANCE for LGPL compliance details
+- COMMERCIAL_LICENSE for alternative licensing
+- Release checklist updates highlighting arm64 packaging and FFmpeg sidecar validation
 
-## [0.1.0] - 2025-01-01
+### Known Limitations
 
-### Added
+- macOS only (Apple Silicon / arm64 target)
+- Image-based subtitle burn-in not yet implemented
+- JavaScript automated tests framework pending (use Vitest)
+- Subtitle mode configuration not exposed in UI (can be set via presets)
 
-- Initial release of Honeymelon
-- Native macOS application for Apple Silicon
-- Drag-and-drop file conversion interface
-- FFmpeg integration with out-of-process execution
-- Remux-first conversion strategy
-- Dynamic preset generation system
-- Hardware acceleration via Apple VideoToolbox
-- Batch processing with configurable concurrency
-- Real-time progress monitoring
-- Three quality tiers (Fast, Balanced, High)
-- Support for major video containers (MP4, MOV, MKV, WebM)
-- Support for major audio formats (M4A, MP3, FLAC, WAV)
-- Modern codec support (H.264, H.265, VP9, AV1, ProRes)
-- Pinia state management with discriminated unions
-- shadcn-vue UI components
-- Tailwind CSS styling
-- Comprehensive test coverage (Vitest, Cargo tests, Playwright)
-- TypeScript strict mode
-- Rust backend with Tauri 2
+### Architecture
 
-### Technical Details
-
-- **Frontend**: Vue 3 + TypeScript + Vite
-- **Backend**: Rust + Tauri 2 + Tokio
-- **UI**: shadcn-vue + Tailwind CSS 4
-- **State**: Pinia stores
-- **Testing**: Vitest + Cargo test + Playwright
-- **Build**: Optimized production builds for Apple Silicon
-
----
-
-## Version History
-
-- **0.1.0** - Initial Release (2025-01-01)
-
----
-
-## Future Plans
-
-### Planned Features
-
-- [ ] Custom preset creation and management
-- [ ] Image sequence support
-- [ ] Video filters (crop, scale, denoise)
-- [ ] Advanced stream selection
-- [ ] Two-pass encoding option
-- [ ] Job queue persistence
-- [ ] Scheduled conversions
-- [ ] Notifications integration
-- [ ] Auto-update system
-- [ ] Light/Dark theme toggle
-- [ ] iCloud settings sync
-- [ ] Job history and analytics
-
-### Under Consideration
-
-- [ ] Windows support (via WSL)
-- [ ] Linux support
-- [ ] Plugin system for custom workflows
-- [ ] GPU encoding options
-- [ ] Cloud storage integration
-- [ ] Batch preset templates
-
----
-
-## Release Notes Format
-
-Each release includes:
-
-- **Added**: New features
-- **Changed**: Changes to existing functionality
-- **Deprecated**: Soon-to-be removed features
-- **Removed**: Removed features
-- **Fixed**: Bug fixes
-- **Security**: Security improvements
-
----
-
-## Contributing
-
-See [Contributing Guide](/development/contributing) for information on how to contribute to Honeymelon.
-
-## License
-
-Honeymelon is proprietary software. See [Commercial License](/legal/commercial-license) for details.
+- Vue 3 frontend with TypeScript and Tailwind CSS
+- Tauri 2 desktop framework
+- Rust backend for FFmpeg integration
+- Pinia state management
+- shadcn-vue component library

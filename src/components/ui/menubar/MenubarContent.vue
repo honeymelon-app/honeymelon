@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { MenubarContentProps } from 'reka-ui';
-import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
+import type { MenubarContentProps } from 'reka-ui';
 import { MenubarContent, MenubarPortal, useForwardProps } from 'reka-ui';
+import type { HTMLAttributes } from 'vue';
+
 import { cn } from '@/lib/utils';
 
 const props = withDefaults(

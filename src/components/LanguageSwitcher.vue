@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { type HTMLAttributes } from 'vue';
-import { cn } from '@/lib/utils';
 import { Earth } from 'lucide-vue-next';
+import { type HTMLAttributes } from 'vue';
+
 import { Button } from '@/components/ui/button';
-import { useLanguagePreferences } from '@/composables/use-language-preferences';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useLanguagePreferences } from '@/composables/use-language-preferences';
+import { cn } from '@/lib/utils';
 
 const { currentLocale, setLocale } = useLanguagePreferences();
 

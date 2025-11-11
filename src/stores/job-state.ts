@@ -1,7 +1,8 @@
+import type { JobQueueComposable } from './job-queue';
+import { now, readEnqueuedAt, type JobId } from './job-types';
+
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
 import type { ProbeSummary, JobState } from '@/lib/types';
-import { now, readEnqueuedAt, type JobId } from './job-types';
-import type { JobQueueComposable } from './job-queue';
 import { globalJobObserver } from '@/observers/job-observer';
 
 export interface JobStateComposable {

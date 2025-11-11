@@ -1,3 +1,8 @@
+---
+title: Troubleshooting
+description: Diagnose and resolve common Honeymelon installation, conversion, and performance issues.
+---
+
 # Troubleshooting
 
 This guide helps you resolve common issues with Honeymelon.

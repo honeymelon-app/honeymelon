@@ -1,3 +1,8 @@
+---
+title: Converting Files
+description: Step-by-step instructions for adding media, selecting presets, and running conversions in Honeymelon.
+---
+
 # Converting Files
 
 This guide covers everything you need to know about converting media files with Honeymelon.

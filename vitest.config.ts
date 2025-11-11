@@ -1,7 +1,8 @@
 import path from 'node:path';
+
 import vue from '@vitejs/plugin-vue';
-import { defineConfig } from 'vitest/config';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [vue(), tsconfigPaths()],

@@ -1,6 +1,6 @@
+import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-import { defineStore } from 'pinia';
 import { LIMITS, DEFAULTS } from '@/lib/constants';
 
 const MIN_CONCURRENCY = LIMITS.MIN_CONCURRENCY;

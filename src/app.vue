@@ -25,20 +25,19 @@
  * - Coordinates between multiple child components for a cohesive user experience
  */
 
-import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import Window from '@/components/Window.vue';
+
+import AboutDialog from '@/components/AboutDialog.vue';
+import AppLoadingSkeleton from '@/components/AppLoadingSkeleton.vue';
+import DestinationChooser from '@/components/DestinationChooser.vue';
 import FileUploader from '@/components/FileUploader.vue';
 import JobQueue from '@/components/JobQueue.vue';
-import AppLoadingSkeleton from '@/components/AppLoadingSkeleton.vue';
-import AboutDialog from '@/components/AboutDialog.vue';
-import DestinationChooser from '@/components/DestinationChooser.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
-import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import LicenseActivationDialog from '@/components/LicenseActivationDialog.vue';
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -47,7 +46,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import Window from '@/components/Window.vue';
 import { useAppOrchestration } from '@/composables/use-app-orchestration';
 import { PRESETS } from '@/lib/presets';
 import type { MediaKind } from '@/lib/types';

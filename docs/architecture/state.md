@@ -1,3 +1,8 @@
+---
+title: State Management
+description: Examine Honeymelon's Pinia stores, job orchestration state, and data flow patterns.
+---
+
 # State Management
 
 Honeymelon uses Pinia for reactive state management with discriminated union types for type-safe state transitions. This document explains the state architecture and patterns used throughout the application.

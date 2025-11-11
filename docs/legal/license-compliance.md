@@ -1,3 +1,8 @@
+---
+title: License Compliance Guide
+description: Technical guidance for distributing Honeymelon while fulfilling open-source licensing obligations.
+---
+
 # License Compliance Guide for Honeymelon
 
 This document provides technical guidance for ensuring Honeymelon remains compliant with all open-source licenses when distributed commercially.

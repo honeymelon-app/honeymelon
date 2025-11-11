@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, type HTMLAttributes } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
-import { storeToRefs } from 'pinia';
 import { Folder, FolderOpen } from 'lucide-vue-next';
+import { storeToRefs } from 'pinia';
+import { ref, computed, type HTMLAttributes } from 'vue';
+
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { usePrefsStore } from '@/stores/prefs';
 import { cn } from '@/lib/utils';
+import { usePrefsStore } from '@/stores/prefs';
 
 const props = defineProps<{
   class?: HTMLAttributes['class'];

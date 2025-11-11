@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
 import { DrawerTitle } from 'vaul-vue';
+import type { HTMLAttributes } from 'vue';
+
 import { cn } from '@/lib/utils';
 
 const props = defineProps<{ class?: HTMLAttributes['class'] } & Record<string, unknown>>();

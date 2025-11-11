@@ -18,8 +18,8 @@
  * and accessibility across different views and states of the application.
  */
 
-import WindowDragRegion from '@/components/WindowDragRegion.vue';
 import AppFooter from '@/components/AppFooter.vue';
+import WindowDragRegion from '@/components/WindowDragRegion.vue';
 
 /**
  * Props interface for the Window component.

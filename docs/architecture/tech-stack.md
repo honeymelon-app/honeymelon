@@ -1,3 +1,8 @@
+---
+title: Tech Stack
+description: Overview of the frameworks, languages, and services that power Honeymelon.
+---
+
 # Tech Stack
 
 This document explains the technology choices for Honeymelon and the rationale behind them.
@@ -82,6 +87,11 @@ interface Job {
   id: string;
   status: 'queued' | 'running' | 'completed';
   progress: number;
+# Technology Stack
+---
+title: Technology Stack
+description: Overview of the frameworks, languages, and services that power Honeymelon.
+---
 }
 
 function updateJob(job: Job, progress: number): Job {

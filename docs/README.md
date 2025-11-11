@@ -13,6 +13,7 @@ docs/
 │   └── logo.svg            # Site logo
 ├── index.md                 # Homepage
 ├── changelog.md             # Version history
+├── roadmap.md               # Product roadmap
 │
 ├── guide/                   # User guides
 │   ├── what-is-honeymelon.md
@@ -22,6 +23,7 @@ docs/
 │   ├── batch-processing.md
 │   ├── preferences.md
 │   ├── supported-formats.md
+│   ├── licensing.md
 │   └── troubleshooting.md
 │
 ├── architecture/            # Technical architecture
@@ -33,10 +35,11 @@ docs/
 │
 ├── development/             # Development guides
 │   ├── contributing.md
-│   ├── building.md
+│   ├── build.md
 │   ├── testing.md
 │   ├── agents.md
-│   └── claude.md
+│   ├── claude.md
+│   └── enhancement-plan.md
 │
 └── legal/                   # Legal documentation
     ├── license-compliance.md

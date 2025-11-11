@@ -1,3 +1,8 @@
+---
+title: Claude Assistant Guide
+description: Instructions tailored for Claude-based coding agents collaborating on the Honeymelon repository.
+---
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.

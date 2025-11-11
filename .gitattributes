@@ -1,0 +1,76 @@
+# Auto detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# Explicitly declare text files
+*.md text
+*.txt text
+*.json text
+*.js text
+*.ts text
+*.vue text
+*.css text
+*.html text
+*.xml text
+*.yml text
+*.yaml text
+*.toml text
+*.rs text
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Declare binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.dmg binary
+*.app binary
+*.dylib binary
+*.so binary
+*.a binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.bz2 binary
+*.xz binary
+*.7z binary
+*.rar binary
+*.pdf binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+
+# Diff behavior for specific file types
+*.md diff=markdown
+*.json diff=json
+*.lock linguist-generated=true
+
+# Markdown line wrapping
+*.md text whitespace=trailing-space,space-before-tab,tab-in-indent
+
+# Rust files
+*.rs text eol=lf
+Cargo.toml text eol=lf
+Cargo.lock text eol=lf linguist-generated=true
+
+# JavaScript/TypeScript files
+*.js text eol=lf
+*.ts text eol=lf
+*.vue text eol=lf
+package.json text eol=lf
+package-lock.json text eol=lf linguist-generated=true
+tsconfig.json text eol=lf
+
+# Vue component files
+*.vue text eol=lf linguist-language=Vue
+
+# Archive files
+*.zip binary
+*.tar binary
+*.gz binary
+*.tgz binary
+*.dmg binary

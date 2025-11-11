@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
+
+import { useJobLogs } from './job-logs';
+import { useJobProgress } from './job-progress';
 import { useJobQueue } from './job-queue';
 import { useJobState } from './job-state';
-import { useJobProgress } from './job-progress';
-import { useJobLogs } from './job-logs';
 
 export const useJobsStore = defineStore('jobs', () => {
   const queue = useJobQueue();

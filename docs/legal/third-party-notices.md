@@ -1,3 +1,8 @@
+---
+title: Third-Party Notices
+description: Attribution requirements and license summaries for third-party components bundled with Honeymelon.
+---
+
 # Third-Party Notices
 
 This file contains the licenses and notices for third-party software included with or used by Honeymelon.
@@ -178,4 +183,4 @@ For questions about licensing, please contact the project maintainers.
 
 ---
 
-**Last Updated**: 2025-10-30
+**Last Updated**: 2024-10-30

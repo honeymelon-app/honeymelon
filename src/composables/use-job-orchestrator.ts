@@ -1,22 +1,21 @@
-import { ref, watch, onUnmounted } from 'vue';
-
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type * as NotificationPlugin from '@tauri-apps/plugin-notification';
+import { storeToRefs } from 'pinia';
+import { ref, watch, onUnmounted } from 'vue';
 
 import { availablePresets, loadCapabilities } from '@/lib/capability';
 import { LIMITS } from '@/lib/constants';
+import { ErrorHandler } from '@/lib/error-handler';
 import { planJob } from '@/lib/ffmpeg-plan';
-import { probeMedia } from '@/lib/ffmpeg-probe';
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
+import { probeMedia } from '@/lib/ffmpeg-probe';
+import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
 import { JobError, type CapabilitySnapshot, type ProbeSummary, type Tier } from '@/lib/types';
 import { joinPath, pathBasename, pathDirname, stripExtension } from '@/lib/utils';
-import { ErrorHandler } from '@/lib/error-handler';
+import { executionService } from '@/services/execution-service';
 import { useJobsStore } from '@/stores/jobs';
 import { usePrefsStore } from '@/stores/prefs';
-import { storeToRefs } from 'pinia';
-import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
-import { executionService } from '@/services/execution-service';
 
 interface StartJobOptions {
   jobId: string;

@@ -1,10 +1,11 @@
-import type { CapabilitySnapshot, Preset, ProbeSummary, Tier, TierDefaults } from '../types';
-import type { VideoTierResult } from './video-planner';
-import { resolveTierDefaults } from './video-planner';
 import {
   DEFAULT_AUDIO_STRATEGY,
   type AudioEncoderSelectionStrategy,
 } from '../strategies/encoder-strategy';
+import type { CapabilitySnapshot, Preset, ProbeSummary, Tier, TierDefaults } from '../types';
+
+import type { VideoTierResult } from './video-planner';
+import { resolveTierDefaults } from './video-planner';
 
 export interface AudioAction {
   action: 'copy' | 'transcode' | 'drop';

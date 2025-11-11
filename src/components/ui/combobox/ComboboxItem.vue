@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { ComboboxItemEmits, ComboboxItemProps } from 'reka-ui';
-import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
+import type { ComboboxItemEmits, ComboboxItemProps } from 'reka-ui';
 import { ComboboxItem, useForwardPropsEmits } from 'reka-ui';
+import type { HTMLAttributes } from 'vue';
+
 import { cn } from '@/lib/utils';
 
 const props = defineProps<ComboboxItemProps & { class?: HTMLAttributes['class'] }>();

@@ -1,3 +1,8 @@
+---
+title: Supported Formats
+description: Reference for Honeymelon's supported containers, codecs, and subtitle capabilities.
+---
+
 # Supported Formats
 
 Honeymelon supports a wide variety of media formats through FFmpeg. This reference guide lists all supported inputs and outputs.

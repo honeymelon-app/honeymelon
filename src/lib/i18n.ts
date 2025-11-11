@@ -1,4 +1,5 @@
 import { createI18n } from 'vue-i18n';
+
 import { Locale } from '@/lib/locale';
 import { messages } from '@/locales/messages';
 

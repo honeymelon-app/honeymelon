@@ -3,20 +3,50 @@ name: Release Build
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: write
+  issues: write
+  pull-requests: write
 
 env:
   NODE_VERSION: '20'
   RUST_TARGET: aarch64-apple-darwin
 
 jobs:
+  semantic-versioning:
+    name: Semantic Versioning
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    outputs:
+      new-release-published: ${{ steps.semantic.outputs.new_release_published }}
+      new-release-version: ${{ steps.semantic.outputs.new_release_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Run semantic-release
+        id: semantic
+        run: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   pre-release-checks:
     name: Pre-Release Validation
     runs-on: macos-14
+    needs: [semantic-versioning]
+    if: always() && (github.event_name == 'release' || (needs.semantic-versioning.outputs.new-release-published == 'true'))
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -47,7 +77,8 @@ jobs:
   build-and-upload:
     name: Build and Upload Artifacts
     runs-on: macos-14
-    needs: pre-release-checks
+    needs: [semantic-versioning, pre-release-checks]
+    if: always() && (github.event_name == 'release' || (needs.semantic-versioning.outputs.new-release-published == 'true'))
     env:
       HAS_DEV_ID: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
     steps:
@@ -229,8 +260,9 @@ jobs:
           retention-days: 30
 
   create-checksums:
-    needs: build-and-upload
+    needs: [build-and-upload]
     runs-on: ubuntu-latest
+    if: always() && (github.event_name == 'release' || success())
     steps:
       - uses: actions/download-artifact@v4
         with:

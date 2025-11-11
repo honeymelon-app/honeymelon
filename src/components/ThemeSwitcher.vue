@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { type HTMLAttributes, onMounted } from 'vue';
-import { cn } from '@/lib/utils';
 import { MoonStar, Sun, SunMoon } from 'lucide-vue-next';
+import { type HTMLAttributes, onMounted } from 'vue';
+
 import { Button } from '@/components/ui/button';
 import { useColourMode } from '@/composables/use-colour-mode';
+import { cn } from '@/lib/utils';
 
 const { mode, toggleMode, handleColorModeChange } = useColourMode();
 

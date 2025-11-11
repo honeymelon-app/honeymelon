@@ -20,10 +20,11 @@
 
 import './assets/css/global.css';
 
-import { createApp } from 'vue';
 import { createPinia } from 'pinia';
+import { createApp } from 'vue';
 
 import App from './app.vue';
+
 import { i18n } from '@/lib/i18n';
 
 /**

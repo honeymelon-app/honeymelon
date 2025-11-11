@@ -1,3 +1,8 @@
+---
+title: Commercial License Agreement
+description: Terms for organizations purchasing commercial licenses to deploy Honeymelon.
+---
+
 # Commercial Licensing for Honeymelon
 
 This document explains the commercial licensing terms for Honeymelon.

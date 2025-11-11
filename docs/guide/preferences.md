@@ -1,3 +1,8 @@
+---
+title: Preferences
+description: Configure Honeymelon's preferences, including output paths, logging, and FFmpeg options.
+---
+
 # Preferences
 
 Customize Honeymelon's behavior through the Preferences dialog. This guide explains each setting and its impact.

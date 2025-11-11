@@ -18,8 +18,9 @@
  */
 
 import { computed } from 'vue';
-import type { Preset, JobState } from '@/lib/types';
+
 import JobQueueSection from '@/components/JobQueueSection.vue';
+import type { Preset, JobState } from '@/lib/types';
 
 /**
  * Job interface representing a media conversion task.

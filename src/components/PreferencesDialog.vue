@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { Folder, Settings2 } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
+import { ref, watch } from 'vue';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePrefsStore } from '@/stores/prefs';
-import { Folder, Settings2 } from 'lucide-vue-next';
 
 const prefsStore = usePrefsStore();
 const { preferredConcurrency, outputDirectory, includePresetInName, includeTierInName } =

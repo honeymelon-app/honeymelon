@@ -1,3 +1,8 @@
+---
+title: Presets and Quality Tiers
+description: Understand Honeymelon's preset system, quality tiers, and how to choose the right settings for your media.
+---
+
 # Presets & Quality
 
 Honeymelon uses a preset-based system to simplify media conversion. This guide explains how presets work and how to choose the right quality settings.

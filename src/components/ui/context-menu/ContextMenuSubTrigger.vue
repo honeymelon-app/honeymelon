@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { ContextMenuSubTriggerProps } from 'reka-ui';
-import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
 import { ChevronRight } from 'lucide-vue-next';
+import type { ContextMenuSubTriggerProps } from 'reka-ui';
 import { ContextMenuSubTrigger, useForwardProps } from 'reka-ui';
+import type { HTMLAttributes } from 'vue';
+
 import { cn } from '@/lib/utils';
 
 const props = defineProps<

@@ -577,9 +577,3 @@ Built with gratitude for:
 **Dependencies**: See [THIRD_PARTY_NOTICES.md](docs/legal/THIRD_PARTY_NOTICES.md) for full attributions.
 
 **Licensing inquiries**: <tjthavarshan@gmail.com>
-
----
-
-<p align="center">
-  <strong>Version 0.0.1</strong> • <a href="https://github.com/honeymelon-app/honeymelon">GitHub Repository</a>
-</p>

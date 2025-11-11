@@ -1,3 +1,8 @@
+---
+title: Architecture Overview
+description: High-level view of Honeymelon's frontend, backend, and supporting infrastructure.
+---
+
 # Architecture Overview
 
 Honeymelon is built with modern web and native technologies, combining the flexibility of web development with the performance and integration of native applications.

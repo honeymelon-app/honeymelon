@@ -1,6 +1,5 @@
 import { computed, ref, type Ref, type ComputedRef } from 'vue';
-import type { Tier } from '@/lib/types';
-import { PRESETS } from '@/lib/presets';
+
 import {
   isActiveState,
   isTerminalState,
@@ -9,7 +8,10 @@ import {
   type JobId,
   type JobRecord,
 } from './job-types';
+
 import { JobFactory } from '@/factories/job-factory';
+import { PRESETS } from '@/lib/presets';
+import type { Tier } from '@/lib/types';
 import { jobRepository, type JobRepository } from '@/repositories/job-repository';
 
 export interface JobQueueComposable {

@@ -1,3 +1,8 @@
+---
+title: Batch Processing
+description: Learn how to queue multiple files, control concurrency, and monitor batch conversions.
+---
+
 # Batch Processing
 
 Honeymelon is designed to efficiently handle multiple file conversions simultaneously. This guide covers batch processing workflows and optimization strategies.

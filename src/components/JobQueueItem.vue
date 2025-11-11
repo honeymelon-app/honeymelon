@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import { X, Play } from 'lucide-vue-next';
 import { computed } from 'vue';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import JobStatusBadge from '@/components/JobStatusBadge.vue';
+
 import JobProgressBar from '@/components/JobProgressBar.vue';
+import JobStatusBadge from '@/components/JobStatusBadge.vue';
 import PresetSelector from '@/components/PresetSelector.vue';
-import { formatFileSize, formatDuration, pathBasename, getFileExtension } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
 import type { JobState, Preset } from '@/lib/types';
-import { X, Play } from 'lucide-vue-next';
+import { formatFileSize, formatDuration, pathBasename, getFileExtension } from '@/lib/utils';
 
 interface JobQueueItemProps {
   jobId: string;

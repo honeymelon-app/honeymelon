@@ -25,10 +25,11 @@
  * - Conditionally renders different UI states based on job activity
  */
 
-import { ref, computed } from 'vue';
-import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import { Button } from '@/components/ui/button';
 import { getAcceptString } from '@/lib/media-formats';
 import type { MediaKind } from '@/lib/types';
 

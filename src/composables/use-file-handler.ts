@@ -1,8 +1,9 @@
-import { type Ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
-import { useJobsStore } from '@/stores/jobs';
+import { type Ref } from 'vue';
+
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
 import type { Preset } from '@/lib/types';
+import { useJobsStore } from '@/stores/jobs';
 
 interface UseFileHandlerOptions {
   presetOptions: Ref<Preset[]>;

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
+
 import { Progress } from '@/components/ui/progress';
-import { formatDuration } from '@/lib/utils';
 import type { JobState } from '@/lib/types';
+import { formatDuration } from '@/lib/utils';
 
 interface JobProgressBarProps {
   state: JobState;

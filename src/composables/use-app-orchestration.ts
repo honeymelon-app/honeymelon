@@ -37,15 +37,16 @@
  * for debugging while maintaining UI stability.
  */
 
-import { computed, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { computed, onMounted, ref, watch } from 'vue';
+
+import { useFileHandler } from '@/composables/use-file-handler';
+import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
+import { useTauriEvents } from '@/composables/use-tauri-events';
 import { availablePresets, loadCapabilities } from '@/lib/capability';
 import { DEFAULT_PRESET_ID } from '@/lib/presets';
-import { useJobsStore } from '@/stores/jobs';
-import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
-import { useFileHandler } from '@/composables/use-file-handler';
-import { useTauriEvents } from '@/composables/use-tauri-events';
 import type { CapabilitySnapshot } from '@/lib/types';
+import { useJobsStore } from '@/stores/jobs';
 
 /**
  * Job statuses that indicate active/processing state.

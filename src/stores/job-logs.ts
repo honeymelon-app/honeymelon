@@ -1,6 +1,7 @@
-import { LIMITS } from '@/lib/constants';
-import type { JobId } from './job-types';
 import type { JobQueueComposable } from './job-queue';
+import type { JobId } from './job-types';
+
+import { LIMITS } from '@/lib/constants';
 
 export interface JobLogsComposable {
   clearLogs: (id: JobId) => void;

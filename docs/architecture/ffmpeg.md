@@ -1,3 +1,8 @@
+---
+title: FFmpeg Integration
+description: How Honeymelon discovers capabilities, constructs command plans, and manages FFmpeg processes.
+---
+
 # FFmpeg Integration
 
 Honeymelon integrates with FFmpeg through out-of-process execution, ensuring LGPL compliance and process isolation. This document explains the integration architecture and implementation details.

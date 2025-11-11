@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Main bundle",
+    "path": "dist/assets/index-*.js",
+    "limit": "500 KB"
+  },
+  {
+    "name": "Vendor bundle",
+    "path": "dist/assets/vendor-*.js",
+    "limit": "1 MB",
+    "ignore": ["dist/assets/index-*.js"]
+  }
+]

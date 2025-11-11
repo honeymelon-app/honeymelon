@@ -5,7 +5,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 const root = process.cwd();
-const targets = ['docs', 'README.md', 'notes.md', 'e2e/README.md', 'scripts/README.md'];
+const targets = ['docs', 'README.md', 'e2e/README.md', 'scripts/README.md'];
 
 async function walk(dir) {
   const res = [];

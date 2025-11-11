@@ -4,6 +4,7 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 import vue from 'eslint-plugin-vue';
 import vueParser from 'vue-eslint-parser';
 import prettierPlugin from 'eslint-plugin-prettier';
+import importPlugin from 'eslint-plugin-import';
 
 export default [
   // Global ignores
@@ -77,6 +78,7 @@ export default [
     plugins: {
       '@typescript-eslint': tsPlugin,
       prettier: prettierPlugin,
+      import: importPlugin,
     },
     rules: {
       // Prettier integration
@@ -85,8 +87,8 @@ export default [
       // Disable base no-unused-vars in favor of TypeScript version
       'no-unused-vars': 'off',
 
-      // TypeScript rules
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // TypeScript rules - STRICT MODE
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -96,6 +98,26 @@ export default [
       ],
       '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+
+      // Import rules
+      'import/order': [
+        'error',
+        {
+          groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+          'newlines-between': 'always',
+          alphabetize: {
+            order: 'asc',
+            caseInsensitive: true,
+          },
+        },
+      ],
+      'import/no-duplicates': 'error',
+      'import/first': 'error',
+      'import/newline-after-import': 'error',
 
       // Enforce semicolons
       semi: ['error', 'always'],
@@ -160,6 +182,7 @@ export default [
       vue,
       '@typescript-eslint': tsPlugin,
       prettier: prettierPlugin,
+      import: importPlugin,
     },
     rules: {
       // Prettier integration
@@ -175,8 +198,8 @@ export default [
       'vue/component-name-in-template-casing': ['error', 'PascalCase'],
       'vue/block-order': ['error', { order: ['script', 'template', 'style'] }],
 
-      // TypeScript in Vue
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // TypeScript in Vue - STRICT MODE
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -184,6 +207,26 @@ export default [
           varsIgnorePattern: '^_',
         },
       ],
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+
+      // Import rules
+      'import/order': [
+        'error',
+        {
+          groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+          'newlines-between': 'always',
+          alphabetize: {
+            order: 'asc',
+            caseInsensitive: true,
+          },
+        },
+      ],
+      'import/no-duplicates': 'error',
+      'import/first': 'error',
+      'import/newline-after-import': 'error',
 
       // Enforce semicolons
       semi: ['error', 'always'],

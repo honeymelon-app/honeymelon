@@ -1,3 +1,8 @@
+---
+title: Licensing Integration
+description: Understand how Honeymelon validates licenses issued by the Laravel backend and configure local development keys.
+---
+
 # Licensing Integration
 
 The Honeymelon desktop app validates licenses that are issued from the Laravel marketing site. This document explains how the two applications exchange license information, how signatures are produced, and how to configure local development.

@@ -1,3 +1,8 @@
+---
+title: Getting Started
+description: Install Honeymelon, configure prerequisites, and build the desktop app from source.
+---
+
 # Getting Started
 
 This guide will help you get Honeymelon up and running on your Mac.

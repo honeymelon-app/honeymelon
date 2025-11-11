@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { useAttrs } from 'vue';
 import { DrawerClose } from 'vaul-vue';
+import { useAttrs } from 'vue';
 
 defineOptions({ inheritAttrs: false });
 

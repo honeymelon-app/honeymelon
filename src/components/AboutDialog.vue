@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Info } from 'lucide-vue-next';
 import { getVersion } from '@tauri-apps/api/app';
+import { ExternalLink, Info } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 const isTauriRuntime =
   typeof window !== 'undefined' &&

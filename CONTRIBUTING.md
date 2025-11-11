@@ -22,6 +22,7 @@ Thank you for your interest in contributing to Honeymelon!
 - [Development Setup](#development-setup)
 - [How to Contribute](#how-to-contribute)
 - [Pull Request Process](#pull-request-process)
+- [Branch Protection Requirements](#branch-protection-requirements)
 - [Coding Standards](#coding-standards)
 - [Commit Guidelines](#commit-guidelines)
 - [Testing](#testing)
@@ -171,6 +172,47 @@ We welcome code contributions! Here are some areas where you can help:
 - Keep the PR description up to date with changes
 - Be responsive to review feedback
 
+## Branch Protection Requirements
+
+The main branch is protected to ensure code quality and stability. All changes must go through pull requests with the following requirements:
+
+### Review Requirements
+
+- **Require pull request reviews**: At least 1 approval from a code owner or maintainer
+- **Dismiss stale reviews**: Reviews are automatically dismissed when new commits are pushed
+- **Require review from code owners**: For changes to protected paths
+
+### Status Checks
+
+Before merging, the following checks must pass:
+
+- **Lint**: ESLint and Prettier checks for TypeScript/Vue/JavaScript
+- **Type Check**: TypeScript compilation without errors
+- **Test**: All unit and E2E tests passing
+- **Build**: Successful Vite and Tauri builds
+- **Rust Tests**: All Cargo tests passing
+- **Rust Lint**: Clippy checks passing
+
+### Branch Requirements
+
+- **Require branches to be up to date**: Branch must be current with main before merging
+- **Require linear history**: No merge commits allowed (use squash or rebase)
+- **Require signed commits**: All commits must be GPG/SSH signed (recommended)
+
+### Restrictions
+
+- **Do not allow force pushes**: Prevents history rewriting on main branch
+- **Do not allow deletions**: Main branch cannot be deleted
+- **Require deployments to succeed**: Before merging (when applicable)
+
+### Enforcement
+
+These protections apply to:
+
+- **Administrators**: Include administrators in these restrictions
+- **Apps**: Status checks must pass even for automated tools
+- **Bypass list**: Only repository owner can bypass (emergency use only)
+
 ## Coding Standards
 
 ### TypeScript
@@ -247,6 +289,73 @@ Previously, conversions would fail for such files.
 
 Fixes #89
 ```
+
+## Release Process
+
+Honeymelon uses [semantic-release](https://semantic-release.gitbook.io/) to automate versioning and releases. Version numbers are determined automatically based on the commit messages using Conventional Commits.
+
+### Version Scheme
+
+- **MAJOR** version: Breaking changes (feat with `BREAKING CHANGE:` footer)
+- **MINOR** version: New features (feat commits)
+- **PATCH** version: Bug fixes (fix commits) and other changes
+
+### Manual Release Trigger
+
+To trigger a release manually:
+
+1. Go to the **Actions** tab on GitHub
+2. Select the **Release Build** workflow
+3. Click **Run workflow**
+4. The workflow will:
+   - Analyze commit history since the last release
+   - Determine the new version number
+   - Update `package.json`, `Cargo.toml`, and `tauri.conf.json`
+   - Generate/update `CHANGELOG.md`
+   - Create a git tag and push to GitHub
+   - Trigger the build and release process
+
+### Automatic Release Trigger
+
+When you manually create a GitHub Release (via the Releases page), the workflow automatically:
+
+1. Validates the code (linting, tests, builds)
+2. Signs FFmpeg binaries
+3. Builds the macOS application
+4. Uploads artifacts
+5. Generates checksums
+6. Notifies webhooks
+
+### Version Synchronization
+
+The following files are automatically kept in sync during releases:
+
+- `package.json` (npm version field)
+- `package-lock.json` (npm lock file)
+- `src-tauri/Cargo.toml` (Rust package version)
+- `src-tauri/tauri.conf.json` (Tauri app version)
+- `CHANGELOG.md` (Release notes)
+
+This is handled by the `scripts/update-version.js` script, which is called by the semantic-release plugin during the prepare phase.
+
+### Creating a Release Locally (Advanced)
+
+If you need to create a release locally:
+
+```bash
+# Make sure your branch is up to date
+git pull origin main
+
+# Run semantic-release locally (requires GITHUB_TOKEN)
+GITHUB_TOKEN=your_token npm run release
+```
+
+### Notes
+
+- Commits must follow the Conventional Commits format for automatic versioning
+- The first release must have at least one conventional commit
+- Multiple commits of the same type will increment version by 1 (e.g., two `fix:` commits = one patch bump)
+- Pre-release versions (alpha, beta, rc) are not currently configured but can be enabled via `.releaserc.json`
 
 ## Testing
 
@@ -365,6 +474,156 @@ Good documentation helps everyone:
 - **Inline docs**: Add JSDoc/rustdoc for public APIs
 - **Examples**: Provide examples for complex features
 
+## Changelog Management
+
+We use [conventional-changelog](https://github.com/conventional-changelog/conventional-changelog) to automatically generate changelogs from commit messages.
+
+### Generating Changelogs
+
+After making commits following our [Commit Guidelines](#commit-guidelines), you can generate a changelog:
+
+```bash
+# Update CHANGELOG.md with new commits since last release
+npm run changelog
+
+# Generate complete changelog from all commits (first time only)
+npm run changelog:first
+```
+
+### Changelog Workflow
+
+1. **Make commits** following the [Conventional Commits](https://www.conventionalcommits.org/) specification
+2. **Before creating a release**, run `npm run changelog` to update `CHANGELOG.md`
+3. **Review the generated changelog** and make manual edits if needed
+4. **Commit the updated changelog**: `git add CHANGELOG.md && git commit -m "chore: update changelog"`
+5. **Create your release** using the standard release process
+
+The changelog groups commits by type:
+
+- **Features**: All commits with `feat:` prefix
+- **Bug Fixes**: All commits with `fix:` prefix
+- **Performance Improvements**: All commits with `perf:` prefix
+- **Breaking Changes**: Any commit with `BREAKING CHANGE:` in the footer
+
+### Example Changelog Entry
+
+When you run `npm run changelog`, it will generate entries like:
+
+```markdown
+## [1.2.0] - 2025-11-11
+
+### Features
+
+- **ui**: add dark mode toggle to preferences ([#42](https://github.com/honeymelon-app/honeymelon/issues/42))
+- **conversion**: support batch processing of multiple files
+
+### Bug Fixes
+
+- **conversion**: handle files with spaces in path ([#89](https://github.com/honeymelon-app/honeymelon/issues/89))
+```
+
+## Secret Scanning
+
+We use [TruffleHog](https://github.com/trufflesecurity/trufflehog) to scan for accidentally committed secrets and credentials.
+
+### Automated Scanning
+
+All pull requests and pushes to main/develop branches are automatically scanned by our GitHub Actions workflow. The scan will:
+
+- Check for API keys, tokens, passwords, and other secrets
+- Block merging if verified secrets are found
+- Report findings in the GitHub Actions logs
+
+### Local Secret Scanning (Optional)
+
+To catch secrets before committing, you can install and use TruffleHog locally:
+
+#### Installation
+
+**Using Homebrew (macOS):**
+
+```bash
+brew install trufflehog
+```
+
+**Using Docker:**
+
+```bash
+docker pull trufflesecurity/trufflehog:latest
+```
+
+**Using Go:**
+
+```bash
+go install github.com/trufflesecurity/trufflehog/v3@latest
+```
+
+#### Usage
+
+**Scan the entire repository:**
+
+```bash
+trufflehog filesystem . --only-verified
+```
+
+**Scan uncommitted changes:**
+
+```bash
+git diff | trufflehog --only-verified --no-update
+```
+
+**Scan a specific commit:**
+
+```bash
+trufflehog git file://. --since-commit HEAD~1 --only-verified
+```
+
+#### Pre-commit Hook (Recommended)
+
+Add a pre-commit hook to automatically scan before each commit:
+
+```bash
+# Create .husky/pre-commit-secrets file
+cat > .husky/pre-commit-secrets << 'EOF'
+#!/bin/sh
+if command -v trufflehog >/dev/null 2>&1; then
+  git diff --staged | trufflehog --only-verified --no-update
+  if [ $? -ne 0 ]; then
+    echo "Secret detected! Commit blocked."
+    exit 1
+  fi
+fi
+EOF
+
+chmod +x .husky/pre-commit-secrets
+```
+
+Then modify `.husky/pre-commit` to include:
+
+```bash
+.husky/pre-commit-secrets
+```
+
+### What to Do If Secrets Are Found
+
+If you accidentally commit a secret:
+
+1. **Rotate the secret immediately** - assume it's compromised
+2. **Remove it from git history** using tools like:
+   - `git filter-branch`
+   - [BFG Repo-Cleaner](https://rtyley.github.io/bfg-repo-cleaner/)
+   - `git-filter-repo`
+3. **Force push** the cleaned history (coordinate with team first)
+4. **Update all dependent systems** with the new secret
+
+### Best Practices
+
+- Store secrets in environment variables or secret management tools
+- Use `.env` files for local development (already in `.gitignore`)
+- Never commit `.env` files, API keys, tokens, or credentials
+- Use GitHub Secrets for CI/CD workflows
+- Review code carefully before committing
+
 ## Questions?
 
 If you have questions about contributing:
@@ -375,7 +634,7 @@ If you have questions about contributing:
 
 ## License
 
-By contributing to Honeymelon, you agree that your contributions will be licensed under the MIT License.
+By contributing to Honeymelon, you agree that your contributions will be licensed under Honeymelon's Proprietary License and become the property of Jerome Thayananthajothy.
 
 ---
 

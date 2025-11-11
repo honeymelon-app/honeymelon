@@ -6,8 +6,8 @@
  * consumer code.
  */
 
-import type { JobRecord, JobId } from '@/stores/job-types';
 import type { JobState } from '@/lib/types';
+import type { JobRecord, JobId } from '@/stores/job-types';
 
 /**
  * Job status type extracted from JobState

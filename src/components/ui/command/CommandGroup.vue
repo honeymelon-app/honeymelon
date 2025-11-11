@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import type { ListboxGroupProps } from 'reka-ui';
-import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
+import type { ListboxGroupProps } from 'reka-ui';
 import { ListboxGroup, ListboxGroupLabel, useId } from 'reka-ui';
+import type { HTMLAttributes } from 'vue';
 import { computed, onMounted, onUnmounted } from 'vue';
-import { cn } from '@/lib/utils';
+
 import { provideCommandGroupContext, useCommand } from '.';
+
+import { cn } from '@/lib/utils';
 
 const props = defineProps<
   ListboxGroupProps & {

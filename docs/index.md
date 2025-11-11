@@ -1,3 +1,8 @@
+---
+title: What is Honeymelon?
+description: Overview of Honeymelon's remux-first media conversion philosophy, key capabilities, and system requirements.
+---
+
 # What is Honeymelon?
 
 Honeymelon is a professional media converter application designed exclusively for macOS Apple Silicon devices. It provides an intuitive drag-and-drop interface for converting media files using FFmpeg, with a remux-first philosophy that prioritizes lossless stream copying over re-encoding to preserve quality and maximize performance.
