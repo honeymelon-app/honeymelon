@@ -72,14 +72,15 @@
 - [x] **FFmpeg args builder** — Added comprehensive unit tests (**41.59% → 100%**, 40 tests)
 - [x] **Encoder strategy** — Added comprehensive unit tests (**71.42% → 96.42%**, 51 tests)
 - [x] **File discovery (Tauri)** — Added Tauri runtime tests (**18% → 100%**, 64 total tests)
-- [ ] **Vue composables** — Tests for `use-job-orchestrator`, `use-app-orchestration` (**0% → deferred** until integration testing phase)
+- [x] **Vue composables** — Added Vitest suites for `use-job-orchestrator`, `use-app-orchestration`, `use-file-handler`, `use-colour-mode`, `use-language-preferences`, `use-tauri-events` (**0% → 60.56%**, license store still untested)
+- [ ] **License & prefs stores** — Cover legacy control paths and notification branches (**deferred**; needed for 80%+ composables coverage)
 - [ ] **E2E scaffolds** — Convert **200+** placeholders to real tests (**deferred** to future phase)
 - [ ] **Rust integration tests** — Backend integration suite (**deferred** to future phase)
 
 ### Test Infrastructure ✅
 
 - [x] **Zero skipped tests** — All **576 tests** passing (0 skipped, 0 failed)
-- [x] **Test files** — 17 test files with comprehensive coverage
+- [x] **Test files** — 23 test files with comprehensive coverage (composables now included)
 - [x] **Core module coverage** — All critical modules (planners, builders, strategies) at **95%+**
 - [x] **Lib module coverage** — Overall lib directory at **86.33%** coverage
 - [ ] **Perf benchmarks** — Automated performance regression detection (**deferred**)
@@ -107,9 +108,10 @@
 - `lib/media-formats.ts`: **76.66%**
 - `lib/capability.ts`: **73.33%**
 
-**Deferred (composables require integration testing):**
+**Deferred (stores + integrations):**
 
-- `composables/*`: **0%** (requires full Tauri integration environment)
+- `stores/license.ts`: **0%** (legacy activation flow still untested)
+- `stores/prefs.ts`: **12%** (requires concurrency + filename separator branches)
 
 ---
 
@@ -177,6 +179,14 @@
 - **Docs:** `BUILD.md`, API docs, ADRs, `ROADMAP.md`
 - **Security:** CodeQL on; audits blocking; `git-secrets` active
 - **Code Quality:** commitlint, import ordering, stricter TS
+
+---
+
+### Recent Update — 2025-11-11
+
+- Added Vitest suites for all active Vue composables, including notification flows.
+- Fixed orchestrator spec typing via local `MockFn` alias; async assertions now use `waitFor`.
+- Composables coverage sits at **60.56%**; remaining gaps are `stores/license` and `stores/prefs`.
 
 ---
 
