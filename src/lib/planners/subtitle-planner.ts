@@ -3,9 +3,11 @@ import type { Preset, ProbeSummary } from '../types';
 
 const SUBTITLE_CONVERT_CODEC = 'mov_text';
 
-interface SubtitlePlanDecision {
+export interface SubtitlePlanDecision {
   mode: 'drop' | 'copy' | 'convert';
   note: string;
+  /** Whether image-based subtitles should be excluded from mapping */
+  excludeImageStreams?: boolean;
 }
 
 function allowsAny(list: 'any' | string[] | undefined): boolean {
@@ -65,20 +67,48 @@ export class SubtitlePlanner {
         };
       }
       case 'convert': {
+        const containerSupportsMovText =
+          !rule || subtitleCodecAllowed(rule?.text, SUBTITLE_CONVERT_CODEC);
+
+        if (!hasAny) {
+          return {
+            mode: 'drop',
+            note: 'Subtitles: no streams detected.',
+          };
+        }
+
         if (!hasText) {
-          warnings.push('No text subtitles available for conversion.');
+          if (hasImage) {
+            warnings.push('Only image-based subtitles detected; dropping for compatibility.');
+          } else {
+            warnings.push('No text subtitles available for conversion.');
+          }
+          return {
+            mode: 'drop',
+            note: 'Subtitles: drop (no convertible text streams).',
+          };
         }
-        if (hasImage) {
-          warnings.push('Image-based subtitles detected; conversion to mov_text not supported.');
-        }
-        if (rule && !subtitleCodecAllowed(rule.text, SUBTITLE_CONVERT_CODEC)) {
+
+        if (!containerSupportsMovText) {
           warnings.push(
-            `${preset.container} container does not advertise ${SUBTITLE_CONVERT_CODEC}; conversion may fail.`,
+            `${preset.container} container does not advertise ${SUBTITLE_CONVERT_CODEC}; dropping subtitles to avoid failure.`,
           );
+          return {
+            mode: 'drop',
+            note: `Subtitles: drop (target lacks ${SUBTITLE_CONVERT_CODEC} support).`,
+          };
         }
+
+        if (hasImage) {
+          warnings.push('Image-based subtitles dropped; conversion only affects text streams.');
+        }
+
         return {
           mode: 'convert',
-          note: 'Subtitles: convert text streams to mov_text.',
+          note: hasImage
+            ? 'Subtitles: convert text streams to mov_text; drop image-based streams.'
+            : 'Subtitles: convert text streams to mov_text.',
+          excludeImageStreams: hasImage,
         };
       }
       case 'burn': {

@@ -99,7 +99,7 @@ export function planJob(context: PlannerContext): PlannerDecision {
   const { ffmpegArgs, notes: builderNotes } = argsBuilder
     .withVideo(videoAction, videoTier, preset, context.summary)
     .withAudio(audioAction, audioTier, preset)
-    .withSubtitles(subtitlePlan.mode, subtitlePlan.note)
+    .withSubtitles(subtitlePlan)
     .withContainer(preset.container, containerRule?.requiresFaststart ?? false)
     .withProgress()
     .build();

@@ -2,7 +2,7 @@ import type { Container, ProbeSummary, Preset, TierDefaults } from '../types';
 import type { VideoAction, VideoTierResult } from '../planners/video-planner';
 import { resolveVideoProfile } from '../planners/video-planner';
 import type { AudioAction } from '../planners/audio-planner';
-import { SUBTITLE_CONVERT_CODEC } from '../planners/subtitle-planner';
+import { SUBTITLE_CONVERT_CODEC, type SubtitlePlanDecision } from '../planners/subtitle-planner';
 
 const CONTAINER_TO_MUXER: Partial<Record<Container, string>> = {
   mp4: 'mp4',
@@ -153,12 +153,28 @@ export class FFmpegArgsBuilder {
     return this;
   }
 
-  withSubtitles(mode: 'drop' | 'copy' | 'convert', note: string): this {
+  withSubtitles(plan: SubtitlePlanDecision): this {
+    const { mode, note, excludeImageStreams } = plan;
+
     if (mode === 'drop') {
       this.args.push('-sn');
     } else {
       this.args.push('-map', '0:s?');
       this.args.push('-c:s', mode === 'convert' ? SUBTITLE_CONVERT_CODEC : 'copy');
+
+      if (mode === 'convert' && excludeImageStreams) {
+        const imageSubtitleCodecs = [
+          'hdmv_pgs_subtitle',
+          'pgssub',
+          'dvd_subtitle',
+          'dvb_subtitle',
+          'xsub',
+        ];
+
+        for (const codec of imageSubtitleCodecs) {
+          this.args.push('-map', `-0:s:m:codec:${codec}?`);
+        }
+      }
     }
 
     this.notes.push(note);
