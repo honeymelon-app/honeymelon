@@ -9,22 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes._
 
-## [1.0.1] - 2025-11-05
+## [0.0.1] - 2025-11-11
 
-### Changed
-
-- Rust backend now loads `.env` at build time and forwards `LICENSE_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
-- Added `dotenvy` to Rust build dependencies.
-- Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification.
-- Replaced all dynamic imports of Tauri API modules with static imports in frontend files to resolve Vite warnings:
-  - `src/stores/license.ts`
-  - `src/composables/use-file-handler.ts`
-  - `src/composables/use-job-orchestrator.ts`
-  - `src/lib/file-discovery.ts`
-  - `src/components/DestinationChooser.vue`
-- Added and improved docblocks and comments in Rust modules for clarity and maintainability (`lib.rs`, `license.rs`, `ffmpeg_capabilities.rs`).
-
-## [1.0.0] - 2025-11-04
+This is the initial public release. See [Unreleased] section for complete feature list.
 
 ### Added
 
@@ -46,6 +33,21 @@ _No unreleased changes._
 - Output directory settings
 - Recursive media file discovery for dropped folders
 
+### Changed
+
+- Rust backend now loads `.env` at build time and forwards `LICENSE_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
+- Added `dotenvy` to Rust build dependencies.
+- Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification.
+- Replaced all dynamic imports of Tauri API modules with static imports in frontend files to resolve Vite warnings:
+  - `src/stores/license.ts`
+  - `src/composables/use-file-handler.ts`
+  - `src/composables/use-job-orchestrator.ts`
+  - `src/lib/file-discovery.ts`
+  - `src/components/DestinationChooser.vue`
+- Added and improved docblocks and comments in Rust modules for clarity and maintainability (`lib.rs`, `license.rs`, `ffmpeg_capabilities.rs`).
+- Embedded custom macOS `Info.plist` overrides to require native arm64 execution, enforce Retina support, and predeclare camera/microphone usage descriptions for notarization.
+- Limited bundling to DMG artifacts to avoid redundant `.app` archives on Apple Silicon builds.
+
 ### Documentation
 
 - Initial README with feature overview
@@ -57,6 +59,7 @@ _No unreleased changes._
 - THIRD_PARTY_NOTICES.md for dependencies
 - LICENSE_COMPLIANCE.md for LGPL compliance details
 - COMMERCIAL_LICENSE.md for alternative licensing
+- README now highlights the Apple Silicon-focused packaging, bundled arm64 FFmpeg sidecars, and adds a release checklist step to verify their architecture.
 
 ### Known Limitations
 
@@ -72,10 +75,3 @@ _No unreleased changes._
 - Rust backend for FFmpeg integration
 - Pinia state management
 - shadcn-vue UI components
-
-## [0.1.0] - 2025-10-30
-
-This is the initial public release. See [Unreleased] section for complete feature list.
-
-[Unreleased]: https://github.com/honeymelon-app/honeymelon/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/honeymelon-app/honeymelon/releases/tag/v0.1.0

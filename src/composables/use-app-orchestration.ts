@@ -198,7 +198,7 @@ export function useAppOrchestration() {
    */
   async function handleFileDrop(paths: string[]) {
     isDragOver.value = false;
-    await fileHandler.addFilesFromPaths(paths);
+    await fileHandler.addFilesFromPaths(paths, { alreadyExpanded: true });
   }
 
   /**

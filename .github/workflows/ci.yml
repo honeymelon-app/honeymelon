@@ -189,7 +189,6 @@ jobs:
           else
             echo "Vitest not configured, skipping frontend tests"
           fi
-        continue-on-error: true
 
   # Job 5: E2E Tests (if configured)
   test-e2e:
@@ -353,6 +352,11 @@ jobs:
 
           if [[ "${{ needs.build.result }}" != "success" ]]; then
             echo "::error::Build failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.test-frontend.result }}" != "success" ]]; then
+            echo "::error::Frontend unit tests failed"
             exit 1
           fi
 

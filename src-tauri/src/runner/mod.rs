@@ -75,7 +75,7 @@ impl FfmpegRunner {
 
         // Set up monitoring
         let stderr = child.stderr.take();
-        let process = Arc::new(RunningProcess::new(child));
+        let process = Arc::new(RunningProcess::new(child, exclusive));
 
         // Register process
         {

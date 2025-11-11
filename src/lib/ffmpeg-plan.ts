@@ -101,6 +101,7 @@ export function planJob(context: PlannerContext): PlannerDecision {
     .withAudio(audioAction, audioTier, preset)
     .withSubtitles(subtitlePlan.mode, subtitlePlan.note)
     .withContainer(preset.container, containerRule?.requiresFaststart ?? false)
+    .withProgress()
     .build();
 
   notes.push(...builderNotes);

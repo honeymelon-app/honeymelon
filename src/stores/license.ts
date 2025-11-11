@@ -15,6 +15,19 @@ interface LicenseInfo {
 }
 
 export const useLicenseStore = defineStore('license', () => {
+  const isDev = import.meta.env.DEV;
+
+  const devLicense: LicenseInfo = {
+    key: 'DEV-BYPASS',
+    licenseId: 'dev-license',
+    orderId: 'dev-order',
+    maxMajorVersion: Number.MAX_SAFE_INTEGER,
+    issuedAt: Date.now(),
+    payload: 'dev-mode-license',
+    signature: 'dev-mode-license',
+    activatedAt: Date.now(),
+  };
+
   const current = ref<LicenseInfo | null>(null);
   const preview = ref<LicenseInfo | null>(null);
   const isLoading = ref(false);
@@ -55,6 +68,12 @@ export const useLicenseStore = defineStore('license', () => {
 
     try {
       isLoading.value = true;
+      if (isDev) {
+        current.value = devLicense;
+        promptOnInit.value = false;
+        return;
+      }
+
       current.value = await invoke<LicenseInfo | null>('current_license');
       promptOnInit.value = !current.value;
     } catch (error) {
@@ -80,6 +99,11 @@ export const useLicenseStore = defineStore('license', () => {
     try {
       isVerifying.value = true;
       lastError.value = null;
+      if (isDev) {
+        preview.value = devLicense;
+        return preview.value;
+      }
+
       preview.value = await invoke<LicenseInfo>('verify_license_key', { key });
       return preview.value;
     } catch (error) {
@@ -100,6 +124,13 @@ export const useLicenseStore = defineStore('license', () => {
     try {
       isActivating.value = true;
       lastError.value = null;
+      if (isDev) {
+        current.value = devLicense;
+        preview.value = null;
+        promptOnInit.value = false;
+        return current.value;
+      }
+
       const license = await invoke<LicenseInfo>('activate_license', { key });
       current.value = license;
       preview.value = null;
@@ -116,6 +147,14 @@ export const useLicenseStore = defineStore('license', () => {
 
   async function remove() {
     try {
+      if (isDev) {
+        current.value = devLicense;
+        preview.value = null;
+        lastError.value = null;
+        promptOnInit.value = false;
+        return;
+      }
+
       await invoke('remove_license');
       current.value = null;
       preview.value = null;

@@ -15,16 +15,24 @@
 
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Overview](#overview)
 - [Key Features](#key-features)
+  - [Intelligent Conversion Engine](#intelligent-conversion-engine)
+  - [Professional Media Handling](#professional-media-handling)
+  - [Production-Ready Workflow](#production-ready-workflow)
+  - [Privacy \& Security](#privacy--security)
 - [System Requirements](#system-requirements)
 - [Quick Start](#quick-start)
   - [Installation](#installation)
   - [Development Setup](#development-setup)
 - [How It Works](#how-it-works)
   - [Stage 1: Probe](#stage-1-probe)
+- [Extract comprehensive metadata from input files](#extract-comprehensive-metadata-from-input-files)
   - [Stage 2: Plan](#stage-2-plan)
+- [Determine optimal conversion strategy (copy vs. transcode)](#determine-optimal-conversion-strategy-copy-vs-transcode)
   - [Stage 3: Execute](#stage-3-execute)
+- [Spawn FFmpeg process with real-time progress tracking](#spawn-ffmpeg-process-with-real-time-progress-tracking)
 - [Architecture](#architecture)
   - [Technology Stack](#technology-stack)
   - [Project Structure](#project-structure)
@@ -38,10 +46,19 @@
   - [Code Style](#code-style)
   - [Testing](#testing)
   - [Release Process](#release-process)
+- [Legal \& Licensing](#legal--licensing)
+  - [Proprietary Software](#proprietary-software)
+  - [FFmpeg Licensing](#ffmpeg-licensing)
+  - [Patent Considerations](#patent-considerations)
+  - [Third-Party Software](#third-party-software)
+  - [Distribution Requirements](#distribution-requirements)
 - [Troubleshooting](#troubleshooting)
-- [Legal & Licensing](#legal--licensing)
+  - [Common Issues](#common-issues)
+  - [Performance Tips](#performance-tips)
+  - [Getting Help](#getting-help)
 - [Contributing](#contributing)
 - [Acknowledgements](#acknowledgements)
+- [License](#license)
 
 ---
 
@@ -87,6 +104,7 @@ Honeymelon is a native macOS desktop application that provides an intelligent in
 - **Real-time progress**: Live FPS, encoding speed, ETA calculations with circular log buffers
 - **Atomic operations**: Temp file strategy ensures safe output with automatic cleanup on failure
 - **macOS notifications**: Desktop alerts on job completion or failure
+- **Apple Silicon native**: Bundle metadata blocks Rosetta fallback, keeps Retina UI crisp, and predeclares camera/mic usage for notarization readiness
 
 ### Privacy & Security
 
@@ -243,18 +261,21 @@ src/
 │   └── use-job-orchestrator.ts  # Main orchestrator
 └── components/             # Vue UI components
 
-src-tauri/src/
-├── runner/                 # FFmpeg process orchestration split into focused modules
-│   ├── mod.rs
-│   ├── process_spawner.rs
-│   ├── progress_monitor.rs
-│   ├── output_manager.rs
-│   ├── validator.rs
-│   └── concurrency.rs
-├── ffmpeg_probe.rs         # Media probing
-├── ffmpeg_capabilities.rs  # Capability detection
-├── fs_utils.rs             # File discovery
-└── error.rs                # Unified error handling
+src-tauri/
+├── Info.plist              # Bundle overrides (arm64-only, Retina, privacy usage descriptions)
+├── bin/                    # Bundled FFmpeg sidecars (arm64 builds)
+└── src/
+    ├── runner/             # FFmpeg process orchestration split into focused modules
+    │   ├── mod.rs
+    │   ├── process_spawner.rs
+    │   ├── progress_monitor.rs
+    │   ├── output_manager.rs
+    │   ├── validator.rs
+    │   └── concurrency.rs
+    ├── ffmpeg_probe.rs     # Media probing
+    ├── ffmpeg_capabilities.rs  # Capability detection
+    ├── fs_utils.rs         # File discovery
+    └── error.rs            # Unified error handling
 ```
 
 **Documentation:**
@@ -367,12 +388,13 @@ src-tauri/src/
 1. Bump versions in `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`
 2. Update `CHANGELOG.md` with release notes
 3. Run full QA: `npm run lint && npm test && npm run build && cd src-tauri && cargo test`
-4. Configure code signing environment variables (APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID)
-5. Build signed bundle: `npm run tauri build`
-6. Verify signature: `codesign -vvv --deep --strict <app>` and `spctl -a -vvv -t install <app>`
-7. Generate SHA256 checksum for DMG
-8. Create GitHub Release with DMG, changelog, and checksum
-9. Smoke test on clean machine
+4. Confirm bundled binaries are Apple Silicon only: `file src-tauri/bin/ffmpeg src-tauri/bin/ffprobe` (expect `arm64`)
+5. Configure code signing environment variables (APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID)
+6. Build signed bundle: `npm run tauri build`
+7. Verify signature: `codesign -vvv --deep --strict <app>` and `spctl -a -vvv -t install <app>`
+8. Generate SHA256 checksum for DMG
+9. Create GitHub Release with DMG, changelog, and checksum
+10. Smoke test on clean machine
 
 **Output**: `src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/Honeymelon_*.dmg`
 

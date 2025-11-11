@@ -91,18 +91,24 @@ export function useFileHandler(options: UseFileHandlerOptions) {
     }
   }
 
-  async function addFilesFromPaths(paths: string[]) {
+  async function addFilesFromPaths(paths: string[], options: { alreadyExpanded?: boolean } = {}) {
     try {
       if (!(await ensurePresetsReady())) return;
 
       const validPaths = paths.filter((p) => typeof p === 'string' && p.trim().length > 0);
       if (!validPaths.length) return;
 
+      const { alreadyExpanded = false } = options;
+
       let expanded: string[] = [];
-      try {
-        expanded = await invoke<string[]>('expand_media_paths', { paths: validPaths });
-      } catch {
-        expanded = validPaths;
+      if (alreadyExpanded) {
+        expanded = Array.from(new Set(validPaths.map((p) => p.trim())));
+      } else {
+        try {
+          expanded = await invoke<string[]>('expand_media_paths', { paths: validPaths });
+        } catch {
+          expanded = validPaths;
+        }
       }
       if (!expanded.length) return;
 

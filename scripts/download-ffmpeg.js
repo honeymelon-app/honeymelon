@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
-'use strict';
 
 /**
  * FFmpeg Bundling Setup for Honeymelon (Apple Silicon only)
@@ -10,10 +9,11 @@
  * - Ad-hoc codesigns the binaries (best-effort)
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const { execFileSync, spawnSync } = require('child_process');
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 // Colors
 const RED = '\x1b[31m';
@@ -26,7 +26,7 @@ const FFMPEG_VERSION = '7.1.1';
 const FFMPEG_URL = 'https://www.osxexperts.net/ffmpeg711arm.zip';
 const FFPROBE_URL = 'https://www.osxexperts.net/ffprobe711arm.zip';
 
-const SCRIPT_DIR = __dirname;
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 const BIN_DIR = path.join(PROJECT_ROOT, 'src-tauri', 'bin');
 

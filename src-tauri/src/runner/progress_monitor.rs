@@ -21,20 +21,30 @@ pub struct RunningProcess {
     pub child: Mutex<Option<Child>>,
     /// Atomic flag indicating if the process has been cancelled
     pub cancelled: AtomicBool,
+    /// Whether this job requires exclusive execution while running
+    exclusive: AtomicBool,
     /// Circular buffer of recent log lines
     pub logs: Mutex<VecDeque<String>>,
 }
 impl RunningProcess {
-    pub fn new(child: Child) -> Self {
+    pub fn new(child: Child, exclusive: bool) -> Self {
         Self {
             child: Mutex::new(Some(child)),
             cancelled: AtomicBool::new(false),
+            exclusive: AtomicBool::new(exclusive),
             logs: Mutex::new(VecDeque::with_capacity(256)),
         }
     }
 
-    // `new_mock` removed: no longer required by local tests. Use real `Child` in
-    // integration tests or create small test helpers inside those test modules.
+    /// Returns whether this process is currently exclusive
+    pub fn is_exclusive(&self) -> bool {
+        self.exclusive.load(Ordering::SeqCst)
+    }
+
+    /// Updates the exclusivity flag, typically when cleaning up
+    pub fn set_exclusive(&self, exclusive: bool) {
+        self.exclusive.store(exclusive, Ordering::SeqCst);
+    }
 
     pub fn mark_cancelled(&self) {
         self.cancelled.store(true, Ordering::SeqCst);
@@ -244,6 +254,7 @@ impl ProgressMonitor {
             logs,
         };
 
+        process.set_exclusive(false);
         let _ = app.emit(COMPLETION_EVENT, &completion);
     }
 

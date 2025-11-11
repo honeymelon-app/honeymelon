@@ -61,6 +61,14 @@ impl JobValidator {
             ));
         }
 
+        // Prevent new jobs when an existing exclusive job is running
+        if active_jobs.values().any(|process| process.is_exclusive()) {
+            return Err(AppError::new(
+                "job_exclusive_blocked",
+                "Another exclusive job is currently running.",
+            ));
+        }
+
         // Enforce concurrency limits
         let limit = max_concurrency.max(1);
         if current_active >= limit {

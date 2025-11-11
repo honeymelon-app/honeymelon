@@ -51,6 +51,7 @@ describe('ffmpeg-plan', () => {
     expect(decision.remuxOnly).toBe(true);
     expect(decision.ffmpegArgs).toContain('-c:v');
     expect(decision.ffmpegArgs).toContain('copy');
+    expect(decision.ffmpegArgs).toContain('-progress');
   });
 
   it('plans a transcode when target container requires different codecs', () => {
@@ -63,6 +64,7 @@ describe('ffmpeg-plan', () => {
     expect(decision.ffmpegArgs).toContain('libx264');
     expect(decision.ffmpegArgs).toContain('-c:a');
     expect(decision.ffmpegArgs).toContain('aac');
+    expect(decision.ffmpegArgs).toContain('-progress');
   });
 
   it('builds the GIF pipeline for gif outputs', () => {
@@ -88,6 +90,7 @@ describe('ffmpeg-plan', () => {
     const decision = planJob(context);
     expect(decision.ffmpegArgs).toContain('-c:a');
     expect(decision.ffmpegArgs).toContain('libmp3lame');
+    expect(decision.ffmpegArgs).toContain('-progress');
   });
 
   it('falls back to default preset when unknown id is supplied', () => {

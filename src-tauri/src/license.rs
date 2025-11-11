@@ -707,7 +707,10 @@ fn parse_payload(bytes: &[u8]) -> Result<ParsedPayload, LicenseError> {
     let max_major_version = bytes[33];
 
     // Extract and parse timestamp
-    let issued_at = u64::from_be_bytes(bytes[34..42].try_into().unwrap());
+    let issued_at_bytes: [u8; 8] = bytes[34..42]
+        .try_into()
+        .map_err(|_| LicenseError::InvalidLength)?;
+    let issued_at = u64::from_be_bytes(issued_at_bytes);
 
     Ok(ParsedPayload {
         license_id,
@@ -834,5 +837,13 @@ mod tests {
     fn format_key_groups_characters() {
         let formatted = format_key("abcdefghijklmn");
         assert_eq!(formatted, "ABCDE-FGHIJ-KLMN");
+    }
+
+    #[test]
+    fn parse_payload_handles_truncated_timestamp() {
+        let mut bytes = vec![0u8; PAYLOAD_LENGTH - 1];
+        bytes[0] = 1;
+        let result = parse_payload(&bytes);
+        assert!(matches!(result, Err(LicenseError::InvalidLength)));
     }
 }

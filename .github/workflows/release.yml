@@ -29,6 +29,8 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
+      - name: Refresh FFmpeg sidecars
+        run: npm run download-ffmpeg
       - run: npm run build --if-present
       - run: npm run lint:js || true
       - run: npm run format:check:js || true
@@ -37,11 +39,10 @@ jobs:
       - run: cd src-tauri && cargo test --all-features --lib
       - run: |
           if grep -q '"vitest"' package.json || [ -f "vitest.config.ts" ] || [ -f "vitest.config.js" ]; then
-            npm test || echo "Tests failed"
+            npm run test:unit
           else
             echo "No tests configured"
           fi
-        continue-on-error: true
 
   build-and-upload:
     name: Build and Upload Artifacts

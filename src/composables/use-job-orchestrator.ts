@@ -1,7 +1,6 @@
 import { ref, watch, onUnmounted } from 'vue';
 
 import { invoke } from '@tauri-apps/api/core';
-import { runFfmpeg } from '@/composables/use-ffmpeg';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type * as NotificationPlugin from '@tauri-apps/plugin-notification';
 
@@ -17,6 +16,7 @@ import { useJobsStore } from '@/stores/jobs';
 import { usePrefsStore } from '@/stores/prefs';
 import { storeToRefs } from 'pinia';
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
+import { executionService } from '@/services/execution-service';
 
 interface StartJobOptions {
   jobId: string;
@@ -139,13 +139,13 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
             speed?: number;
           } = {};
 
-          if (payload.progress.processedSeconds !== undefined) {
+          if (payload.progress.processedSeconds != null) {
             progressUpdate.processedSeconds = payload.progress.processedSeconds;
           }
-          if (payload.progress.fps !== undefined) {
+          if (payload.progress.fps != null) {
             progressUpdate.fps = payload.progress.fps;
           }
-          if (payload.progress.speed !== undefined) {
+          if (payload.progress.speed != null) {
             progressUpdate.speed = payload.progress.speed;
           }
 
@@ -348,7 +348,8 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       const summary = await probe(path);
       jobs.markPlanning(jobId, summary);
 
-      const decision = await plan(summary, presetId, tier, path);
+      const planningDecision = await plan(summary, presetId, tier, path);
+      const decision = ensureDecisionHasInput(planningDecision, path);
       const otherActive = activeJobs.value.filter(
         (active) => active.id !== jobId && active.state.status === 'running',
       ).length;
@@ -430,6 +431,29 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     });
   }
 
+  function ensureDecisionHasInput(decision: PlannerDecision, sourcePath: string): PlannerDecision {
+    if (!sourcePath || sourcePath.trim().length === 0) {
+      throw new JobError('Source path missing for job execution.', 'job_missing_source');
+    }
+
+    const baseArgs = Array.isArray(decision.ffmpegArgs) ? [...decision.ffmpegArgs] : [];
+    const hasInputArg = baseArgs.some(
+      (value, index) => value === '-i' && index + 1 < baseArgs.length,
+    );
+
+    if (hasInputArg) {
+      return {
+        ...decision,
+        ffmpegArgs: baseArgs,
+      };
+    }
+
+    return {
+      ...decision,
+      ffmpegArgs: ['-i', sourcePath, ...baseArgs],
+    };
+  }
+
   async function run(jobId: string, decision: PlannerDecision): Promise<boolean> {
     if (simulate) {
       const simulatedJob = jobs.getJob(jobId);
@@ -447,40 +471,23 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     const outputPath = buildOutputPath(job, decision);
     jobs.setOutputPath(jobId, outputPath);
 
-    const args = ['-y', '-nostdin', '-i', job.path, ...decision.ffmpegArgs, outputPath];
-
-    // Validate FFmpeg arguments before invoking
-    if (args.length === 0 || !decision.ffmpegArgs || decision.ffmpegArgs.length === 0) {
+    // Validate FFmpeg arguments before invoking the backend runner
+    if (!decision.ffmpegArgs || decision.ffmpegArgs.length === 0) {
       throw new JobError('FFmpeg arguments cannot be empty', 'job_invalid_args');
     }
 
     try {
-      // We are now bypassing the Rust-based job runner for direct execution.
-      // This is a significant architectural change. The event listeners for
-      // progress and completion will no longer work as they were tied to the
-      // Rust backend. We will need to re-implement progress parsing and
-      // completion handling here.
-      const result = await runFfmpeg(args);
+      const startResult = await executionService.start({
+        jobId,
+        decision,
+        outputPath,
+        exclusive: job.exclusive ?? false,
+      });
 
-      if (result.code === 0) {
-        jobs.markCompleted(jobId, outputPath);
-        void notifyJobResult({ jobId, success: true, cancelled: false });
-      } else {
-        const errorMessage = `FFmpeg exited with code ${result.code}: ${result.stderr}`;
-        jobs.markFailed(jobId, errorMessage);
-        void notifyJobResult({
-          jobId,
-          success: false,
-          cancelled: false,
-          exitCode: result.code,
-          message: result.stderr,
-        });
-      }
-
-      if (autoStartNext) {
-        startNextAvailable().catch((error) => {
-          console.error('[orchestrator] Failed to start next job after completion:', error);
-        });
+      if (!startResult.success) {
+        const message = startResult.error ?? 'Failed to start FFmpeg job';
+        jobs.markFailed(jobId, message, startResult.code);
+        return false;
       }
 
       return true;
@@ -706,7 +713,10 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
       return;
     }
 
-    await invoke<boolean>('cancel_job', { jobId: jobId });
+    const result = await executionService.cancel(jobId);
+    if (!result.success && result.error) {
+      console.warn('[orchestrator] Failed to cancel job:', result.error);
+    }
   }
 
   return {

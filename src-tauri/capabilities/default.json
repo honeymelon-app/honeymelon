@@ -9,21 +9,6 @@
     "core:event:default",
     "core:webview:allow-internal-toggle-devtools",
     "opener:default",
-    "notification:default",
-    {
-      "identifier": "shell:allow-execute",
-      "allow": [
-        {
-          "name": "ffmpeg",
-          "cmd": "$RESOURCE/bin/ffmpeg",
-          "args": [{ "validator": ".*" }]
-        },
-        {
-          "name": "ffprobe",
-          "cmd": "$RESOURCE/bin/ffprobe",
-          "args": [{ "validator": ".*" }]
-        }
-      ]
-    }
+    "notification:default"
   ]
 }

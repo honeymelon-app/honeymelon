@@ -1,4 +1,5 @@
 import { ref, onMounted, onUnmounted } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 interface UseTauriEventsOptions {
@@ -26,14 +27,40 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
     if (!isTauriRuntime()) return;
 
     if (onDrop) {
+      const handleDropPaths = async (candidatePaths: unknown) => {
+        const raw = Array.isArray(candidatePaths)
+          ? candidatePaths.filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+          : [];
+        if (!raw.length) {
+          return;
+        }
+
+        let expanded = raw;
+        try {
+          expanded = await invoke<string[]>('expand_media_paths', { paths: raw });
+        } catch (error) {
+          console.warn('[tauri-events] Failed to expand dropped paths via backend:', error);
+        }
+
+        if (!expanded.length) {
+          return;
+        }
+
+        expanded = Array.from(
+          new Set(expanded.map((path) => path.trim()).filter((path) => path.length > 0)),
+        );
+
+        if (!expanded.length) {
+          return;
+        }
+
+        await onDrop(expanded);
+      };
+
       unlistenDrop.value = await listen<{ paths?: string[] | null }>(
         'tauri://drag-drop',
         async (event) => {
-          const payloadPaths = event.payload?.paths;
-          const paths = Array.isArray(payloadPaths) ? payloadPaths : [];
-          if (paths.length > 0) {
-            await onDrop(paths);
-          }
+          await handleDropPaths(event.payload?.paths ?? []);
           if (onDragLeave) {
             onDragLeave();
           }

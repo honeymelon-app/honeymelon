@@ -126,6 +126,9 @@ function handleFileInput(event: Event) {
       aria-label="Upload files"
       tabindex="0"
       @keydown.enter="handleBrowse"
+      @dragover.prevent
+      @dragenter.prevent
+      @drop.prevent
     >
       <!-- Upload icon for visual indication -->
       <Upload class="size-12 text-slate-300" aria-hidden="true" />
@@ -172,6 +175,9 @@ function handleFileInput(event: Event) {
       aria-label="Upload more files"
       tabindex="0"
       @keydown.enter="handleBrowse"
+      @dragover.prevent
+      @dragenter.prevent
+      @drop.prevent
     >
       <div class="flex items-center gap-3">
         <!-- Upload icon -->
