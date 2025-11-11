@@ -9,6 +9,15 @@
     "core:event:default",
     "core:webview:allow-internal-toggle-devtools",
     "opener:default",
-    "notification:default"
+    "notification:default",
+    "store:default",
+    "window-state:default",
+    "fs:default",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-appdata-meta-recursive",
+    "fs:allow-appconfig-read-recursive",
+    "fs:allow-appconfig-write-recursive",
+    "fs:allow-appconfig-meta-recursive"
   ]
 }
