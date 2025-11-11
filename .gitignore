@@ -117,3 +117,4 @@ src-tauri/tauri.conf.json.backup
 
 docs/.vitepress/dist
 docs/.vitepress/cache
+reference/

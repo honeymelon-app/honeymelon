@@ -24,72 +24,71 @@ ADRs create a searchable, time-stamped record of decisions that can be reference
 
 ## When to Create an ADR
 
-Create an ADR when:
+Create an ADR when you:
 
-- Making a decision that **affects system architecture or design**
-- Choosing between **significant alternative approaches**
-- Adopting a **new technology, library, or pattern**
-- Making **trade-offs** that should be documented
-- Documenting decisions that **future changes should consider**
+- Introduce or replace a **major dependency** (FFmpeg builds, state libraries, CI tooling)
+- Change **architectural boundaries** (new Tauri commands, planner layout, persistence model)
+- Modify the application's **security or privacy posture** (capability ACLs, filesystem access, retention policies)
+- Commit to **cross-cutting conventions** that future work must honour (error handling, logging, orchestration strategy)
 
-**Don't create ADRs for**:
+Routine bug fixes, cosmetic tweaks, or minor refactors usually do **not** need an ADR.
 
-- Minor implementation details
-- Routine bug fixes
-- Small refactoring improvements
-- Day-to-day coding decisions
+## Naming & Location
+
+Store ADR files in `docs/adr/` using the pattern `NNNN-short-title.md`, where `NNNN` is the next zero-padded number:
+
+```
+docs/adr/
+├── 0001-initial-architecture.md
+├── 0002-job-orchestrator-design.md
+└── 0003-new-dependency-policy.md
+```
+
+Keep titles concise, lowercase, and hyphen-separated so URLs remain friendly.
 
 ## How to Propose a New ADR
 
-1. **Create** a new file: `docs/adr/NNNN-short-title.md` (use next sequential number)
+1. **Create** `docs/adr/NNNN-short-title.md` using the next sequential number
 2. **Write** following the [ADR template](#adr-template-format) below
 3. **Submit** as a pull request with title: `docs: add ADR-NNNN: Your Decision Title`
 4. **Discuss** in code review—incorporate feedback
 5. **Accept** and merge once approved
-6. **Update** the ADR index in [adr/README.md](../adr/) with the new entry
+6. **Update** the ADR index table at the end of this page with the new entry
 
 ## ADR Template Format
 
-Use this template for new ADRs:
+Use the following template for new ADRs:
 
 ```markdown
+---
+status: proposed | accepted | superseded | rejected
+created: YYYY-MM-DD
+authors: [Name]
+---
+
 # NNNN. Short Title (Imperative Mood)
-
-Date: YYYY-MM-DD
-
-## Status
-
-Proposed | Accepted | Deprecated | Superseded by [NNNN](NNNN-xxx.md)
 
 ## Context
 
-Describe the issue that this decision addresses. Include:
-
-- What problem were we facing?
-- Why does it matter?
-- What constraints or requirements exist?
-- What alternative approaches were considered?
+Describe the problem or forces that led to this decision. Include constraints, stakeholders, and previous attempts.
 
 ## Decision
 
-State the decision clearly and concisely. Explain:
-
-- What we decided to do
-- Why this approach (over alternatives)
-- Any key trade-offs we accepted
+State the decision clearly. Explain the chosen approach and why it beat the alternatives.
 
 ## Consequences
 
-Describe the implications:
+- Positive outcomes that result from this decision
+- Potential drawbacks, risks, or follow-up tasks
 
-- **Positive**: Benefits and advantages
-- **Negative**: Trade-offs and limitations
-- **Risks**: Potential issues to monitor
-- **Dependencies**: How this affects other systems
+## Alternatives Considered
 
-## Related ADRs
+- Option A — why it was rejected
+- Option B — why it was rejected
 
-- [NNNN](NNNN-xxx.md) - (if related to another decision)
+## References
+
+- Links to issues, PRs, benchmarks, design docs, or external resources
 ```
 
 ## ADR Best Practices
@@ -177,17 +176,13 @@ We chose Tauri 2.x as our desktop framework because:
 - Mitigation: Stay current with releases and monitor community
 ```
 
-## Current ADRs
+## ADR Index
 
-The ADR directory currently contains:
+Track every decision chronologically in this index. Update it whenever a new ADR is accepted.
 
-| #          | Title | Date | Status |
-| ---------- | ----- | ---- | ------ |
-| _None yet_ |       |      |        |
-
-To see all ADRs and propose new ones:
-
-[View ADR Directory](../adr/README.md)
+| ID  | Title | Status | Date |
+| --- | ----- | ------ | ---- |
+| —   | —     | —      | —    |
 
 ## References & Resources
 
@@ -206,14 +201,6 @@ For other architecture information, see:
 - **[Pipeline Architecture](./pipeline.md)** – Probe → Plan → Execute workflow
 - **[Technical Stack](./tech-stack.md)** – Technology choices overview
 - **[State Management](./state.md)** – Job state machine design
-
-## Full ADR Documentation
-
-For complete ADR guidelines, the ADR index, and detailed processes:
-
-[View Complete ADR README](../adr/README.md)
-
----
 
 **Questions about ADRs?** See the [original ADR format guide](https://adr.github.io/) or start a discussion in [GitHub Discussions](https://github.com/honeymelon-app/honeymelon/discussions).
 

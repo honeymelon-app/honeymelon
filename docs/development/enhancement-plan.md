@@ -49,7 +49,7 @@ editLink: false
 - [x] **Updated config** — Added Roadmap, Support, Privacy, EULA, ADR, Build to navigation
 - [x] **Created pages** — 6 new VitePress docs pages linking to root documentation
 - [x] **`docs/ROADMAP.md`** — Version roadmap through 2.0+ (12KB)
-- [x] **`docs/adr/README.md`** — ADR template and guidelines (6.3KB)
+- [x] **`docs/architecture/adr.md`** — ADR guidance, template, and index (6.3KB)
 
 ---
 
@@ -99,7 +99,7 @@ editLink: false
 ### Documentation
 
 - [ ] **API docs** — TypeDoc (TS) + `rustdoc` (Rust)
-- [ ] **ADRs** — `docs/adr/` for architectural decisions
+- [ ] **ADRs** — Follow `docs/architecture/adr.md`; store decisions in `docs/adr/`
 - [ ] **`ROADMAP.md`** — Public feature roadmap
 - [ ] **Commercial license template** — For paid distribution
 - [ ] **`SUPPORT.md`** — Support policy & channels

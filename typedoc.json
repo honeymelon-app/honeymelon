@@ -1,0 +1,12 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "expand",
+  "entryPoints": ["src/lib", "src/composables", "src/stores", "src/repositories", "src/services"],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "out": "reference/api/typescript",
+  "readme": "none",
+  "categorizeByGroup": true
+}

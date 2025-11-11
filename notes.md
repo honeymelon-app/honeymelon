@@ -52,7 +52,7 @@
 - [x] **Updated config** — Added Roadmap, Support, Privacy, EULA, ADR, Build to navigation
 - [x] **Created pages** — 6 new VitePress docs pages linking to root documentation
 - [x] **`docs/ROADMAP.md`** — Version roadmap through 2.0+ (12KB)
-- [x] **`docs/adr/README.md`** — ADR template and guidelines (6.3KB)
+- [x] **`docs/architecture/adr.md`** — ADR guidance, template, and index (6.3KB)
 
 ---
 
@@ -147,18 +147,17 @@ Documentation in testing.md must be updated once the above land—call it a half
 
 ### Documentation
 
-- [ ] **API docs** — TypeDoc (TS) + `rustdoc` (Rust)
-- [ ] **ADRs** — `docs/adr/` for architectural decisions
-- [ ] **`ROADMAP.md`** — Public feature roadmap
-- [ ] **Commercial license template** — For paid distribution
-- [ ] **`SUPPORT.md`** — Support policy & channels
-- [ ] **Deployment guide** — Production checklist
+- [x] **API docs** — TypeDoc (TS) + `rustdoc` (Rust)
+- [x] **ADRs** — Follow `docs/architecture/adr.md`; store decisions in `docs/adr/`
+- [x] **`ROADMAP.md`** — Public feature roadmap
+- [x] **Commercial license template** — For paid distribution
+- [x] **`SUPPORT.md`** — Support policy & channels
+- [x] **Deployment guide** — Production checklist
 
 ### GitHub Project Hygiene
 
-- [ ] **`FUNDING.yml`** — Configure or remove if unused
-- [ ] **Issue templates** — Docs, performance, security
-- [ ] **Projects board** — Milestones & tracking
+- [x] **`FUNDING.yml`** — Configure or remove if unused
+- [x] **Issue templates** — Docs, performance, security
 
 ---
 
@@ -175,7 +174,6 @@ Documentation in testing.md must be updated once the above land—call it a half
 - [ ] **SonarCloud / CodeClimate** — Code quality dashboard
 - [ ] **Feature flags** — Gradual rollouts
 - [ ] **Beta/Alpha channels** — Pre-release distribution
-- [ ] **Dependabot** — Auto-merge safe updates
 
 ---
 
