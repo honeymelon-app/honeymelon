@@ -113,6 +113,14 @@
 - `stores/license.ts`: **0%** (legacy activation flow still untested)
 - `stores/prefs.ts`: **12%** (requires concurrency + filename separator branches)
 
+> Notes:
+
+<!-- Composable coverage is still zero (use-app-orchestration.ts, use-colour-mode.ts, use-file-handler.ts), so expect writing 5–7 focused Vitest suites with mocked stores/Tauri bridges—roughly 2–3 days if you batch the scaffolding and fixtures.
+Playwright is only scaffolding; two realistic desktop flows (happy path + failure/cancel) will need time for orchestration hooks and ffmpeg stubbing—plan on another 2–3 days plus debugging runs on macOS.
+Rust remains untested; adding targeted unit tests plus at least one integration round-trip for the critical commands in src is easily a multi-day effort (2–4 days) unless the API surface is trimmed first.
+Performance benchmarking and repeatable scripts are greenfield; expect at least 1–2 days to define metrics, implement a harness, and capture baseline numbers.
+Documentation in testing.md must be updated once the above land—call it a half day to fold in instructions and verification steps. -->
+
 ---
 
 ## Phase 3 — Code Quality & Automation (Weeks 5–6) ✅ COMPLETE
