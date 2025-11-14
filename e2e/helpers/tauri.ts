@@ -1,8 +1,11 @@
 import { spawn, type ChildProcess } from 'child_process';
-import { platform } from 'os';
-import { join } from 'path';
+import { existsSync } from 'fs';
+import { mkdir, readFile, rm, writeFile } from 'fs/promises';
+import { homedir, platform } from 'os';
+import { basename, join } from 'path';
 
-import type { Page } from '@playwright/test';
+import { chromium, type Page } from '@playwright/test';
+import mime from 'mime-types';
 
 /**
  * Helper utilities for launching and controlling Tauri app during E2E tests
@@ -47,20 +50,18 @@ export interface TauriApp {
   getDebugUrl: () => string;
 }
 
-interface DevtoolsTarget {
-  id?: string;
-  title?: string;
-  type?: string;
-  url?: string;
-  webSocketDebuggerUrl?: string;
-  [key: string]: unknown;
-}
-
 export interface AppDataSnapshot {
   settings?: Record<string, unknown>;
   jobs?: ReadonlyArray<Record<string, unknown>>;
   license?: Record<string, unknown>;
 }
+
+const APP_IDENTIFIER = 'com.honeymelon.desktop';
+const APP_DATA_DIR = join(
+  homedir(),
+  platform() === 'darwin' ? 'Library/Application Support' : '.tauri',
+  APP_IDENTIFIER,
+);
 
 /**
  * Launch the Tauri application for testing
@@ -86,9 +87,15 @@ export async function launchTauriApp(options: TauriAppOptions = {}): Promise<Tau
 
   const projectRoot = join(__dirname, '..', '..');
   const command = dev ? 'npm' : 'open';
+  const debugArgs = ['--remote-debugging-port', debugPort.toString()];
   const args = dev
-    ? ['run', 'tauri', 'dev', '--', '--remote-debugging-port', debugPort.toString()]
-    : ['-a', join(projectRoot, 'src-tauri/target/release/bundle/macos/Honeymelon.app')];
+    ? ['run', 'tauri', 'dev', '--', ...debugArgs]
+    : [
+        '-a',
+        join(projectRoot, 'src-tauri/target/release/bundle/macos/Honeymelon.app'),
+        '--args',
+        debugArgs.join(' '),
+      ];
 
   const tauriProcess = spawn(command, args, {
     cwd: projectRoot,
@@ -96,8 +103,9 @@ export async function launchTauriApp(options: TauriAppOptions = {}): Promise<Tau
     stdio: 'pipe',
     env: {
       ...process.env,
-      ...env,
       WEBKIT_INSPECTOR_SERVER: `127.0.0.1:${debugPort}`,
+      PLAYWRIGHT_E2E: 'true',
+      ...env,
     },
   });
 
@@ -206,24 +214,26 @@ async function waitForTauriReady(debugPort: number, timeout: number): Promise<bo
  * await expect(page.locator('h1')).toContainText('Honeymelon');
  * ```
  */
-export async function connectToTauriWebView(page: Page, app: TauriApp): Promise<void> {
-  // Get list of available targets
-  const response = await fetch(`${app.getDebugUrl()}/json/list`);
-  const targets = (await response.json()) as DevtoolsTarget[];
-
-  if (!Array.isArray(targets) || targets.length === 0) {
-    throw new Error('No WebView targets reported by Tauri');
+export async function connectToTauriWebView(app: TauriApp): Promise<{
+  page: Page;
+  close: () => Promise<void>;
+}> {
+  const browser = await chromium.connectOverCDP(app.getDebugUrl());
+  const [context] = browser.contexts();
+  if (!context) {
+    await browser.close();
+    throw new Error('Unable to create CDP context for Tauri WebView');
   }
 
-  // Find the main WebView target (usually the first one)
-  const mainTarget = targets.find((target) => target.type === 'page') ?? targets[0];
+  const page = context.pages()[0] ?? (await context.newPage());
+  await page.bringToFront();
 
-  if (!mainTarget || typeof mainTarget.webSocketDebuggerUrl !== 'string') {
-    throw new Error('No WebView target with a debugger URL found');
-  }
-
-  // Connect to the WebView using Chrome DevTools Protocol
-  await page.goto(mainTarget.webSocketDebuggerUrl);
+  return {
+    page,
+    close: async () => {
+      await browser.close();
+    },
+  };
 }
 
 /**
@@ -240,15 +250,9 @@ function sleep(ms: number): Promise<void> {
  * tests start with a clean state.
  */
 export async function clearAppData(): Promise<void> {
-  // On macOS, Tauri stores data in ~/Library/Application Support/com.honeymelon.app
-  // This would need to be implemented based on actual app identifier
-  // For now, this is a placeholder
-  // In a real implementation:
-  // 1. Determine app data directory
-  // 2. Remove settings files
-  // 3. Remove job queue storage
-  // 4. Remove license data
-  // 5. Remove logs (optional)
+  if (existsSync(APP_DATA_DIR)) {
+    await rm(APP_DATA_DIR, { recursive: true, force: true });
+  }
 }
 
 /**
@@ -260,9 +264,22 @@ export async function clearAppData(): Promise<void> {
  * @param data Object containing data to set
  */
 export async function setAppData(data: AppDataSnapshot): Promise<void> {
-  // Placeholder: Would write data to app's storage location
-  // Implementation depends on where Tauri stores app data
-  void data;
+  await mkdir(APP_DATA_DIR, { recursive: true });
+
+  const writes: Array<Promise<void>> = [];
+  if (data.settings) {
+    writes.push(writeFile(join(APP_DATA_DIR, 'preferences.json'), JSON.stringify(data.settings)));
+  }
+
+  if (data.jobs) {
+    writes.push(writeFile(join(APP_DATA_DIR, 'jobs.json'), JSON.stringify(data.jobs)));
+  }
+
+  if (data.license) {
+    writes.push(writeFile(join(APP_DATA_DIR, 'license.json'), JSON.stringify(data.license)));
+  }
+
+  await Promise.all(writes);
 }
 
 /**
@@ -296,12 +313,48 @@ export async function waitFor(
  * @param page Playwright page instance
  * @param filePaths Array of file paths to drop
  */
-export async function simulateFileDrop(page: Page, filePaths: string[]): Promise<void> {
-  // Placeholder: Would simulate drag-and-drop of files into the app
-  // This requires injecting JavaScript into the WebView to trigger drop events
-  // Implementation depends on how the app handles file drops (HTML5 DnD API vs Tauri's file-drop plugin)
-  void page;
-  void filePaths;
+export async function simulateFileDrop(
+  page: Page,
+  selector: string,
+  filePaths: string[],
+): Promise<void> {
+  const files = await Promise.all(
+    filePaths.map(async (filePath) => {
+      const buffer = await readFile(filePath);
+      return {
+        name: basename(filePath),
+        type: mime.lookup(filePath) || 'application/octet-stream',
+        data: buffer.toString('base64'),
+      };
+    }),
+  );
+
+  await page.evaluate(
+    async ({ files, selector }) => {
+      const target = document.querySelector(selector) ?? document.body;
+      if (!target) {
+        throw new Error(`simulateFileDrop: target ${selector} not found`);
+      }
+
+      const dataTransfer = new window.DataTransfer();
+      for (const file of files) {
+        const blob = await fetch(`data:${file.type};base64,${file.data}`).then((res) => res.blob());
+        const fileObj = new window.File([blob], file.name, { type: file.type });
+        dataTransfer.items.add(fileObj);
+      }
+
+      target.dispatchEvent(
+        new window.DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer }),
+      );
+      target.dispatchEvent(
+        new window.DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer }),
+      );
+      target.dispatchEvent(
+        new window.DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }),
+      );
+    },
+    { files, selector },
+  );
 }
 
 /**
@@ -317,9 +370,22 @@ export async function mockTauriCommands(
   page: Page,
   commandMocks: Record<string, unknown>,
 ): Promise<void> {
-  // Placeholder: Would inject code to intercept Tauri invoke calls
-  // This would require understanding Tauri's IPC mechanism and injecting
-  // JavaScript to override the __TAURI__ global object
-  void page;
-  void commandMocks;
+  await page.addInitScript(
+    ({ commandMocks }) => {
+      const pendingMocks = { ...commandMocks };
+      const originalInvoke = window.__TAURI_INTERNALS__?.invoke;
+      if (!originalInvoke) {
+        console.warn('[mockTauriCommands] __TAURI_INTERNALS__.invoke not available');
+        return;
+      }
+
+      window.__TAURI_INTERNALS__.invoke = (cmd, args) => {
+        if (Object.prototype.hasOwnProperty.call(pendingMocks, cmd)) {
+          return Promise.resolve(pendingMocks[cmd as keyof typeof pendingMocks]);
+        }
+        return originalInvoke(cmd, args);
+      };
+    },
+    { commandMocks },
+  );
 }

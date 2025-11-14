@@ -3,7 +3,7 @@
 //! This module provides a centralized, DRY approach to resolving FFmpeg/FFprobe paths
 //! using a 4-tier fallback strategy:
 //! 1. Environment variable override (HONEYMELON_FFMPEG_PATH / HONEYMELON_FFPROBE_PATH)
-//! 2. Development bundled binary (src-tauri/resources/bin/)
+//! 2. Development bundled binary (src-tauri/bin/)
 //! 3. Production bundled binary (app.app/Contents/Resources/bin/)
 //! 4. System PATH fallback
 //!
@@ -78,7 +78,7 @@ pub fn resolve_binary_paths(binary_type: BinaryType, app: &AppHandle) -> Vec<OsS
 
     // Priority 2: Development-bundled binary for local development (`tauri dev`)
     let dev_bundled_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("resources/bin")
+        .join("bin")
         .join(binary_name);
     push_if_valid(&mut candidates, dev_bundled_path);
 

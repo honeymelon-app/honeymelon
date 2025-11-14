@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { spawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import { platform } from 'os';

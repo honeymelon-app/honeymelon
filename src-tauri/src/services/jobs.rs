@@ -37,7 +37,7 @@ impl JobService {
 
 impl Default for JobService {
     fn default() -> Self {
-        Self::new_with_spawner(Arc::new(DefaultSpawnController::default()))
+        Self::new_with_spawner(Arc::new(DefaultSpawnController))
     }
 }
 

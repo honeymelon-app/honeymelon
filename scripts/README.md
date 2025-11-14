@@ -22,7 +22,7 @@ node scripts/download-ffmpeg.js
 
 - Downloads FFmpeg and FFprobe for Apple Silicon (arm64) from evermeet.cx
 - Extracts binaries using 7z (auto-installs via Homebrew if needed)
-- Places them in `src-tauri/resources/bin/`
+- Places them in `src-tauri/bin/`
 - Verifies architecture and code signature
 - Checks for existing binaries and prompts before overwriting
 

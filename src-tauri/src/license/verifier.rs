@@ -136,7 +136,7 @@ mod tests {
         let info = verify(&key).expect("valid license");
         assert_eq!(info.key.replace('-', "").len(), key.replace('-', "").len());
         assert_eq!(info.max_major_version, 4);
-        assert_eq!(info.payload.len(), 4 * ((types::PAYLOAD_LENGTH + 2) / 3));
+        assert_eq!(info.payload.len(), 4 * types::PAYLOAD_LENGTH.div_ceil(3));
     }
 
     #[test]

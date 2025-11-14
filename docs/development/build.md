@@ -116,15 +116,15 @@ rustup target add aarch64-apple-darwin
    This automatically:
    - Installs all frontend dependencies from `package.json`
    - Runs `npm run download-ffmpeg` via postinstall hook
-   - Downloads Apple Silicon FFmpeg binaries to `src-tauri/resources/bin/`
+   - Downloads Apple Silicon FFmpeg binaries to `src-tauri/bin/`
 
 3. **Verify FFmpeg Binaries**
 
    ```bash
-   ls -lh src-tauri/resources/bin/
+   ls -lh src-tauri/bin/
    # Should show ffmpeg and ffprobe binaries
 
-   file src-tauri/resources/bin/ffmpeg
+   file src-tauri/bin/ffmpeg
    # Expected: Mach-O 64-bit executable arm64
    ```
 
@@ -270,8 +270,8 @@ cd src-tauri && cargo test && cd ..
 npm run type-check
 
 # Verify FFmpeg binaries are arm64
-file src-tauri/resources/bin/ffmpeg
-file src-tauri/resources/bin/ffprobe
+file src-tauri/bin/ffmpeg
+file src-tauri/bin/ffprobe
 ```
 
 **Step 2: Build Frontend Assets**
@@ -390,11 +390,11 @@ spctl -a -vvv -t install src-tauri/target/aarch64-apple-darwin/release/bundle/ma
 **Solution**:
 
 ```bash
-rm -rf src-tauri/resources/bin/
+rm -rf src-tauri/bin/
 npm run download-ffmpeg
 
 # Verify
-file src-tauri/resources/bin/ffmpeg
+file src-tauri/bin/ffmpeg
 # Expected: Mach-O 64-bit executable arm64
 ```
 
@@ -402,8 +402,8 @@ file src-tauri/resources/bin/ffmpeg
 
 1. Download FFmpeg arm64 static builds from [evermeet.cx](https://evermeet.cx/ffmpeg/) or [ffmpeg.org](https://ffmpeg.org/download.html)
 2. Extract `ffmpeg` and `ffprobe`
-3. Place in `src-tauri/resources/bin/`
-4. Make executable: `chmod +x src-tauri/resources/bin/ff*`
+3. Place in `src-tauri/bin/`
+4. Make executable: `chmod +x src-tauri/bin/ff*`
 
 ### Code Signing Issues
 

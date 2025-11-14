@@ -309,7 +309,7 @@ The function uses these `ffprobe` arguments for optimal performance:
 # Path Resolution Strategy
 Attempts `ffprobe` execution in this order:
 1. Environment variable override (`HONEYMELON_FFPROBE_PATH`)
-2. Development-bundled binary (`resources/bin/ffprobe`)
+2. Development-bundled binary (`bin/ffprobe` under `src-tauri/`)
 3. Application-bundled binary (from Tauri resource directory)
 4. System PATH (`ffprobe` command)
 
@@ -381,7 +381,7 @@ locations.
 
 # Resolution Priority
 1. **Environment Override**: `HONEYMELON_FFPROBE_PATH` - Allows users to specify custom installations
-2. **Development Bundle**: `resources/bin/ffprobe` relative to Cargo manifest - For local development
+2. **Development Bundle**: `bin/ffprobe` relative to Cargo manifest - For local development
 3. **Application Bundle**: `bin/ffprobe` in Tauri resource directory - For packaged applications
 4. **System PATH**: Bare `ffprobe` command - For standard FFmpeg installations
 

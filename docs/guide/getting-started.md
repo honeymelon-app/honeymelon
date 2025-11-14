@@ -86,7 +86,7 @@ Honeymelon requires FFmpeg to perform media conversions. There are three ways to
 
 ### Option 1: Bundled FFmpeg (Automatic)
 
-The `npm install` step automatically downloads FFmpeg binaries and places them in `src-tauri/resources/bin/`. These binaries ship inside the Tauri bundle.
+The `npm install` step automatically downloads FFmpeg binaries and places them in `src-tauri/bin/`. These binaries ship inside the Tauri bundle.
 
 ### Option 2: System FFmpeg
 
@@ -112,7 +112,7 @@ When you first launch Honeymelon:
 3. **Set Preferences** (optional): Open Preferences to configure output directory and concurrency
 
 ::: tip
-If you see a message about FFmpeg not being found, run `npm run download-ffmpeg` to repopulate `src-tauri/resources/bin/` or install FFmpeg via Homebrew and set `HONEYMELON_FFMPEG_PATH`.
+If you see a message about FFmpeg not being found, run `npm run download-ffmpeg` to repopulate `src-tauri/bin/` or install FFmpeg via Homebrew and set `HONEYMELON_FFMPEG_PATH`.
 :::
 
 ## Your First Conversion

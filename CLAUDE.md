@@ -63,7 +63,7 @@ Presets define target container + codec combinations with quality tiers:
 
 - On startup, queries `ffmpeg -encoders` and `-formats` to build `CapabilitySnapshot`
 - Presets auto-disable if required encoder unavailable
-- Supports bundled FFmpeg (`src-tauri/resources/bin/`) or system FFmpeg path
+- Supports bundled FFmpeg (`src-tauri/bin/`) or system FFmpeg path
 
 ### Job Queue ([src/stores/jobs.ts](src/stores/jobs.ts), [src/composables/use-job-orchestrator.ts](src/composables/use-job-orchestrator.ts))
 
@@ -150,7 +150,7 @@ Exposed commands:
 
 ### Bundled vs. System FFmpeg
 
-- Bundled: Place binaries in `src-tauri/resources/bin/{ffmpeg,ffprobe}`
+- Bundled: Place binaries in `src-tauri/bin/{ffmpeg,ffprobe}`
 - System: Configure path in app Settings
 - LGPL compliance: Honeymelon runs FFmpeg out-of-process (no static linking)
 - Recommended codecs: VideoToolbox (H.264/HEVC), libvpx-vp9, libaom-av1, libopus

@@ -18,8 +18,8 @@ This guide helps you resolve common issues with Honeymelon.
 1. **Check bundled binaries**:
 
    ```bash
-   ls src-tauri/resources/bin/ffmpeg
-   ls src-tauri/resources/bin/ffprobe
+   ls src-tauri/bin/ffmpeg
+   ls src-tauri/bin/ffprobe
    ```
 
    If missing, download them:

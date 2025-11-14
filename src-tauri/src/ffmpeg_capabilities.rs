@@ -183,7 +183,7 @@ fn refresh_capabilities(app: &AppHandle) -> Result<CapabilitySnapshot, AppError>
  *
  * The function tries FFmpeg binaries in this order:
  * 1. Path specified in `HONEYMELON_FFMPEG_PATH` environment variable
- * 2. Bundled binary in development resources (`src-tauri/resources/bin/ffmpeg`)
+ * 2. Bundled binary in development resources (`src-tauri/bin/ffmpeg`)
  * 3. Bundled binary in installed app resources
  * 4. System PATH (`ffmpeg` command)
  */

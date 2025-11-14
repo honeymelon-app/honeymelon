@@ -50,8 +50,8 @@ export HONEYMELON_FFPROBE_PATH=/custom/path/to/ffprobe
 ### 2. Development Bundled Binaries
 
 ```text
-src-tauri/resources/bin/ffmpeg
-src-tauri/resources/bin/ffprobe
+src-tauri/bin/ffmpeg
+src-tauri/bin/ffprobe
 
 ```
 

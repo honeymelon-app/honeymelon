@@ -179,7 +179,7 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 **Binary Resolution** (4-tier fallback):
 
 1. `$HONEYMELON_FFPROBE_PATH` environment variable
-2. Development bundle: `src-tauri/resources/bin/ffprobe`
+2. Development bundle: `src-tauri/bin/ffprobe`
 3. Application bundle resource directory
 4. System PATH
 

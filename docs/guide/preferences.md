@@ -124,7 +124,7 @@ See [Presets & Quality](/guide/presets) for detailed explanations.
 
 **Detection Order**:
 
-1. Bundled binaries in `src-tauri/resources/bin/ffmpeg`
+1. Bundled binaries in `src-tauri/bin/ffmpeg`
 2. Environment variable `HONEYMELON_FFMPEG_PATH`
 3. System FFmpeg (`/usr/local/bin/ffmpeg`, `/opt/homebrew/bin/ffmpeg`)
 

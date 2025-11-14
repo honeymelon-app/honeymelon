@@ -65,6 +65,42 @@ impl JobRegistry {
     }
 }
 
+pub struct JobRecord {
+    pub process: Arc<RunningProcess>,
+    #[allow(dead_code)]
+    pub final_path: PathBuf,
+    pub temp_path: PathBuf,
+    pub exclusive: bool,
+}
+
+impl JobRecord {
+    pub fn new(
+        process: Arc<RunningProcess>,
+        final_path: PathBuf,
+        temp_path: PathBuf,
+        exclusive: bool,
+    ) -> Self {
+        Self {
+            process,
+            final_path,
+            temp_path,
+            exclusive,
+        }
+    }
+
+    fn snapshot(&self) -> JobSnapshot {
+        JobSnapshot {
+            process: Arc::clone(&self.process),
+            temp_path: self.temp_path.clone(),
+        }
+    }
+}
+
+pub struct JobSnapshot {
+    pub process: Arc<RunningProcess>,
+    pub temp_path: PathBuf,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -143,40 +179,4 @@ mod tests {
             .expect_err("should hit limit");
         assert_eq!(err.code, "job_concurrency_limit");
     }
-}
-
-pub struct JobRecord {
-    pub process: Arc<RunningProcess>,
-    #[allow(dead_code)]
-    pub final_path: PathBuf,
-    pub temp_path: PathBuf,
-    pub exclusive: bool,
-}
-
-impl JobRecord {
-    pub fn new(
-        process: Arc<RunningProcess>,
-        final_path: PathBuf,
-        temp_path: PathBuf,
-        exclusive: bool,
-    ) -> Self {
-        Self {
-            process,
-            final_path,
-            temp_path,
-            exclusive,
-        }
-    }
-
-    fn snapshot(&self) -> JobSnapshot {
-        JobSnapshot {
-            process: Arc::clone(&self.process),
-            temp_path: self.temp_path.clone(),
-        }
-    }
-}
-
-pub struct JobSnapshot {
-    pub process: Arc<RunningProcess>,
-    pub temp_path: PathBuf,
 }

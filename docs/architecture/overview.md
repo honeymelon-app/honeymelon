@@ -215,7 +215,7 @@ honeymelon/
 ├── docs/                         # VitePress documentation
 ├── e2e/                          # Playwright tests
 ├── public/                       # Static assets served as-is
-└── src-tauri/resources/bin/      # Bundled FFmpeg binaries (ffmpeg/ffprobe)
+└── src-tauri/bin/                # Bundled FFmpeg binaries (ffmpeg/ffprobe)
 
 ```
 

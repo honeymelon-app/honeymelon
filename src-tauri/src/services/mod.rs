@@ -35,12 +35,12 @@ pub struct ServiceRegistry {
 impl Default for ServiceRegistry {
     fn default() -> Self {
         Self {
-            capabilities: Arc::new(CapabilityService::default()),
-            media_probe: Arc::new(MediaProbeService::default()),
+            capabilities: Arc::new(CapabilityService),
+            media_probe: Arc::new(MediaProbeService),
             jobs: Arc::new(JobService::default()),
-            paths: Arc::new(PathService::default()),
-            dialogs: Arc::new(DialogService::default()),
-            licensing: Arc::new(LicenseService::default()),
+            paths: Arc::new(PathService),
+            dialogs: Arc::new(DialogService),
+            licensing: Arc::new(LicenseService),
         }
     }
 }

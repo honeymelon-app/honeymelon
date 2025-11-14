@@ -36,7 +36,8 @@
         "hiddenTitle": true,
         "acceptFirstMouse": true,
         "tabbingIdentifier": null,
-        "dragDropEnabled": true
+        "dragDropEnabled": true,
+        "devtools": true
       }
     ],
     "security": {

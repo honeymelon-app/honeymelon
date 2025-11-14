@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn cancel_job_kills_registered_process() {
-        let coordinator = JobCoordinator::with_spawner(Arc::new(DefaultSpawnController::default()));
+        let coordinator = JobCoordinator::with_spawner(Arc::new(DefaultSpawnController));
         let temp = TempDir::new().unwrap();
         let final_path = temp.path().join("final.mp4");
         let temp_path = temp.path().join("final.mp4.tmp");
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn cancel_job_returns_false_for_unknown_id() {
-        let coordinator = JobCoordinator::with_spawner(Arc::new(DefaultSpawnController::default()));
+        let coordinator = JobCoordinator::with_spawner(Arc::new(DefaultSpawnController));
         assert!(!coordinator
             .cancel_job("unknown")
             .expect("cancel call should not fail"));
