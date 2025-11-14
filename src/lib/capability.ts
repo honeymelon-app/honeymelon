@@ -27,6 +27,12 @@ const EMPTY_CAPABILITIES: CapabilitySnapshot = {
   formats: new Set<string>(),
   filters: new Set<string>(),
 };
+const DEFAULT_E2E_CAPABILITIES: CapabilitySnapshot = {
+  videoEncoders: new Set(['h264', 'hevc']),
+  audioEncoders: new Set(['aac']),
+  formats: new Set(['mp4', 'm4a', 'mov']),
+  filters: new Set(['scale', 'fps']),
+};
 
 /**
  * Raw capability data structure from Tauri backend.
@@ -77,6 +83,10 @@ let capabilityPromise: Promise<CapabilitySnapshot> | undefined;
  * @returns Promise resolving to capability snapshot
  */
 async function fetchCapabilities(): Promise<CapabilitySnapshot> {
+  if (import.meta.env.VITE_E2E_SIMULATION === 'true') {
+    return DEFAULT_E2E_CAPABILITIES;
+  }
+
   if (!isTauriRuntime()) {
     console.warn('[capability] Returning empty capabilities; Tauri runtime not detected.');
     return EMPTY_CAPABILITIES;

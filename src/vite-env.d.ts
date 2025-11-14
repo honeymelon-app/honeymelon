@@ -6,3 +6,11 @@ declare module '*.vue' {
   const component: DefineComponent<Record<string, never>, Record<string, never>, any>;
   export default component;
 }
+
+interface ImportMetaEnv {
+  readonly VITE_E2E_SIMULATION?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

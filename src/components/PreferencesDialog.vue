@@ -60,7 +60,7 @@ function clearOutputDirectory() {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6" data-test="preferences-dialog">
     <header class="space-y-1">
       <div class="flex items-center gap-3">
         <div
@@ -99,6 +99,7 @@ function clearOutputDirectory() {
           :aria-valuenow="localConcurrency"
           :aria-valuemax="4"
           :aria-valuetext="`${localConcurrency} concurrent ${localConcurrency === 1 ? 'conversion' : 'conversions'}`"
+          data-test="pref-concurrency-slider"
         />
         <p class="text-xs text-muted-foreground">Recommended: 2 for most MacBooks.</p>
       </CardContent>
@@ -115,6 +116,7 @@ function clearOutputDirectory() {
         <div class="flex items-center gap-2">
           <div
             class="flex-1 truncate rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-sm"
+            data-test="pref-output-display"
           >
             {{ localOutputDir || 'Same as source file' }}
           </div>
@@ -124,6 +126,7 @@ function clearOutputDirectory() {
             class="cursor-pointer"
             aria-label="Select output directory"
             @click="selectOutputDirectory"
+            data-test="pref-output-picker"
           >
             <Folder class="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -153,14 +156,24 @@ function clearOutputDirectory() {
             <span class="font-medium">Include preset name</span>
             <p class="text-xs text-muted-foreground">e.g. <code>clip-mp4-h264.mp4</code></p>
           </div>
-          <input v-model="localIncludePreset" type="checkbox" class="h-4 w-4" />
+          <input
+            v-model="localIncludePreset"
+            type="checkbox"
+            class="h-4 w-4"
+            data-test="pref-include-preset"
+          />
         </label>
         <label class="flex items-center justify-between gap-4 text-sm">
           <div>
             <span class="font-medium">Include quality tier</span>
             <p class="text-xs text-muted-foreground">e.g. <code>clip-balanced.mp4</code></p>
           </div>
-          <input v-model="localIncludeTier" type="checkbox" class="h-4 w-4" />
+          <input
+            v-model="localIncludeTier"
+            type="checkbox"
+            class="h-4 w-4"
+            data-test="pref-include-tier"
+          />
         </label>
       </CardContent>
     </Card>

@@ -137,6 +137,9 @@ async function handleOpenDiskAccessHelp() {
 <template>
   <div
     class="group relative rounded-lg border border-border/50 bg-card p-4 transition-all hover:border-border"
+    data-test="job-card"
+    :data-job-id="jobId"
+    :data-state="state.status"
   >
     <div class="flex items-start gap-4">
       <!-- Status Icon -->
@@ -166,6 +169,7 @@ async function handleOpenDiskAccessHelp() {
               class="h-8 px-3 cursor-pointer"
               aria-label="Start conversion job"
               @click="handleStart"
+              data-test="job-start-button"
             >
               <Play class="mr-2 h-4 w-4" aria-hidden="true" />
               Start
@@ -177,6 +181,7 @@ async function handleOpenDiskAccessHelp() {
               class="h-8 w-8 shrink-0 cursor-pointer"
               aria-label="Cancel job"
               @click="handleCancel"
+              data-test="job-cancel-button"
             >
               <X class="h-4 w-4" aria-hidden="true" />
             </Button>

@@ -59,7 +59,11 @@ const props = defineProps<WindowProps>();
 
     <!-- Main content area with flexible height and padding -->
     <div class="flex-1 w-full min-h-0">
-      <main id="main-content" class="flex h-full min-h-0 flex-col gap-6 p-6 pt-10">
+      <main
+        id="main-content"
+        class="flex h-full min-h-0 flex-col gap-6 p-6 pt-10"
+        data-test="app-main"
+      >
         <!-- Slot for injecting page-specific content -->
         <slot />
       </main>

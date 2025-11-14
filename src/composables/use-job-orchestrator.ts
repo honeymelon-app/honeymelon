@@ -52,7 +52,8 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     filenameSeparator,
   } = storeToRefs(prefs);
   const capabilities = ref<CapabilitySnapshot>();
-  const simulate = options.simulate ?? !isTauriRuntime();
+  const e2eSimulation = import.meta.env.VITE_E2E_SIMULATION === 'true';
+  const simulate = options.simulate ?? (!isTauriRuntime() || e2eSimulation);
   let notificationModulePromise: Promise<NotificationModule | null> | null = null;
   let isStartingNext = false;
 

@@ -37,9 +37,10 @@ export function createPlannerClient(options: PlannerClientOptions): PlannerClien
 
   async function probe(path: string): Promise<ProbeSummary> {
     if (simulate) {
+      const durationOverride = import.meta.env.VITE_E2E_SIMULATION === 'true' ? 6 : 120;
       await wait(200);
       return {
-        durationSec: 120,
+        durationSec: durationOverride,
         vcodec: 'h264',
         acodec: 'aac',
       };

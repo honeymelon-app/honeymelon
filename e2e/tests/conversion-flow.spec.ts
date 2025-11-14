@@ -1,79 +1,102 @@
-import { test, expect } from './fixtures';
+import type { Locator, Page } from '@playwright/test';
 
-/**
- * E2E tests for the complete conversion workflow
- *
- * Tests the probe -> plan -> execute pipeline
- */
+import { simulateFileDrop } from '../helpers/tauri';
+import { loadFixtureManifest } from './global-setup';
+import { expect, test } from './fixtures';
+import { withLicense } from './support/app-state';
+
+type FixtureManifest = Record<string, Record<string, string>>;
+let manifestCache: FixtureManifest | undefined;
+
+test.use({
+  initialAppData: withLicense(),
+});
 
 test.describe('Conversion Flow', () => {
-  test('should complete a full conversion workflow', async ({ page: _page }) => {
-    // Placeholder: This would test the full conversion pipeline
-    // 1. Launch the app
-    // 2. Add a test media file
-    // 3. Select a preset
-    // 4. Start conversion
-    // 5. Verify progress updates
-    // 6. Verify completion
-    // 7. Verify output file exists
+  test('completes a full conversion workflow', async ({ page }) => {
+    const jobCard = await enqueueVideo(page);
+    await startJob(jobCard);
 
-    expect(true).toBe(true);
+    await expect(jobCard).toHaveAttribute('data-state', 'running');
+    await waitForJobState(jobCard, 'completed');
   });
 
-  test('should handle conversion cancellation', async ({ page: _page }) => {
-    // Placeholder: This would test canceling a conversion
-    // 1. Launch the app
-    // 2. Start a conversion
-    // 3. Click cancel
-    // 4. Verify the job is cancelled
-    // 5. Verify FFmpeg process is terminated
+  test('supports cancelling an in-flight conversion', async ({ page }) => {
+    const jobCard = await enqueueVideo(page);
+    await startJob(jobCard);
+    await waitForJobState(jobCard, 'running');
 
-    expect(true).toBe(true);
+    await jobCard.locator('[data-test="job-cancel-button"]').click();
+    await waitForJobState(jobCard, 'cancelled');
   });
 
-  test('should display progress during conversion', async ({ page: _page }) => {
-    // Placeholder: This would test progress reporting
-    // 1. Launch the app
-    // 2. Start a conversion
-    // 3. Verify progress bar updates
-    // 4. Verify time/fps/speed stats are shown
-    // 5. Verify progress events are received
+  test('shows progress while conversion runs', async ({ page }) => {
+    const jobCard = await enqueueVideo(page);
+    await startJob(jobCard);
 
-    expect(true).toBe(true);
+    await waitForJobState(jobCard, 'running');
+    const progressLabel = jobCard.locator('text=/complete/');
+    await expect(progressLabel).toContainText('% complete');
   });
 
-  test('should handle conversion errors gracefully', async ({ page: _page }) => {
-    // Placeholder: This would test error handling
-    // 1. Launch the app
-    // 2. Add an invalid or corrupted file
-    // 3. Start conversion
-    // 4. Verify error is displayed
-    // 5. Verify job is marked as failed
+  test('surface conversion errors gracefully', async ({ page }) => {
+    const jobCard = await enqueueVideo(page);
+    await startJob(jobCard);
+    const jobId = await jobCard.getAttribute('data-job-id');
+    expect(jobId).toBeTruthy();
 
-    expect(true).toBe(true);
+    await page.evaluate((id) => {
+      const api = (window as typeof window & { __HONEYMELON_TEST_API__?: Record<string, unknown> })
+        .__HONEYMELON_TEST_API__;
+      const jobsStore = api?.jobsStore as
+        | {
+            markFailed: (jobId: string, message: string, code?: string) => void;
+          }
+        | undefined;
+      jobsStore?.markFailed(id as string, 'Simulated ffmpeg failure', 'job_invalid_args');
+    }, jobId);
+
+    await waitForJobState(jobCard, 'failed');
+    await expect(jobCard.locator('text=Simulated ffmpeg failure')).toBeVisible();
   });
 });
 
 test.describe('Batch Conversion', () => {
-  test('should handle multiple files in queue', async ({ page: _page }) => {
-    // Placeholder: This would test batch processing
-    // 1. Launch the app
-    // 2. Add multiple files
-    // 3. Start conversions
-    // 4. Verify jobs are processed according to concurrency limit
-    // 5. Verify all jobs complete
+  test('processes multiple files sequentially when concurrency is one', async ({ page }) => {
+    const firstJob = await enqueueVideo(page);
+    const secondJob = await enqueueVideo(page, getManifest().video.hevc);
 
-    expect(true).toBe(true);
-  });
+    await startJob(firstJob);
+    await waitForJobState(firstJob, 'completed');
 
-  test('should respect concurrency limits', async ({ page: _page }) => {
-    // Placeholder: This would test concurrency control
-    // 1. Launch the app
-    // 2. Set concurrency limit
-    // 3. Add many files
-    // 4. Verify only N jobs run simultaneously
-    // 5. Verify exclusive jobs block other jobs
-
-    expect(true).toBe(true);
+    await startJob(secondJob);
+    await waitForJobState(secondJob, 'completed');
   });
 });
+
+async function enqueueVideo(page: Page, file: string = getManifest().video.h264): Promise<Locator> {
+  await page.waitForSelector('[data-test="file-dropzone"][data-media-kind="video"]');
+  await simulateFileDrop(page, '[data-test="file-dropzone"][data-media-kind="video"]', [file]);
+  const jobCard = page.locator('[data-test="job-card"]').last();
+  await expect(jobCard).toBeVisible();
+  await expect(jobCard).toHaveAttribute('data-state', 'queued');
+  return jobCard;
+}
+
+async function startJob(jobCard: Locator): Promise<void> {
+  await jobCard.locator('[data-test="job-start-button"]').click();
+}
+
+async function waitForJobState(jobCard: Locator, state: string): Promise<void> {
+  await expect(jobCard).toHaveAttribute('data-state', state, { timeout: 20000 });
+}
+
+function getManifest(): FixtureManifest {
+  if (!manifestCache) {
+    manifestCache = loadFixtureManifest();
+  }
+  if (!manifestCache) {
+    throw new Error('E2E fixture manifest missing');
+  }
+  return manifestCache;
+}

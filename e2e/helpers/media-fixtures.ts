@@ -164,6 +164,7 @@ export async function createTestVideo(options: VideoFixtureOptions = {}): Promis
   const tempDir = await createTempDir();
   const fileName = `test-video-${Date.now()}.${format}`;
   const filePath = join(tempDir, fileName);
+  let subtitleInputPath: string | null = null;
 
   // Build FFmpeg command
   const args = [
@@ -185,6 +186,14 @@ export async function createTestVideo(options: VideoFixtureOptions = {}): Promis
     }
   }
 
+  // Add subtitles input before codec/output options to avoid option ordering issues
+  if (hasSubtitles) {
+    const srtContent = `1\n00:00:00,000 --> 00:00:${duration},000\nTest subtitle\n`;
+    subtitleInputPath = join(tempDir, 'test-subtitle.srt');
+    await writeFile(subtitleInputPath, srtContent);
+    args.push('-i', subtitleInputPath);
+  }
+
   // Video encoding options
   args.push('-c:v', videoCodec);
 
@@ -200,12 +209,8 @@ export async function createTestVideo(options: VideoFixtureOptions = {}): Promis
     }
   }
 
-  // Add subtitles if requested
   if (hasSubtitles) {
-    const srtContent = `1\n00:00:00,000 --> 00:00:${duration},000\nTest subtitle\n`;
-    const srtPath = join(tempDir, 'test-subtitle.srt');
-    await writeFile(srtPath, srtContent);
-    args.push('-i', srtPath, '-c:s', 'mov_text');
+    args.push('-c:s', 'mov_text');
   }
 
   // Output options

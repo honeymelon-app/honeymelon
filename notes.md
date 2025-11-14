@@ -1,5 +1,13 @@
 # Honeymelon Deep-Dive Notes
 
+## 0. Current Checkpoint (2025-11-14)
+
+- ✅ Docs and resolver paths all point to `src-tauri/bin`; `npm run docs:build` succeeds (syntax-highlighting warnings only).
+- ✅ `npm run lint` now passes end-to-end (ESLint, markdownlint, Clippy) after cleaning Playwright fixtures and unit-struct defaults; only FFmpeg version banners remain.
+- ⏳ Haven’t run the full build/tests since the latest Rust tweaks—`npm run build`, `cargo test`, and targeted Playwright smoke should be next.
+- 📌 Rust runner/services still share a global coordinator; restructuring into injected services remains open.
+- 📌 E2E harness is still scaffolding-only; helpers like `launchTauriApp` and realistic drag/drop mocks are priority follow-ups.
+
 ## 1. Architecture Snapshot
 
 - **Frontend Bootstrap (src/main.ts, src/app.vue)**: Mounts Pinia + i18n, applies native UX guards, and renders the tabbed UI that routes drag/drop inputs into the job queue.
@@ -73,6 +81,8 @@
 
 ## 4. Current Progress
 
+- Audited docs + READMEs to reflect the new FFmpeg location (`src-tauri/bin`) and rebuilt VitePress to confirm the static site matches.
+- Resolved ESLint/Prettier issues in Playwright helpers and silenced Clippy’s unit-struct + `div_ceil` warnings; `npm run lint` now runs clean.
 - Extracted capability gating and desktop bridge logic into `use-capability-gate.ts` and `use-desktop-bridge.ts`, slimming `use-app-orchestration` to focus on queue control and orchestration.
 - Added the first Vitest suite at `src/repositories/__tests__/job-repository.test.ts`, covering repository read/write, filtering, mutation, and clearing operations to guard against future persistence regressions.
 - Extracted FFmpeg event subscription logic into `src/composables/orchestrator/event-subscriber.ts`, keeping `use-job-orchestrator.ts` focused on queue orchestration while centralizing listener lifecycle management.
@@ -88,6 +98,11 @@
 - Tightened CI (`ci.yml`) to run dedicated type-check, Markdown lint/format checks, and release (`release.yml`) to enforce the same lint/type-check/build/coverage gates prior to shipping artifacts.
 
 ## 5. Todo
+
+### Operational Follow-ups
+
+- Run `npm run build` (type-check + prod emit) and `cargo test` to validate the recent Rust/Path tweaks end-to-end; capture any new warnings.
+- Add a lightweight Playwright smoke (`npm run test:e2e:smoke` placeholder) once `launchTauriApp` lands, so we can gate PRs on at least one live-app flow.
 
 ### Refactors & Architecture
 

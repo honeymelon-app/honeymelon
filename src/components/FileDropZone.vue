@@ -126,6 +126,9 @@ function handleFileInput(event: Event) {
       role="button"
       aria-label="Upload files"
       tabindex="0"
+      data-test="file-dropzone"
+      :data-media-kind="mediaKind"
+      data-variant="full"
       @keydown.enter="handleBrowse"
       @dragover.prevent
       @dragenter.prevent
@@ -159,6 +162,8 @@ function handleFileInput(event: Event) {
           variant="secondary"
           class="group-hover:bg-secondary/80"
           :disabled="!presetsReady"
+          data-test="file-browse-button"
+          :data-media-kind="mediaKind"
         >
           {{ t('upload.select') }}
         </Button>
@@ -175,6 +180,9 @@ function handleFileInput(event: Event) {
       role="button"
       aria-label="Upload more files"
       tabindex="0"
+      data-test="file-dropzone"
+      :data-media-kind="mediaKind"
+      data-variant="compact"
       @keydown.enter="handleBrowse"
       @dragover.prevent
       @dragenter.prevent
@@ -193,6 +201,8 @@ function handleFileInput(event: Event) {
           class="cursor-pointer"
           aria-label="Browse for more media files"
           @click="handleBrowse"
+          data-test="file-browse-button"
+          :data-media-kind="mediaKind"
         >
           Browse
         </Button>

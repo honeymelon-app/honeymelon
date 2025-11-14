@@ -1,0 +1,10 @@
+{
+  "build": {
+    "beforeDevCommand": "",
+    "devUrl": "tauri://localhost",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "targets": ["app"]
+  }
+}

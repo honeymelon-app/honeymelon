@@ -64,6 +64,7 @@ function openDialog() {
       class="cursor-pointer"
       @click="openDialog"
       :title="'Destination: ' + displayPath"
+      data-test="destination-trigger"
     >
       <Folder class="size-4" :class="{ 'text-primary': outputDirectory }" />
     </Button>
@@ -83,6 +84,7 @@ function openDialog() {
                 !outputDirectory ? 'border-primary bg-primary/5' : 'border-border',
               )
             "
+            data-test="destination-option-source"
           >
             <div class="flex items-start gap-3">
               <div class="mt-0.5">
@@ -115,6 +117,7 @@ function openDialog() {
                 isChoosing && 'opacity-50 cursor-not-allowed',
               )
             "
+            data-test="destination-option-custom"
           >
             <div class="flex items-start gap-3">
               <div class="mt-0.5">

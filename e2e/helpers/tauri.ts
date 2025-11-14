@@ -1,11 +1,25 @@
 import { spawn, type ChildProcess } from 'child_process';
 import { existsSync } from 'fs';
 import { mkdir, readFile, rm, writeFile } from 'fs/promises';
-import { homedir, platform } from 'os';
-import { basename, join } from 'path';
+import { platform, tmpdir } from 'os';
+import { basename, dirname, extname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 import { chromium, type Page } from '@playwright/test';
-import mime from 'mime-types';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PROJECT_ROOT = join(__dirname, '..', '..');
+const E2E_TAURI_CONFIG = join(PROJECT_ROOT, 'e2e', 'tauri.e2e.conf.json');
+const DEBUG_APP_PATH = join(
+  PROJECT_ROOT,
+  'src-tauri',
+  'target',
+  'debug',
+  'bundle',
+  'macos',
+  'Honeymelon.app',
+);
 
 /**
  * Helper utilities for launching and controlling Tauri app during E2E tests
@@ -50,18 +64,65 @@ export interface TauriApp {
   getDebugUrl: () => string;
 }
 
-export interface AppDataSnapshot {
-  settings?: Record<string, unknown>;
-  jobs?: ReadonlyArray<Record<string, unknown>>;
-  license?: Record<string, unknown>;
+export interface PreferencesSnapshot {
+  preferredConcurrency?: number;
+  outputDirectory?: string | null;
+  includePresetInName?: boolean;
+  includeTierInName?: boolean;
+  filenameSeparator?: string;
 }
 
+export interface JobSnapshot {
+  id: string;
+  path: string;
+  presetId: string;
+  tier?: string;
+  exclusive?: boolean;
+  outputPath?: string;
+  summary?: Record<string, unknown>;
+  state: Record<string, unknown>;
+  createdAt?: number;
+  updatedAt?: number;
+  logs?: string[];
+}
+
+export interface LicenseSnapshot {
+  key: string;
+  licenseId: string;
+  orderId: string;
+  maxMajorVersion: number;
+  issuedAt: number;
+  payload: string;
+  signature: string;
+  activatedAt?: number | null;
+}
+
+export interface AppDataSnapshot {
+  preferences?: PreferencesSnapshot;
+  jobs?: ReadonlyArray<JobSnapshot>;
+  license?: LicenseSnapshot;
+}
+
+export interface MockedCommandError {
+  __mockError: true;
+  message: string;
+  code?: string;
+}
+
+type CommandMockValue = unknown | MockedCommandError;
+
 const APP_IDENTIFIER = 'com.honeymelon.desktop';
-const APP_DATA_DIR = join(
-  homedir(),
-  platform() === 'darwin' ? 'Library/Application Support' : '.tauri',
-  APP_IDENTIFIER,
-);
+const TEST_HOME_DIR = join(tmpdir(), 'honeymelon-playwright-home');
+const APP_DATA_DIR =
+  platform() === 'darwin'
+    ? join(TEST_HOME_DIR, 'Library', 'Application Support', APP_IDENTIFIER)
+    : join(TEST_HOME_DIR, '.tauri', APP_IDENTIFIER);
+const APP_SETTINGS_FILE = 'settings.json';
+const APP_JOBS_FILE = 'jobs.json';
+const APP_LICENSE_FILE = 'license.json';
+
+let frontendBuildPromise: Promise<void> | null = null;
+let appBundlePromise: Promise<void> | null = null;
 
 /**
  * Launch the Tauri application for testing
@@ -79,23 +140,26 @@ const APP_DATA_DIR = join(
  */
 export async function launchTauriApp(options: TauriAppOptions = {}): Promise<TauriApp> {
   const { dev = true, debugPort = 9222, timeout = 30000, env = {} } = options;
+  await mkdir(TEST_HOME_DIR, { recursive: true });
+  const devHost = '127.0.0.1';
 
   // Only run on macOS
   if (platform() !== 'darwin') {
     throw new Error('Tauri app can only be tested on macOS');
   }
 
-  const projectRoot = join(__dirname, '..', '..');
+  const projectRoot = PROJECT_ROOT;
+
+  if (dev) {
+    await ensureFrontendBuild(projectRoot);
+  } else {
+    await ensureAppBundle(projectRoot);
+  }
   const command = dev ? 'npm' : 'open';
   const debugArgs = ['--remote-debugging-port', debugPort.toString()];
   const args = dev
-    ? ['run', 'tauri', 'dev', '--', ...debugArgs]
-    : [
-        '-a',
-        join(projectRoot, 'src-tauri/target/release/bundle/macos/Honeymelon.app'),
-        '--args',
-        debugArgs.join(' '),
-      ];
+    ? ['run', 'tauri', 'dev', '--', '--config', E2E_TAURI_CONFIG, '--', ...debugArgs]
+    : ['-a', DEBUG_APP_PATH, '--args', debugArgs.join(' ')];
 
   const tauriProcess = spawn(command, args, {
     cwd: projectRoot,
@@ -105,6 +169,12 @@ export async function launchTauriApp(options: TauriAppOptions = {}): Promise<Tau
       ...process.env,
       WEBKIT_INSPECTOR_SERVER: `127.0.0.1:${debugPort}`,
       PLAYWRIGHT_E2E: 'true',
+      VITE_E2E_SIMULATION: 'true',
+      HOME: TEST_HOME_DIR,
+      XDG_CONFIG_HOME: join(TEST_HOME_DIR, '.config'),
+      HOST: devHost,
+      VITE_DEV_SERVER_HOST: devHost,
+      TAURI_DEV_HOST: devHost,
       ...env,
     },
   });
@@ -267,19 +337,37 @@ export async function setAppData(data: AppDataSnapshot): Promise<void> {
   await mkdir(APP_DATA_DIR, { recursive: true });
 
   const writes: Array<Promise<void>> = [];
-  if (data.settings) {
-    writes.push(writeFile(join(APP_DATA_DIR, 'preferences.json'), JSON.stringify(data.settings)));
+  if (data.preferences) {
+    writes.push(writeJson(APP_SETTINGS_FILE, data.preferences));
   }
 
   if (data.jobs) {
-    writes.push(writeFile(join(APP_DATA_DIR, 'jobs.json'), JSON.stringify(data.jobs)));
+    writes.push(writeJson(APP_JOBS_FILE, data.jobs));
   }
 
   if (data.license) {
-    writes.push(writeFile(join(APP_DATA_DIR, 'license.json'), JSON.stringify(data.license)));
+    writes.push(writeJson(APP_LICENSE_FILE, data.license));
   }
 
   await Promise.all(writes);
+}
+
+export async function seedPreferences(preferences: PreferencesSnapshot): Promise<void> {
+  await setAppData({ preferences });
+}
+
+export async function seedJobs(jobs: ReadonlyArray<JobSnapshot>): Promise<void> {
+  await setAppData({ jobs });
+}
+
+export async function seedLicense(license: LicenseSnapshot): Promise<void> {
+  await setAppData({ license });
+}
+
+async function writeJson(fileName: string, payload: unknown): Promise<void> {
+  const path = join(APP_DATA_DIR, fileName);
+  await mkdir(APP_DATA_DIR, { recursive: true });
+  await writeFile(path, JSON.stringify(payload, null, 2), 'utf8');
 }
 
 /**
@@ -323,7 +411,7 @@ export async function simulateFileDrop(
       const buffer = await readFile(filePath);
       return {
         name: basename(filePath),
-        type: mime.lookup(filePath) || 'application/octet-stream',
+        type: resolveMimeType(filePath),
         data: buffer.toString('base64'),
       };
     }),
@@ -333,6 +421,7 @@ export async function simulateFileDrop(
     async ({ files, selector }) => {
       const target = document.querySelector(selector) ?? document.body;
       if (!target) {
+        console.error(`[simulateFileDrop] target ${selector} not found`);
         throw new Error(`simulateFileDrop: target ${selector} not found`);
       }
 
@@ -366,26 +455,148 @@ export async function simulateFileDrop(
  * @param page Playwright page instance
  * @param commandMocks Object mapping command names to mock responses
  */
+export function mockCommandError(message: string, code?: string): MockedCommandError {
+  return {
+    __mockError: true,
+    message,
+    code,
+  };
+}
+
 export async function mockTauriCommands(
   page: Page,
-  commandMocks: Record<string, unknown>,
+  commandMocks: Record<string, CommandMockValue>,
 ): Promise<void> {
-  await page.addInitScript(
-    ({ commandMocks }) => {
-      const pendingMocks = { ...commandMocks };
-      const originalInvoke = window.__TAURI_INTERNALS__?.invoke;
-      if (!originalInvoke) {
-        console.warn('[mockTauriCommands] __TAURI_INTERNALS__.invoke not available');
-        return;
-      }
+  await page.evaluate(
+    ({ commandMocks }) =>
+      new Promise<void>((resolve, reject) => {
+        const pendingMocks = { ...commandMocks };
+        const install = () => {
+          const originalInvoke = window.__TAURI_INTERNALS__?.invoke;
+          if (typeof originalInvoke !== 'function') {
+            console.error('[mockTauriCommands] __TAURI_INTERNALS__.invoke not available');
+            reject(new Error('mockTauriCommands: Tauri internals missing'));
+            return;
+          }
 
-      window.__TAURI_INTERNALS__.invoke = (cmd, args) => {
-        if (Object.prototype.hasOwnProperty.call(pendingMocks, cmd)) {
-          return Promise.resolve(pendingMocks[cmd as keyof typeof pendingMocks]);
+          window.__TAURI_INTERNALS__.invoke = (cmd, args) => {
+            if (Object.prototype.hasOwnProperty.call(pendingMocks, cmd)) {
+              console.info(`[mockTauriCommands] intercepted ${cmd}`);
+              const mockValue = pendingMocks[cmd as keyof typeof pendingMocks];
+              if (isMockError(mockValue)) {
+                const payload = mockValue;
+                return Promise.reject({ code: payload.code, message: payload.message });
+              }
+              return Promise.resolve(mockValue);
+            }
+            return originalInvoke(cmd, args);
+          };
+          resolve();
+        };
+
+        if (window.__TAURI_INTERNALS__?.invoke) {
+          install();
+          return;
         }
-        return originalInvoke(cmd, args);
-      };
-    },
+
+        let attempts = 0;
+        const maxAttempts = 50;
+        const timer = window.setInterval(() => {
+          attempts += 1;
+          if (window.__TAURI_INTERNALS__?.invoke) {
+            window.clearInterval(timer);
+            install();
+          } else if (attempts >= maxAttempts) {
+            window.clearInterval(timer);
+            console.error('[mockTauriCommands] __TAURI_INTERNALS__.invoke never appeared');
+            reject(new Error('mockTauriCommands: failed to patch invoke'));
+          }
+        }, 50);
+      }),
     { commandMocks },
   );
+}
+
+function isMockError(value: CommandMockValue): value is MockedCommandError {
+  return Boolean(value && typeof value === 'object' && '__mockError' in value);
+}
+
+function resolveMimeType(filePath: string): string {
+  const extension = extname(filePath).toLowerCase();
+  switch (extension) {
+    case '.mp4':
+    case '.m4v':
+      return 'video/mp4';
+    case '.mkv':
+      return 'video/x-matroska';
+    case '.webm':
+      return 'video/webm';
+    case '.mp3':
+      return 'audio/mpeg';
+    case '.m4a':
+      return 'audio/mp4';
+    case '.aac':
+      return 'audio/aac';
+    case '.flac':
+      return 'audio/flac';
+    case '.wav':
+      return 'audio/wav';
+    case '.png':
+      return 'image/png';
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.gif':
+      return 'image/gif';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+async function ensureFrontendBuild(projectRoot: string): Promise<void> {
+  if (!frontendBuildPromise) {
+    frontendBuildPromise = new Promise((resolve, reject) => {
+      const build = spawn('npm', ['run', 'build'], {
+        cwd: projectRoot,
+        stdio: 'inherit',
+      });
+      build.on('exit', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Frontend build failed with code ${code ?? -1}`));
+        }
+      });
+      build.on('error', (error) => {
+        reject(error);
+      });
+    });
+  }
+  return frontendBuildPromise;
+}
+
+async function ensureAppBundle(projectRoot: string): Promise<void> {
+  if (!appBundlePromise && !existsSync(DEBUG_APP_PATH)) {
+    appBundlePromise = new Promise((resolve, reject) => {
+      const build = spawn(
+        'npm',
+        ['run', 'tauri', 'build', '--', '--debug', '--config', E2E_TAURI_CONFIG],
+        {
+          cwd: projectRoot,
+          stdio: 'inherit',
+        },
+      );
+      build.on('exit', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Tauri debug build failed with code ${code ?? -1}`));
+        }
+      });
+      build.on('error', (error) => {
+        reject(error);
+      });
+    });
+  }
+  return appBundlePromise ?? Promise.resolve();
 }

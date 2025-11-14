@@ -97,6 +97,16 @@ export function useAppOrchestration() {
   const processingJobs = jobsRefs.activeJobs;
   const storeQueuedJobs = jobsRefs.queuedJobs;
 
+  if (import.meta.env.VITE_E2E_SIMULATION === 'true' && typeof window !== 'undefined') {
+    const testApi = (
+      window as typeof window & { __HONEYMELON_TEST_API__?: Record<string, unknown> }
+    ).__HONEYMELON_TEST_API__ ?? { jobsStore };
+    testApi.jobsStore = jobsStore;
+    (
+      window as typeof window & { __HONEYMELON_TEST_API__?: Record<string, unknown> }
+    ).__HONEYMELON_TEST_API__ = testApi;
+  }
+
   /**
    * Job orchestrator for managing job execution.
    *

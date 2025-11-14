@@ -4,17 +4,26 @@ import {
   clearAppData,
   connectToTauriWebView,
   launchTauriApp,
+  setAppData,
+  type AppDataSnapshot,
   type TauriApp,
 } from '../helpers/tauri';
 
 type Fixtures = {
   app: TauriApp;
 };
+type Options = {
+  initialAppData?: AppDataSnapshot;
+};
 
-export const test = base.extend<Fixtures>({
-  app: async (_context, use) => {
+export const test = base.extend<Fixtures, Options>({
+  initialAppData: [undefined, { option: true }],
+  app: async ({ initialAppData }, use) => {
     await clearAppData();
-    const app = await launchTauriApp();
+    if (initialAppData) {
+      await setAppData(initialAppData);
+    }
+    const app = await launchTauriApp({ dev: false });
     await use(app);
     await app.stop();
   },

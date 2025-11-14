@@ -50,7 +50,13 @@ function handleClearCompleted() {
 </script>
 
 <template>
-  <section v-if="jobs.length > 0" class="space-y-4">
+  <section
+    v-if="jobs.length > 0"
+    class="space-y-4"
+    data-test="job-queue-section"
+    :data-variant="variant"
+    :data-count="jobs.length"
+  >
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <h2 class="text-lg font-semibold">{{ title }}</h2>
@@ -64,6 +70,7 @@ function handleClearCompleted() {
         size="sm"
         class="cursor-pointer"
         @click="handleClearCompleted"
+        data-test="clear-completed-button"
       >
         Clear Completed
       </Button>

@@ -30,13 +30,20 @@ function handleStartAll() {
   <footer
     class="border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     style="-webkit-app-region: no-drag"
+    data-test="app-footer"
   >
     <div class="container mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
       <div class="flex items-center gap-4 text-sm text-muted-foreground">
         <span>{{ activeJobCount }} file{{ activeJobCount !== 1 ? 's' : '' }} in queue</span>
       </div>
       <div class="flex items-center gap-3">
-        <Button variant="ghost" size="lg" @click="handleCancelAll" class="cursor-pointer">
+        <Button
+          variant="ghost"
+          size="lg"
+          @click="handleCancelAll"
+          class="cursor-pointer"
+          data-test="cancel-all-button"
+        >
           Cancel All
         </Button>
         <Button
@@ -45,6 +52,7 @@ function handleStartAll() {
           class="cursor-pointer"
           :disabled="!props.canStartAll"
           @click="handleStartAll"
+          data-test="start-all-button"
         >
           <Play class="mr-2 h-5 w-5" />
           Start All

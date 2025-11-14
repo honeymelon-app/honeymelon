@@ -39,14 +39,19 @@ function handlePresetChange(newPresetId: unknown) {
 </script>
 
 <template>
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-3" data-test="preset-selector" :data-editable="editable">
     <span class="text-xs text-muted-foreground">Convert to:</span>
     <Select v-if="editable" :model-value="presetId" @update:model-value="handlePresetChange">
-      <SelectTrigger class="h-8 w-auto min-w-[180px] text-xs">
+      <SelectTrigger class="h-8 w-auto min-w-[180px] text-xs" data-test="preset-selector-trigger">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem v-for="preset in availablePresets" :key="preset.id" :value="preset.id">
+        <SelectItem
+          v-for="preset in availablePresets"
+          :key="preset.id"
+          :value="preset.id"
+          data-test="preset-option"
+        >
           {{ preset.label }}
         </SelectItem>
       </SelectContent>

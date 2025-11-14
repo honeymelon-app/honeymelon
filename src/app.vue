@@ -307,13 +307,28 @@ const handleImageBrowse = () => handleBrowse('image');
         <!-- Media Type Tabs - Core navigation for filtering by video/audio/image -->
         <Tabs v-model="activeTab" default-value="video" class="flex flex-col flex-1">
           <TabsList aria-label="Media type filter" class="w-fit">
-            <TabsTrigger value="video" aria-label="Video files">
+            <TabsTrigger
+              value="video"
+              aria-label="Video files"
+              data-test="media-tab"
+              data-media-kind="video"
+            >
               {{ t('media.video') }}
             </TabsTrigger>
-            <TabsTrigger value="audio" aria-label="Audio files">
+            <TabsTrigger
+              value="audio"
+              aria-label="Audio files"
+              data-test="media-tab"
+              data-media-kind="audio"
+            >
               {{ t('media.audio') }}
             </TabsTrigger>
-            <TabsTrigger value="image" aria-label="Image files">
+            <TabsTrigger
+              value="image"
+              aria-label="Image files"
+              data-test="media-tab"
+              data-media-kind="image"
+            >
               {{ t('media.image') }}
             </TabsTrigger>
           </TabsList>
@@ -325,6 +340,8 @@ const handleImageBrowse = () => handleBrowse('image');
               <TabsContent
                 value="video"
                 class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
+                data-test="media-pane"
+                data-media-kind="video"
               >
                 <!-- File uploader for video files -->
                 <FileUploader
@@ -353,6 +370,8 @@ const handleImageBrowse = () => handleBrowse('image');
               <TabsContent
                 value="audio"
                 class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
+                data-test="media-pane"
+                data-media-kind="audio"
               >
                 <!-- File uploader for audio files -->
                 <FileUploader
@@ -381,6 +400,8 @@ const handleImageBrowse = () => handleBrowse('image');
               <TabsContent
                 value="image"
                 class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
+                data-test="media-pane"
+                data-media-kind="image"
               >
                 <!-- File uploader for image files -->
                 <FileUploader

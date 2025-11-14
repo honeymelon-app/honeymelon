@@ -1,90 +1,59 @@
-import { test, expect } from './fixtures';
-import { spawn } from 'child_process';
-import type { ChildProcess } from 'child_process';
-import { platform } from 'os';
-import { join } from 'path';
+import type { Page } from '@playwright/test';
 
-/**
- * E2E tests for Honeymelon app launch and basic functionality
- *
- * These tests spawn the Tauri app in development mode and verify
- * core functionality using Playwright to interact with the WebView.
- *
- * Note: These tests require the app to be built first.
- */
+import { simulateFileDrop } from '../helpers/tauri';
+import { loadFixtureManifest } from './global-setup';
+import { expect, test } from './fixtures';
+import { withLicense } from './support/app-state';
 
-let tauriProcess: ChildProcess | null = null;
+type FixtureManifest = Record<string, Record<string, string>>;
+let manifestCache: FixtureManifest | undefined;
 
-test.beforeAll(async () => {
-  // Skip tests on non-macOS platforms
-  if (platform() !== 'darwin') {
-    test.skip();
-  }
-});
-
-test.afterAll(async () => {
-  // Clean up Tauri process if it's still running
-  if (tauriProcess) {
-    tauriProcess.kill();
-    tauriProcess = null;
-  }
+test.use({
+  initialAppData: withLicense(),
 });
 
 test.describe('App Launch', () => {
-  test('should launch the application without errors', async ({ page: _page }) => {
-    // This is a placeholder test that verifies the test infrastructure works
-    // In a full implementation, you would:
-    // 1. Launch the Tauri app in dev mode
-    // 2. Connect Playwright to the WebView
-    // 3. Verify the app loaded
+  test('renders the primary window with controls', async ({ page }) => {
+    await waitForAppReady(page);
 
-    // For now, we'll just verify the test runs
-    expect(true).toBe(true);
-  });
+    await expect(page.locator('[data-test="app-main"]')).toBeVisible();
+    await expect(page.locator('[data-test="destination-trigger"]')).toBeVisible();
+    await expect(page.locator('[data-test="language-toggle"]')).toBeVisible();
+    await expect(page.locator('[data-test="theme-toggle"]')).toBeVisible();
 
-  test('should display the main window', async ({ page: _page }) => {
-    // Placeholder: In a real test, this would:
-    // 1. Launch the app
-    // 2. Wait for the main window to be visible
-    // 3. Verify key UI elements are present
-
-    expect(true).toBe(true);
+    const videoTab = page.locator('[data-test="media-tab"][data-media-kind="video"]');
+    await expect(videoTab).toBeVisible();
+    await expect(
+      page.locator('[data-test="file-dropzone"][data-media-kind="video"]'),
+    ).toBeVisible();
   });
 });
 
 test.describe('File Handling', () => {
-  test('should accept dropped files', async ({ page: _page }) => {
-    // Placeholder: This would test the drag-and-drop functionality
-    // 1. Launch the app
-    // 2. Simulate file drop event
-    // 3. Verify file appears in the queue
+  test('accepts dropped files and shows them in the queue', async ({ page }) => {
+    await waitForAppReady(page);
+    await simulateFileDrop(page, '[data-test="file-dropzone"][data-media-kind="video"]', [
+      getManifest().video.h264,
+    ]);
 
-    expect(true).toBe(true);
+    const jobCard = page.locator('[data-test="job-card"]').first();
+    await expect(jobCard).toBeVisible();
+    await expect(jobCard).toHaveAttribute('data-state', 'queued');
   });
 });
 
-/**
- * Helper function to spawn Tauri in dev mode
- * Returns the child process for cleanup
- */
-function _spawnTauriDev(): ChildProcess {
-  const projectRoot = join(__dirname, '..', '..');
-  return spawn('npm', ['run', 'tauri:dev'], {
-    cwd: projectRoot,
-    detached: false,
-    stdio: 'pipe',
+async function waitForAppReady(page: Page): Promise<void> {
+  await page.waitForSelector('[data-test="file-dropzone"][data-media-kind="video"]', {
+    state: 'visible',
   });
 }
 
-/**
- * Helper function to wait for Tauri app to be ready
- * Polls for the WebView to be accessible
- */
-async function _waitForTauriReady(timeout = 30000): Promise<void> {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    // Check if the app is ready (e.g., by checking for a specific endpoint or window)
-    // This is a simplified version - full implementation would check for actual readiness
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+function getManifest(): FixtureManifest {
+  if (!manifestCache) {
+    manifestCache = loadFixtureManifest();
   }
+  if (!manifestCache) {
+    throw new Error('E2E fixture manifest was not generated');
+  }
+  return manifestCache;
 }

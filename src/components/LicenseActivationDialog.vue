@@ -180,7 +180,11 @@ async function handleDeactivate() {
 
 <template>
   <Dialog :open="dialogOpen" modal @update:open="handleOpenChange">
-    <DialogContent class="sm:max-w-lg" aria-labelledby="license-dialog-title">
+    <DialogContent
+      class="sm:max-w-lg"
+      aria-labelledby="license-dialog-title"
+      data-test="license-dialog"
+    >
       <DialogHeader class="space-y-2">
         <DialogTitle id="license-dialog-title">
           <span class="inline-flex items-center gap-2">
@@ -204,6 +208,7 @@ async function handleDeactivate() {
               type="text"
               autocomplete="one-time-code"
               placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
+              data-test="license-input"
             />
             <Button
               variant="secondary"
@@ -211,6 +216,7 @@ async function handleDeactivate() {
               class="shrink-0"
               :disabled="!canSubmit || isVerifying"
               @click="handleVerify"
+              data-test="license-verify-button"
             >
               <Loader2 v-if="isVerifying" class="h-4 w-4 animate-spin" aria-hidden="true" />
               <span v-else>Check</span>
@@ -218,7 +224,12 @@ async function handleDeactivate() {
           </div>
         </div>
 
-        <p v-if="lastError" role="alert" class="flex items-center gap-2 text-sm text-destructive">
+        <p
+          v-if="lastError"
+          role="alert"
+          class="flex items-center gap-2 text-sm text-destructive"
+          data-test="license-error"
+        >
           <CircleAlert class="h-4 w-4" aria-hidden="true" />
           <span>{{ lastError }}</span>
         </p>
@@ -266,6 +277,7 @@ async function handleDeactivate() {
             class="cursor-pointer"
             :disabled="isActivating"
             @click="handleDeactivate"
+            data-test="license-deactivate-button"
           >
             <Trash2 class="mr-1 h-4 w-4" aria-hidden="true" />
             Deactivate
@@ -275,6 +287,7 @@ async function handleDeactivate() {
             class="cursor-pointer"
             :disabled="isActivating || !canSubmit"
             @click="handleActivate"
+            data-test="license-activate-button"
           >
             <Loader2 v-if="isActivating" class="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
             <span v-else>{{ current ? 'Replace License' : 'Activate License' }}</span>
