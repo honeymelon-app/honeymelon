@@ -37,72 +37,53 @@ Honeymelon uses **out-of-process execution exclusively**, enabling proprietary l
 
 ## FFmpeg Discovery
 
-Honeymelon searches for FFmpeg binaries in this order:
+Honeymelon resolves FFmpeg and FFprobe using a four-tier fallback implemented in `src-tauri/src/binary_resolver.rs`:
 
-### 1. Bundled Binaries
-
-```text
-public/bin/ffmpeg
-public/bin/ffprobe
-
-```
-
-Downloaded automatically during `npm install` or manually via:
+### 1. Environment Overrides
 
 ```bash
-npm run download-ffmpeg
+export HONEYMELON_FFMPEG_PATH=/custom/path/to/ffmpeg
+export HONEYMELON_FFPROBE_PATH=/custom/path/to/ffprobe
 
 ```
 
-**Included in app bundle** for distribution.
-
-### 2. Environment Variables
-
-```bash
-export FFMPEG_PATH=/custom/path/to/ffmpeg
-export FFPROBE_PATH=/custom/path/to/ffprobe
-
-```
-
-### 3. System Installation
-
-Standard paths checked:
+### 2. Development Bundled Binaries
 
 ```text
-/usr/local/bin/ffmpeg
-/opt/homebrew/bin/ffmpeg
-/usr/bin/ffmpeg
+src-tauri/resources/bin/ffmpeg
+src-tauri/resources/bin/ffprobe
 
 ```
 
-### 4. User Configured
+`npm install` (or `npm run download-ffmpeg`) populates these paths for local development.
 
-Set in Preferences → FFmpeg Settings.
+### 3. Packaged App Resources
+
+When shipped, the macOS bundle includes binaries under:
+
+```text
+Honeymelon.app/Contents/Resources/bin/{ffmpeg,ffprobe}
+
+```
+
+### 4. System PATH Fallback
+
+If none of the above exist, Honeymelon falls back to the first matching binary on `PATH` (for example `/opt/homebrew/bin/ffmpeg`).
 
 ### Implementation
 
-**Location**: runner modules under `src-tauri/src/runner` (see `src-tauri/src/runner/mod.rs` and its submodules)
+**Location**: `src-tauri/src/binary_resolver.rs`
 
 ```rust
-fn resolve_ffmpeg_path() -> Result<PathBuf> {
-    // 1. Check bundled
-    if let Some(bundled) = get_bundled_ffmpeg() {
-        return Ok(bundled);
-    }
+use std::process::Command;
+use crate::binary_resolver::resolve_ffmpeg_paths;
 
-    // 2. Check environment
-    if let Ok(env_path) = env::var("FFMPEG_PATH") {
-        return Ok(PathBuf::from(env_path));
-    }
+let candidates = resolve_ffmpeg_paths(&app);
 
-    // 3. Check system paths
-    if let Some(system) = find_system_ffmpeg() {
-        return Ok(system);
-    }
-
-    Err("FFmpeg not found".into())
-}
-
+let ffmpeg_path = candidates
+    .into_iter()
+    .find(|path| Command::new(path).arg("-version").output().is_ok())
+    .ok_or_else(|| anyhow::anyhow!("FFmpeg not found"))?;
 ```
 
 ## FFprobe Integration
@@ -115,52 +96,15 @@ Extract media file metadata without full decoding.
 
 **Command**:
 
-````bash
-ffprobe \
-  -v quiet \
-  -print_format json \
-  -show_format \
-  -show_streams \
-  input.mp4
-
-### 2. Environment Overrides
-
 ```bash
-export HONEYMELON_FFMPEG_PATH=/custom/path/to/ffmpeg
-export HONEYMELON_FFPROBE_PATH=/custom/path/to/ffprobe
-
-````
-
-### 3. Development Bundled Binaries
-
-```text
-src-tauri/resources/bin/ffmpeg
-src-tauri/resources/bin/ffprobe
+ffprobe \
+    -v quiet \
+    -print_format json \
+    -show_format \
+    -show_streams \
+    input.mp4
 
 ```
-
-`npm install` (or `npm run download-ffmpeg`) populates these paths for local development.
-
-### 4. Packaged App Resources
-
-When shipped, the macOS bundle includes binaries under:
-
-```text
-Honeymelon.app/Contents/Resources/bin/{ffmpeg,ffprobe}
-
-```
-
-### 5. System PATH Fallback
-
-If none of the above exist, Honeymelon falls back to the first matching binary on `PATH` (for example `/opt/homebrew/bin/ffmpeg`).
-codec_name: Option<String>,
-codec_type: String,
-width: Option<u32>,
-height: Option<u32>,
-// ... more fields
-}
-
-````
 
 Parse JSON with `serde_json`:
 
@@ -172,7 +116,7 @@ let output = Command::new(&ffprobe_path)
 let probe_result: FFprobeOutput =
     serde_json::from_slice(&output.stdout)?;
 
-````
+```
 
 ### FFprobe: Error Handling
 
