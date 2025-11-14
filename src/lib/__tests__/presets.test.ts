@@ -28,6 +28,21 @@ describe('generated presets', () => {
     });
   });
 
+  it('keeps source container lists unique and aligned with output extension', () => {
+    PRESETS.forEach((preset) => {
+      const uniqueSources = new Set(preset.sourceContainers);
+      expect(uniqueSources.size).toBe(preset.sourceContainers.length);
+      expect(preset.outputExtension).toBe(preset.container);
+    });
+  });
+
+  it('marks remux-only presets only when both streams copy', () => {
+    PRESETS.forEach((preset) => {
+      const shouldBeRemuxOnly = preset.video.codec === 'copy' && preset.audio.codec === 'copy';
+      expect(Boolean(preset.remuxOnly)).toBe(shouldBeRemuxOnly);
+    });
+  });
+
   describe('video presets', () => {
     it('provides a preset for each video container target', () => {
       VIDEO_CONTAINERS.forEach((target) => {

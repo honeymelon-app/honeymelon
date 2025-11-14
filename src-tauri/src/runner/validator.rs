@@ -36,6 +36,7 @@ impl JobValidator {
     }
 
     /// Validates concurrency constraints for a job
+    #[allow(dead_code)]
     pub fn validate_concurrency(
         &self,
         job_id: &str,
@@ -91,6 +92,10 @@ impl Default for JobValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::runner::RunningProcess;
+    use std::collections::HashMap;
+    use std::process::{Command, Stdio};
+    use std::sync::Arc;
 
     #[test]
     fn test_validate_args_empty() {
@@ -127,5 +132,60 @@ mod tests {
         ];
 
         assert!(validator.validate_args(&safe).is_ok());
+    }
+
+    fn stub_process(exclusive: bool) -> Arc<RunningProcess> {
+        let child = Command::new("sh")
+            .arg("-c")
+            .arg("exit 0")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("spawn stub child");
+        Arc::new(RunningProcess::new(child, exclusive))
+    }
+
+    #[test]
+    fn test_validate_concurrency_prevents_duplicate_job_ids() {
+        let validator = JobValidator::new();
+        let mut active = HashMap::new();
+        active.insert("job1".to_string(), stub_process(false));
+
+        let result = validator.validate_concurrency("job1", &active, 2, false);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_concurrency_blocks_exclusive_requests_when_active() {
+        let validator = JobValidator::new();
+        let mut active = HashMap::new();
+        active.insert("job1".to_string(), stub_process(false));
+
+        let result = validator.validate_concurrency("job2", &active, 2, true);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_concurrency_detects_existing_exclusive_jobs() {
+        let validator = JobValidator::new();
+        let mut active = HashMap::new();
+        active.insert("job1".to_string(), stub_process(true));
+
+        let result = validator.validate_concurrency("job2", &active, 2, false);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_concurrency_enforces_limit() {
+        let validator = JobValidator::new();
+        let mut active = HashMap::new();
+        active.insert("job1".to_string(), stub_process(false));
+
+        let result = validator.validate_concurrency("job2", &active, 1, false);
+        assert!(result.is_err());
+
+        let ok = validator.validate_concurrency("job2", &active, 3, false);
+        assert!(ok.is_ok());
     }
 }

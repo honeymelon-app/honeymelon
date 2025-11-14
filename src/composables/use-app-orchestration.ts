@@ -38,14 +38,12 @@
  */
 
 import { storeToRefs } from 'pinia';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, getCurrentInstance, onMounted, ref, watch, type Ref } from 'vue';
 
+import { useCapabilityGate } from '@/composables/use-capability-gate';
+import { useDesktopBridge } from '@/composables/use-desktop-bridge';
 import { useFileHandler } from '@/composables/use-file-handler';
 import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
-import { useTauriEvents } from '@/composables/use-tauri-events';
-import { availablePresets, loadCapabilities } from '@/lib/capability';
-import { DEFAULT_PRESET_ID } from '@/lib/presets';
-import type { CapabilitySnapshot } from '@/lib/types';
 import { useJobsStore } from '@/stores/jobs';
 
 /**
@@ -79,21 +77,8 @@ export function useAppOrchestration() {
    * Contains information about available FFmpeg codecs, formats, and
    * system capabilities that determine which presets are available.
    */
-  const capabilities = ref<CapabilitySnapshot>();
-
-  /**
-   * Default preset identifier.
-   *
-   * The fallback preset to use when no specific preset is selected.
-   */
-  const defaultPresetId = ref(DEFAULT_PRESET_ID);
-
-  /**
-   * Drag-over state for visual feedback.
-   *
-   * Tracks whether files are currently being dragged over drop zones.
-   */
-  const isDragOver = ref(false);
+  const { defaultPresetId, presetOptions, presetsReady, loadCapabilitySnapshot } =
+    useCapabilityGate();
 
   /**
    * About dialog visibility state.
@@ -118,21 +103,6 @@ export function useAppOrchestration() {
    * Handles the actual starting, monitoring, and cancellation of conversion jobs.
    */
   const orchestrator = useJobOrchestrator({ autoStartNext: false });
-
-  /**
-   * Available preset options based on system capabilities.
-   *
-   * Computed list of presets that are supported by the current FFmpeg installation
-   * and system configuration.
-   */
-  const presetOptions = computed(() => availablePresets(capabilities.value));
-
-  /**
-   * Whether presets are ready for use.
-   *
-   * Indicates if the preset system has been initialized and presets are available.
-   */
-  const presetsReady = computed(() => presetOptions.value.length > 0);
 
   /**
    * Active jobs (currently processing or queued).
@@ -192,13 +162,22 @@ export function useAppOrchestration() {
   }
 
   /**
+   * Snapshot of the desktop drag state so file handlers invoked directly
+   * (e.g. from tests) still clear the indicator after processing.
+   */
+  let dragStateRef: Ref<boolean> | null = null;
+
+  /**
    * Handles file drop events from drag-and-drop operations.
    *
    * Processes files dropped onto the application and adds them to the job queue.
-   * Resets the drag-over visual state after processing.
+   * Ensures the drag-over visual state resets even when invoked outside of the
+   * desktop bridge callbacks.
    */
   async function handleFileDrop(paths: string[]) {
-    isDragOver.value = false;
+    if (dragStateRef) {
+      dragStateRef.value = false;
+    }
     await fileHandler.addFilesFromPaths(paths, { alreadyExpanded: true });
   }
 
@@ -434,17 +413,12 @@ export function useAppOrchestration() {
    * Sets up event listeners for drag-and-drop, menu actions, and other
    * desktop-specific interactions.
    */
-  useTauriEvents({
+  const { isDragOver } = useDesktopBridge({
     onDrop: handleFileDrop,
-    onDragEnter: () => {
-      isDragOver.value = true;
-    },
-    onDragLeave: () => {
-      isDragOver.value = false;
-    },
-    onMenuOpen: handleBrowse,
-    onMenuAbout: openAbout,
+    onBrowseFiles: () => handleBrowse(),
+    onOpenAbout: openAbout,
   });
+  dragStateRef = isDragOver;
 
   /**
    * Initialization logic on component mount.
@@ -452,8 +426,10 @@ export function useAppOrchestration() {
    * Loads system capabilities, sets up window close handling for active jobs,
    * and prepares the application for use.
    */
-  onMounted(async () => {
-    capabilities.value = await loadCapabilities();
+  const hasInstanceContext = !!getCurrentInstance();
+
+  const initializeCapabilities = async () => {
+    await loadCapabilitySnapshot();
 
     if (fileHandler.isTauriRuntime()) {
       const { getCurrentWindow } = await import('@tauri-apps/api/window');
@@ -469,7 +445,15 @@ export function useAppOrchestration() {
         }
       });
     }
-  });
+  };
+
+  if (hasInstanceContext) {
+    onMounted(() => {
+      void initializeCapabilities();
+    });
+  } else {
+    void initializeCapabilities();
+  }
 
   /**
    * Return object with all state and handlers.

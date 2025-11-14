@@ -4,7 +4,6 @@ import {
   isActiveState,
   isTerminalState,
   MAX_TERMINAL_JOBS,
-  now,
   type JobId,
   type JobRecord,
 } from './job-types';
@@ -12,7 +11,8 @@ import {
 import { JobFactory } from '@/factories/job-factory';
 import { PRESETS } from '@/lib/presets';
 import type { Tier } from '@/lib/types';
-import { jobRepository, type JobRepository } from '@/repositories/job-repository';
+import type { JobRepository } from '@/repositories/job-repository';
+import { jobService } from '@/services/job-service';
 
 export interface JobQueueComposable {
   jobsMap: Ref<Map<string, JobRecord>>;
@@ -38,13 +38,8 @@ export interface JobQueueComposable {
 export function useJobQueue(): JobQueueComposable {
   // Get a direct reference to the repository's map for reactivity
   // This ensures all store instances share the same reactive map
-  const jobsMap = ref(jobRepository.getInternalMap()) as Ref<Map<string, JobRecord>>;
+  const jobsMap = jobService.reactiveMap;
   const maxConcurrency = ref(2);
-
-  // Helper to trigger reactivity after repository mutations
-  const triggerReactivity = () => {
-    jobsMap.value = new Map(jobRepository.getInternalMap());
-  };
 
   const jobs = computed(() => Array.from(jobsMap.value.values()));
   const queuedJobs = computed(() => jobs.value.filter((job) => job.state.status === 'queued'));
@@ -58,8 +53,7 @@ export function useJobQueue(): JobQueueComposable {
 
   function enqueue(path: string, presetId: string, tier: Tier = 'balanced'): JobId | null {
     // Check for duplicates using repository
-    const existingJobs = jobRepository.getByPath(path);
-    if (existingJobs.length > 0) {
+    if (!jobService.canEnqueuePath(path)) {
       return null;
     }
 
@@ -75,8 +69,7 @@ export function useJobQueue(): JobQueueComposable {
     record.logs = [];
 
     // Save via repository
-    jobRepository.save(record);
-    triggerReactivity();
+    jobService.save(record);
     return record.id;
   }
 
@@ -88,54 +81,34 @@ export function useJobQueue(): JobQueueComposable {
       return [];
     }
 
-    // Use factory to create multiple jobs efficiently
-    const records = JobFactory.createMany(paths, preset, tier);
-
-    // Filter duplicates and save via repository
-    const ids: JobId[] = [];
-    for (const record of records) {
-      // Check for duplicate path using repository
-      const isDuplicate = jobRepository.getByPath(record.path).length > 0;
-      if (!isDuplicate) {
-        record.logs = [];
-        jobRepository.save(record);
-        ids.push(record.id);
-      }
+    const { accepted } = jobService.filterUniquePaths(paths);
+    if (!accepted.length) {
+      return [];
     }
 
-    if (ids.length > 0) {
-      triggerReactivity();
-    }
+    const records = JobFactory.createMany(accepted, preset, tier).map((record) => {
+      record.logs = [];
+      return record;
+    });
 
-    return ids;
+    jobService.saveMany(records);
+    return records.map((record) => record.id);
   }
 
   function getJob(id: JobId): JobRecord | undefined {
-    return jobRepository.getById(id);
+    return jobService.getById(id);
   }
 
   function updateJob(id: JobId, updater: (job: JobRecord) => JobRecord) {
-    const record = jobRepository.getById(id);
-    if (!record) {
-      return;
-    }
-    const updated = updater({ ...record });
-    updated.updatedAt = now();
-    jobRepository.save(updated);
-    triggerReactivity();
+    jobService.update(id, updater);
   }
 
   function removeJob(id: JobId) {
-    jobRepository.delete(id);
-    triggerReactivity();
+    jobService.delete(id);
   }
 
   function clearCompleted() {
-    const terminalJobs = jobRepository.getByStatuses(['completed', 'failed', 'cancelled']);
-    for (const job of terminalJobs) {
-      jobRepository.delete(job.id);
-    }
-    triggerReactivity();
+    jobService.clearByStatuses(['completed', 'failed', 'cancelled']);
   }
 
   function pruneTerminalJobs() {
@@ -143,8 +116,7 @@ export function useJobQueue(): JobQueueComposable {
     if (terminal.length > MAX_TERMINAL_JOBS) {
       const sorted = [...terminal].sort((a, b) => b.updatedAt - a.updatedAt);
       const toRemove = sorted.slice(MAX_TERMINAL_JOBS);
-      toRemove.forEach((job) => jobRepository.delete(job.id));
-      triggerReactivity();
+      jobService.deleteMany(toRemove.map((job) => job.id));
     }
   }
 
@@ -182,6 +154,6 @@ export function useJobQueue(): JobQueueComposable {
     pruneTerminalJobs,
     startNext,
     peekNext,
-    repository: jobRepository,
+    repository: jobService.repo,
   };
 }

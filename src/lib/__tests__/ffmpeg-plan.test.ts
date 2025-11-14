@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { listSupportedPresets, planJob, resolvePreset, type PlannerContext } from '../ffmpeg-plan';
+import { CONTAINER_RULES } from '../container-rules';
 import { PRESETS } from '../presets';
 import type { CapabilitySnapshot, ProbeSummary } from '../types';
 
@@ -119,5 +120,88 @@ describe('ffmpeg-plan', () => {
     expect(decision.ffmpegArgs).toContain('png');
     expect(decision.ffmpegArgs).toContain('-frames:v');
     expect(decision.ffmpegArgs).toContain('1');
+  });
+
+  it('warns when expected video streams are missing', () => {
+    const decision = planJob({
+      presetId: 'video-to-mp4',
+      summary: { durationSec: 45, acodec: 'aac' },
+    });
+
+    expect(decision.remuxOnly).toBe(false);
+    expect(decision.warnings).toContain('Input contains no video stream; output will omit video.');
+  });
+
+  it('warns when container rules reject preset codecs', () => {
+    const mp4Rules = CONTAINER_RULES.mp4;
+    const originalVideo = mp4Rules.video;
+    const originalAudio = mp4Rules.audio;
+
+    try {
+      mp4Rules.video = ['vp9'];
+      mp4Rules.audio = ['opus'];
+
+      const decision = planJob({
+        presetId: 'video-to-mp4',
+        summary: baseSummary,
+      });
+
+      expect(decision.warnings).toContain('Target container mp4 does not allow video codec h264.');
+      expect(decision.warnings).toContain('Target container mp4 does not allow audio codec aac.');
+    } finally {
+      mp4Rules.video = originalVideo;
+      mp4Rules.audio = originalAudio;
+    }
+  });
+
+  it('notes tier fallbacks when requested tier data is missing', () => {
+    const preset = PRESETS.find((item) => item.id === 'video-to-mp4');
+    expect(preset).toBeDefined();
+    if (!preset) return;
+
+    const originalVideoTiers = preset.video.tiers;
+    const originalAudioTiers = preset.audio.tiers;
+
+    preset.video.tiers = {
+      fast: {
+        bitrateK: 2800,
+      },
+    };
+    preset.audio.tiers = {
+      fast: {
+        bitrateK: 192,
+      },
+    };
+
+    try {
+      const decision = planJob({
+        presetId: preset.id,
+        summary: baseSummary,
+        requestedTier: 'high',
+      });
+
+      expect(decision.notes).toContain('Video tier fallback applied: using fast.');
+      expect(decision.notes).toContain('Audio tier fallback applied: using fast.');
+    } finally {
+      preset.video.tiers = originalVideoTiers;
+      preset.audio.tiers = originalAudioTiers;
+    }
+  });
+
+  it('warns when selected encoders are missing from reported capabilities', () => {
+    const decision = planJob({
+      presetId: 'video-to-mp4',
+      summary: { ...baseSummary, vcodec: 'vp9', acodec: 'opus' },
+      capabilities: {
+        videoEncoders: new Set(),
+        audioEncoders: new Set(['aac']),
+        formats: new Set(),
+        filters: new Set(),
+      },
+    });
+
+    expect(decision.warnings).toContain(
+      'Encoder libx264 for h264 is not available; transcode may fail.',
+    );
   });
 });

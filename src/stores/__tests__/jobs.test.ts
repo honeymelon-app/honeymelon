@@ -2,16 +2,38 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useJobsStore } from '../jobs';
 import { PRESETS } from '@/lib/presets';
-import { jobRepository } from '@/repositories/job-repository';
+import type { ProbeSummary } from '@/lib/types';
+import { jobService } from '@/services/job-service';
 
 // Use actual preset IDs from the codebase
 const TEST_PRESET_1 = PRESETS[0].id; // First available preset
 const TEST_PRESET_2 = PRESETS[1]?.id || PRESETS[0].id; // Second or fallback to first
+type JobsStore = ReturnType<typeof useJobsStore>;
+
+const DEFAULT_SUMMARY: ProbeSummary = { durationSec: 120 };
+
+function advanceToPlanning(
+  store: JobsStore,
+  jobId: string,
+  summary: ProbeSummary = DEFAULT_SUMMARY,
+): void {
+  store.markProbing(jobId);
+  store.markPlanning(jobId, summary);
+}
+
+function advanceToRunning(
+  store: JobsStore,
+  jobId: string,
+  summary: ProbeSummary = DEFAULT_SUMMARY,
+): void {
+  advanceToPlanning(store, jobId, summary);
+  store.markRunning(jobId, {} as any);
+}
 
 describe('jobs store', () => {
   beforeEach(() => {
-    // Clear the repository singleton before each test
-    jobRepository.clear();
+    // Reset the repository singleton before each test
+    jobService.reset();
     setActivePinia(createPinia());
     vi.useFakeTimers();
   });
@@ -181,7 +203,7 @@ describe('jobs store', () => {
     it('should transition from running to completed', () => {
       const store = useJobsStore();
       const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
-      store.markRunning(jobId!, {} as any);
+      advanceToRunning(store, jobId!);
       store.markCompleted(jobId!, '/output/path.mp4');
 
       const job = store.getJob(jobId!);
@@ -192,7 +214,7 @@ describe('jobs store', () => {
     it('should transition from running to failed', () => {
       const store = useJobsStore();
       const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
-      store.markRunning(jobId!, {} as any);
+      advanceToRunning(store, jobId!);
       store.markFailed(jobId!, 'Error message', 'error_code');
 
       const job = store.getJob(jobId!);
@@ -215,11 +237,21 @@ describe('jobs store', () => {
     it('should handle requeue from terminal state', () => {
       const store = useJobsStore();
       const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
+      advanceToRunning(store, jobId!);
       store.markCompleted(jobId!, '/output.mp4');
       store.requeue(jobId!);
 
       const job = store.getJob(jobId!);
       expect(job?.state.status).toBe('queued');
+    });
+
+    it('throws in dev mode when skipping lifecycle steps', () => {
+      const store = useJobsStore();
+      const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
+
+      expect(() => store.markRunning(jobId!, {} as any)).toThrow(
+        /Illegal transition queued → running via markRunning/,
+      );
     });
   });
 
@@ -277,7 +309,7 @@ describe('jobs store', () => {
     it('should update progress for running job', () => {
       const store = useJobsStore();
       const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
-      store.markRunning(jobId!, {} as any);
+      advanceToRunning(store, jobId!);
       store.updateProgress(jobId!, {
         processedSeconds: 30,
         speed: 2.5,
@@ -293,8 +325,7 @@ describe('jobs store', () => {
     it('should calculate ratio from processedSeconds and duration', () => {
       const store = useJobsStore();
       const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
-      store.markPlanning(jobId!, { durationSec: 100 });
-      store.markRunning(jobId!, {} as any);
+      advanceToRunning(store, jobId!, { durationSec: 100 });
       store.updateProgress(jobId!, { processedSeconds: 50 });
 
       const job = store.getJob(jobId!);
@@ -347,7 +378,9 @@ describe('jobs store', () => {
       const id2 = store.enqueue('/path2.mp4', TEST_PRESET_1);
       const id3 = store.enqueue('/path3.mp4', TEST_PRESET_1);
 
+      advanceToRunning(store, id1!);
       store.markCompleted(id1!, '/output1.mp4');
+      advanceToRunning(store, id2!);
       store.markFailed(id2!, 'error');
       // id3 stays queued
 
@@ -379,7 +412,7 @@ describe('jobs store', () => {
       const id1 = store.enqueue('/path1.mp4', TEST_PRESET_1);
       store.enqueue('/path2.mp4', 'preset');
 
-      store.markRunning(id1!, {} as any);
+      advanceToRunning(store, id1!);
 
       const started = store.startNext();
       expect(started).toBeUndefined();
@@ -416,8 +449,9 @@ describe('jobs store', () => {
       const id2 = store.enqueue('/path2.mp4', TEST_PRESET_1);
       const id3 = store.enqueue('/path3.mp4', TEST_PRESET_1);
 
-      store.markRunning(id1!, {} as any);
+      advanceToRunning(store, id1!);
       store.markProbing(id2!);
+      advanceToRunning(store, id3!);
       store.markCompleted(id3!, '/output.mp4');
 
       expect(store.activeJobs.length).toBe(2);
@@ -428,8 +462,7 @@ describe('jobs store', () => {
     it('should calculate running ETA', () => {
       const store = useJobsStore();
       const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
-      store.markPlanning(jobId!, { durationSec: 100 });
-      store.markRunning(jobId!, {} as any);
+      advanceToRunning(store, jobId!, { durationSec: 100 });
       store.updateProgress(jobId!, { processedSeconds: 25 });
 
       expect(store.runningEtaSeconds).toBe(75);
@@ -456,7 +489,7 @@ describe('jobs store', () => {
       const store = useJobsStore();
       const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.setExclusive(jobId!, true);
-      store.markRunning(jobId!, {} as any);
+      advanceToRunning(store, jobId!);
 
       expect(store.hasExclusiveActive).toBe(true);
     });
@@ -465,7 +498,7 @@ describe('jobs store', () => {
       const store = useJobsStore();
       const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
       store.setExclusive(jobId!, true);
-      store.markRunning(jobId!, {} as any);
+      advanceToRunning(store, jobId!);
       store.markCompleted(jobId!, '/output.mp4');
 
       const job = store.getJob(jobId!);

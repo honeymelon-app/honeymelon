@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { getCurrentInstance, onMounted, onUnmounted, ref } from 'vue';
 
 interface UseTauriEventsOptions {
   onDrop?: (paths: string[]) => void | Promise<void>;
@@ -101,15 +101,17 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
     unlistenMenuAbout.value?.();
   }
 
-  onMounted(() => {
-    setupEventListeners().catch((error) => {
-      console.error('[tauri-events] Failed to setup event listeners:', error);
+  if (getCurrentInstance()) {
+    onMounted(() => {
+      setupEventListeners().catch((error) => {
+        console.error('[tauri-events] Failed to setup event listeners:', error);
+      });
     });
-  });
 
-  onUnmounted(() => {
-    cleanupEventListeners();
-  });
+    onUnmounted(() => {
+      cleanupEventListeners();
+    });
+  }
 
   return {
     isTauriRuntime,

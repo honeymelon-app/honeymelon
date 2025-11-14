@@ -2,6 +2,7 @@ import type { JobQueueComposable } from './job-queue';
 import { now, readEnqueuedAt, type JobId } from './job-types';
 
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
+import { jobLifecycle } from '@/lib/job-lifecycle';
 import type { ProbeSummary, JobState } from '@/lib/types';
 import { globalJobObserver } from '@/observers/job-observer';
 
@@ -34,6 +35,10 @@ export function useJobState(queue: JobQueueComposable): JobStateComposable {
         startedAt,
       };
 
+      if (!jobLifecycle.ensureTransition(job.state, newState, 'markProbing')) {
+        return job;
+      }
+
       // Notify observers of state change
       globalJobObserver.onStateChange(id, oldState, newState);
 
@@ -48,15 +53,21 @@ export function useJobState(queue: JobQueueComposable): JobStateComposable {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = job.state.status === 'probing' ? job.state.startedAt : now();
+      const newState: JobState = {
+        status: 'planning',
+        enqueuedAt,
+        startedAt,
+        probeSummary: summary,
+      };
+
+      if (!jobLifecycle.ensureTransition(job.state, newState, 'markPlanning')) {
+        return job;
+      }
+
       return {
         ...job,
         summary,
-        state: {
-          status: 'planning',
-          enqueuedAt,
-          startedAt,
-          probeSummary: summary,
-        },
+        state: newState,
       };
     });
   }
@@ -65,17 +76,23 @@ export function useJobState(queue: JobQueueComposable): JobStateComposable {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = job.state.status === 'planning' ? job.state.startedAt : now();
+      const newState: JobState = {
+        status: 'running',
+        enqueuedAt,
+        startedAt,
+        progress: {},
+      };
+
+      if (!jobLifecycle.ensureTransition(job.state, newState, 'markRunning')) {
+        return job;
+      }
+
       return {
         ...job,
         decision,
         exclusive: job.exclusive ?? false,
         logs: [],
-        state: {
-          status: 'running',
-          enqueuedAt,
-          startedAt,
-          progress: {},
-        },
+        state: newState,
       };
     });
   }
@@ -98,17 +115,23 @@ export function useJobState(queue: JobQueueComposable): JobStateComposable {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = job.state.status === 'running' ? job.state.startedAt : now();
+      const newState: JobState = {
+        status: 'completed',
+        enqueuedAt,
+        startedAt,
+        finishedAt: now(),
+        outputPath,
+      };
+
+      if (!jobLifecycle.ensureTransition(job.state, newState, 'markCompleted')) {
+        return job;
+      }
+
       return {
         ...job,
         outputPath,
         exclusive: false,
-        state: {
-          status: 'completed',
-          enqueuedAt,
-          startedAt,
-          finishedAt: now(),
-          outputPath,
-        },
+        state: newState,
       };
     });
     pruneTerminalJobs();
@@ -118,17 +141,23 @@ export function useJobState(queue: JobQueueComposable): JobStateComposable {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = 'startedAt' in job.state ? job.state.startedAt : now();
+      const newState: JobState = {
+        status: 'failed',
+        enqueuedAt,
+        startedAt,
+        finishedAt: now(),
+        error,
+        code,
+      };
+
+      if (!jobLifecycle.ensureTransition(job.state, newState, 'markFailed')) {
+        return job;
+      }
+
       return {
         ...job,
         exclusive: false,
-        state: {
-          status: 'failed',
-          enqueuedAt,
-          startedAt,
-          finishedAt: now(),
-          error,
-          code,
-        },
+        state: newState,
       };
     });
     pruneTerminalJobs();
@@ -138,30 +167,44 @@ export function useJobState(queue: JobQueueComposable): JobStateComposable {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = 'startedAt' in job.state ? job.state.startedAt : now();
+      const newState: JobState = {
+        status: 'cancelled',
+        enqueuedAt,
+        startedAt,
+        finishedAt: now(),
+      };
+
+      if (!jobLifecycle.ensureTransition(job.state, newState, 'cancelJob')) {
+        return job;
+      }
+
       return {
         ...job,
         exclusive: false,
         logs: [],
-        state: {
-          status: 'cancelled',
-          enqueuedAt,
-          startedAt,
-          finishedAt: now(),
-        },
+        state: newState,
       };
     });
   }
 
   function requeue(id: JobId) {
-    updateJob(id, (job) => ({
-      ...job,
-      exclusive: false,
-      logs: [],
-      state: {
+    updateJob(id, (job) => {
+      const newState: JobState = {
         status: 'queued',
         enqueuedAt: now(),
-      },
-    }));
+      };
+
+      if (!jobLifecycle.ensureTransition(job.state, newState, 'requeue')) {
+        return job;
+      }
+
+      return {
+        ...job,
+        exclusive: false,
+        logs: [],
+        state: newState,
+      };
+    });
   }
 
   function updateJobPreset(id: JobId, presetId: string) {

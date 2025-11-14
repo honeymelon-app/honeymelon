@@ -211,4 +211,64 @@ describe('useFileHandler', () => {
     expect(invokeMock).not.toHaveBeenCalled();
     expect(jobsStore.enqueue).not.toHaveBeenCalled();
   });
+
+  it('falls back to first available preset when preferred id is unavailable', () => {
+    const options = {
+      presetOptions: ref<Preset[]>([
+        buildPreset({ id: 'first', container: 'mp4', sourceContainers: [] }),
+        buildPreset({ id: 'second', container: 'mp4', sourceContainers: [] }),
+      ]),
+      defaultPresetId: ref('missing'),
+      presetsReady: ref(true),
+    };
+
+    const handler = useFileHandler(options);
+    expect(handler.ensureUsablePresetId('missing')).toBe('first');
+
+    options.presetsReady.value = false;
+    expect(handler.ensureUsablePresetId('second')).toBeNull();
+  });
+
+  it('selects the global fallback preset when no presets match a path', () => {
+    const audioPreset = buildPreset({
+      id: 'audio-only',
+      mediaKind: 'audio',
+      container: 'mp3',
+      sourceContainers: ['mp3'],
+      video: { codec: 'none' },
+    });
+    const options = {
+      presetOptions: ref<Preset[]>([audioPreset]),
+      defaultPresetId: ref('audio-only'),
+      presetsReady: ref(true),
+    };
+
+    inferContainerFromPathMock.mockReturnValue('gif');
+    mediaKindForContainerMock.mockReturnValue('video');
+
+    const handler = useFileHandler(options);
+    const presetId = handler.selectDefaultPresetForPath('animation.gif');
+    expect(presetId).toBe('audio-only');
+  });
+
+  it('deduplicates expanded paths when alreadyExpanded is true', async () => {
+    const options = {
+      presetOptions: ref<Preset[]>([
+        buildPreset({ id: 'video', container: 'mp4', mediaKind: 'video', sourceContainers: [] }),
+      ]),
+      defaultPresetId: ref('video'),
+      presetsReady: ref(true),
+    };
+
+    inferContainerFromPathMock.mockReturnValue('mp4');
+    mediaKindForContainerMock.mockReturnValue('video');
+    jobsStore.enqueue.mockImplementation(() => 'job-id');
+
+    const handler = useFileHandler(options);
+    await handler.addFilesFromPaths(['clip.mp4', 'clip.mp4'], { alreadyExpanded: true });
+
+    expect(invokeMock).not.toHaveBeenCalledWith('expand_media_paths', expect.anything());
+    expect(jobsStore.enqueue).toHaveBeenCalledTimes(1);
+    expect(jobsStore.enqueue).toHaveBeenCalledWith('clip.mp4', 'video');
+  });
 });

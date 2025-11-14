@@ -33,8 +33,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check TypeScript types
-        run: npm run build --if-present
+      - name: Type-check TypeScript sources
+        run: npm run type-check
+        continue-on-error: false
+
+      - name: Lint Markdown docs
+        run: |
+          if npm run | grep -q "^  lint:md"; then
+            npm run lint:md
+          else
+            echo "Markdown lint script not found, skipping"
+          fi
         continue-on-error: false
 
       - name: Run ESLint (if configured)
@@ -61,6 +70,15 @@ jobs:
             fi
           else
             echo "Prettier not configured, skipping"
+          fi
+        continue-on-error: false
+
+      - name: Check Markdown formatting
+        run: |
+          if npm run | grep -q "^  format:check:md"; then
+            npm run format:check:md
+          else
+            echo "Markdown Prettier check not configured, skipping"
           fi
         continue-on-error: false
 

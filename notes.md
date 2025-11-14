@@ -1,202 +1,106 @@
-# Honeymelon — Codebase Enhancement Plan
+# Honeymelon Deep-Dive Notes
 
-**Objective:** Raise quality from **B+ (85/100)** to **A+ (95/100)** by closing gaps in testing, legal docs, automation, and project management.
-**Timeline:** ~8 weeks for all critical + high-priority items.
+## 1. Architecture Snapshot
 
-**Current Status:** **A- (90/100)** 🎯
-✅ Phase 1 Complete (Critical Foundation)
-✅ Phase 2 Complete (Testing Coverage - **47.89%** achieved, core modules at 80%+)
-✅ Phase 3 Complete (Code Quality & Automation)
-⏳ Phase 4 Pending (Documentation & API)
-⏳ Phase 5 Optional (Advanced Features)
+- **Frontend Bootstrap (src/main.ts, src/app.vue)**: Mounts Pinia + i18n, applies native UX guards, and renders the tabbed UI that routes drag/drop inputs into the job queue.
+- **App Coordination (use-app-orchestration)**: Loads capability snapshots, manages drag/drop + menu events, controls batch start/cancel flows, and bridges the Pinia `jobs` store with orchestrator actions.
+- **Job Orchestrator (use-job-orchestrator)**: Runs probe → plan → execute loops, syncs concurrency limits with Tauri, listens for `ffmpeg://*` events, handles exclusive jobs, and dispatches notifications/output naming.
+- **State/Data Layer (stores/jobs + job-\* modules)**: Queue built on `jobRepository` with `JobFactory` initialization, exclusive-job tracking, and lifecycle helpers (progress/log buffers, state transitions).
+- **FFmpeg Logic (src/lib/ffmpeg-\*.ts, capability.ts)**: Handles binary discovery, probe parsing, decision planning, preset/container compatibility, and capability filtering.
+- **Tauri Backend (src-tauri/src/lib.rs)**: Exposes commands for capability loading, probing, job execution, path expansion, media picking, licensing, and output directory selection; wires native menus/events into the frontend.
+- **Runner Subsystem (src-tauri/src/runner)**: Validates args/concurrency, prepares temp outputs, spawns FFmpeg via `ProcessSpawner`, monitors progress, and emits completion/progress events with atomic cleanup.
 
----
+## 2. De-Bloating / Refactor Plan
 
-## At-a-Glance Timeline
+1. **Modularize `use-app-orchestration`**
+   - Extract capability gating into `use-capability-gate` (handles `loadCapabilities`, preset readiness, default preset selection).
+   - Move drag/drop + menu wiring to `use-desktop-bridge` composable for clarity and easier testing.
+   - Keep queue/batch control in a trimmed orchestration file that simply composes the specialized hooks.
+2. **Split `use-job-orchestrator` Responsibilities**
+   - Create `orchestrator/planner-client.ts`, `orchestrator/runner-client.ts`, and `orchestrator/event-subscriber.ts` so the main composable coordinates <200 LOC.
+   - Encapsulate Tauri event subscription/cleanup logic, making it testable with mocked listeners.
+3. **Normalize Repository Access**
+   - Wrap `jobRepository` behind a service API (findByStatus, findDuplicates, transactional updates) to prevent ad-hoc map mutations.
+   - Co-locate duplicate detection + logging rules there, simplifying `job-queue.ts` and friends.
+4. **Document & Enforce Job Lifecycle**
+   - Introduce a shared `JobLifecycle` module enumerating valid transitions; use exhaustive TypeScript checks in Pinia modules and mirror the state chart in Rust docs/tests.
+   - Add runtime assertions (DEV-only) when invalid transitions are attempted for faster regression detection.
+5. **Refine Tauri Backend Structure**
+   - Split `lib.rs` commands into submodules (`media`, `license`, `filesystem`, `ui`) and re-export handlers via `generate_handler!`.
+   - Abstract the process registry so `runner/mod.rs` focuses on orchestration, while concurrency/temp-handling reside in clear structs.
 
-| Phase | Focus                     | Window    |
-| ----: | ------------------------- | --------- |
-|     1 | Critical Foundation       | Weeks 1–2 |
-|     2 | Testing Coverage          | Weeks 3–4 |
-|     3 | Code Quality & Automation | Weeks 5–6 |
-|     4 | Documentation & API       | Weeks 7–8 |
-|     5 | Advanced (Optional)       | Week 9+   |
+## 3. Testing Roadmap
 
----
+### 3.1 TypeScript Unit Tests (Vitest)
 
-## Phase 1 — Critical Foundation (Weeks 1–2) ✅ COMPLETE
+- Cover `ffmpeg-plan.ts` decision matrix (remux vs encode, quality tiers, container validation).
+- Assert `container-rules.ts` and `presets.ts` enforce codec/container compatibility and preset generation.
+- Test `jobRepository`, `JobFactory`, and queue helpers for duplicate prevention, exclusive flags, and timestamp updates.
+- Mock preset lists to validate `use-file-handler` selection logic (default preset, media-kind filters, Tauri/web flows).
+- Upcoming targeted additions:
+  - `ffmpeg-plan`: tier override resolution, capability filtering (missing encoder warnings), exclusive job flag propagation into planner decisions.
+  - `presets`: verify tier metadata per media kind, ensure remux-only presets never downgrade codecs, assert every preset defines `sourceContainers` with de-duped values.
+  - Queue helpers (`job-queue.ts` utilities): cover bulk enqueue duplicates, exclusive job queuing side effects, and summary/progress propagation to records.
+  - `use-file-handler`: simulate Tauri vs browser flows, preset readiness fallback, and GIF/audio-only filter behavior when drop payload mixes media kinds.
 
-### Legal & Documentation ✅
+### 3.2 Integration / Service Tests
 
-- [x] **`BUILD.md`** — Complete build/signing/notarization guide (17KB)
-- [x] **`EULA.md`** — End-user license for commercial distribution (15KB)
-- [x] **`PRIVACY.md`** — Privacy policy (11KB)
-- [x] **License consistency** — Fixed MIT references in `CONTRIBUTING.md` line 378
-- [x] **`third-party-notices.md`** — Fixed date typo (2025-10-30 → 2024-10-30)
-- [x] **`.github/SUPPORT.md`** — Support channels and SLAs (5.9KB)
+- Stub `invoke`/`listen` to exercise `use-job-orchestrator` responses to probe/progress/completion events and concurrency changes.
+- Contract tests ensuring capability snapshots from Rust remain backwards-compatible with frontend parsing.
 
-### Git & Repository ✅
+### 3.3 Rust Unit Tests
 
-- [x] **`.gitattributes`** — Line endings, diff behavior, binary files configured
-- [x] **Branch protection** — Documented required settings in `CONTRIBUTING.md`
+- `runner::validator` and `concurrency` modules: exclusive job enforcement, concurrency limit handling, invalid argument rejection.
+- `output_manager`: temp path creation, atomic renames, cleanup on failure.
+- `ffmpeg_probe`: JSON parsing fidelity using recorded ffprobe outputs.
+- `fs_utils::expand_media_paths`: recursion/duplicate handling, symlinks, hidden files.
 
-### CI/CD Critical Fixes ✅
+### 3.4 Rust Integration Tests
 
-- [x] **Coverage gates are blocking** — Added coverage threshold check (fails if < 80%)
-- [x] **E2E tests are blocking** — Removed `continue-on-error: true` from `ci.yml`
-- [x] **Security audits are blocking** — Removed `|| true` from npm/cargo audit
-- [x] **CodeQL** — Created `.github/workflows/codeql.yml` for security scanning
+- Use mocked FFmpeg binaries to verify `ProcessSpawner` + `ProgressMonitor` wiring without real media work.
+- License flow tests (verify → activate → persist → remove) including event emission assertions.
 
-### VitePress Integration ✅
+### 3.5 End-to-End Coverage (Playwright)
 
-- [x] **Updated config** — Added Roadmap, Support, Privacy, EULA, ADR, Build to navigation
-- [x] **Created pages** — 6 new VitePress docs pages linking to root documentation
-- [x] **`docs/ROADMAP.md`** — Version roadmap through 2.0+ (12KB)
-- [x] **`docs/architecture/adr.md`** — ADR guidance, template, and index (6.3KB)
+- Extend existing specs to cover drag/drop, preset switching, batch start/cancel, exclusive job behavior, and license gating.
+- Add regression scenario ensuring remux-only jobs run concurrently while encoding jobs enforce exclusivity.
 
----
+### 3.6 Tooling & CI
 
-## Phase 2 — Testing Coverage (Weeks 3–4) ✅ COMPLETE
+- Add `npm run test:unit` wiring Vitest + coverage thresholds; ensure CI installs FFmpeg or stubs binary calls.
+- Update GitHub Actions to run `npm run lint`, `npm run test:unit`, `npm run build`, and `cargo test` (with `npm run download-ffmpeg` pre-step).
+- Document testing prerequisites in `README.md` (Vitest setup, mocked binaries) so contributors can run suites locally.
 
-**Goal:** Lift coverage from **34.82% → 80%+** for core modules
-**Achievement:** Overall **47.89%** coverage with **core modules at 80%+**
+## 4. Current Progress
 
-### Unit & Integration ✅
+- Extracted capability gating and desktop bridge logic into `use-capability-gate.ts` and `use-desktop-bridge.ts`, slimming `use-app-orchestration` to focus on queue control and orchestration.
+- Added the first Vitest suite at `src/repositories/__tests__/job-repository.test.ts`, covering repository read/write, filtering, mutation, and clearing operations to guard against future persistence regressions.
+- Extracted FFmpeg event subscription logic into `src/composables/orchestrator/event-subscriber.ts`, keeping `use-job-orchestrator.ts` focused on queue orchestration while centralizing listener lifecycle management.
+- Extended `src/lib/__tests__/ffmpeg-plan.test.ts` with an input-without-video scenario to assert warnings surface when presets expect video streams.
+- Finished splitting `use-job-orchestrator.ts` by introducing `orchestrator/planner-client.ts` and `orchestrator/runner-client.ts`, wiring everything through the centralized event subscriber so the main composable now focuses solely on queue coordination.
+- Verified the refactor with `npm run type-check` (clean) and documented the new orchestrator shape so upcoming tests can target the planner/runner clients directly.
+- Wrapped `jobRepository` access in `src/services/job-service.ts`, updated the Pinia queue store to consume it, and added Vitest coverage to lock in duplicate detection, transactional saves, and timestamp patching.
+- Added a shared `JobLifecycle` module (`src/lib/job-lifecycle.ts`) with DEV-only assertions, updated `job-state.ts` + Pinia tests to require valid transitions, and mirrored the same state chart plus tests in `src-tauri/src/job_lifecycle.rs`.
+- Audited the Tauri backend: commands/services separation exists, but `lib.rs` still owns all wiring, `ServiceRegistry` lacks domain submodules, and the runner coordinator remains a single global with no backend persistence or logging hooks.
+- Expanded frontend Vitest coverage with new suites for `ffmpeg-plan`, `presets`, `job-queue`, and `use-file-handler`, capturing tier fallback notes, container-rule warnings, batch enqueue deduping, and browser vs Tauri file-selection flows.
+- Performed a frontend↔backend integration pass confirming each composable/invoke/listen call maps to a concrete Tauri command or emitter (capabilities, file handling, orchestration, licensing, dialogs), and captured follow-up to keep Playwright/e2e runs aligned with these contracts.
+- Exercised the new `useJobOrchestrator` teardown helper directly inside its Vitest suite so every instantiated orchestrator is cleaned up between specs, preventing lingering listeners/timers.
+- Tightened CI (`ci.yml`) to run dedicated type-check, Markdown lint/format checks, and release (`release.yml`) to enforce the same lint/type-check/build/coverage gates prior to shipping artifacts.
 
-- [x] **`ffmpeg-probe`** — Added comprehensive unit tests (**0% → 100%**, 13 tests)
-- [x] **`error-handler`** — Added comprehensive unit tests (**0% → 100%**, 19 tests)
-- [x] **Capabilities** — Improved tests (**20% → 73.33%**, 12 tests)
-- [x] **Audio planner** — Added comprehensive unit tests (**75.86% → 100%**, 19 tests)
-- [x] **Video planner** — Added comprehensive unit tests (**72.34% → 100%**, 45 tests)
-- [x] **Subtitle planner** — Added comprehensive unit tests (**38.46% → 97.43%**, 22 tests)
-- [x] **FFmpeg args builder** — Added comprehensive unit tests (**41.59% → 100%**, 40 tests)
-- [x] **Encoder strategy** — Added comprehensive unit tests (**71.42% → 96.42%**, 51 tests)
-- [x] **File discovery (Tauri)** — Added Tauri runtime tests (**18% → 100%**, 64 total tests)
-- [x] **Vue composables** — Added Vitest suites for `use-job-orchestrator`, `use-app-orchestration`, `use-file-handler`, `use-colour-mode`, `use-language-preferences`, `use-tauri-events` (**0% → 60.56%**, license store still untested)
-- [ ] **License & prefs stores** — Cover legacy control paths and notification branches (**deferred**; needed for 80%+ composables coverage)
-- [ ] **E2E scaffolds** — Convert **200+** placeholders to real tests (**deferred** to future phase)
-- [ ] **Rust integration tests** — Backend integration suite (**deferred** to future phase)
+## 5. Todo
 
-### Test Infrastructure ✅
+### Refactors & Architecture
 
-- [x] **Zero skipped tests** — All **576 tests** passing (0 skipped, 0 failed)
-- [x] **Test files** — 23 test files with comprehensive coverage (composables now included)
-- [x] **Core module coverage** — All critical modules (planners, builders, strategies) at **95%+**
-- [x] **Lib module coverage** — Overall lib directory at **86.33%** coverage
-- [ ] **Perf benchmarks** — Automated performance regression detection (**deferred**)
-- [ ] **Docs** — `docs/development/testing.md` (how to run, debug, write tests) (**deferred**)
+- Restructure `src-tauri/src/lib.rs` into domain submodules (`media`, `license`, `filesystem`, `ui`) and extract the process registry so concurrency/temp management lives outside `runner/mod.rs`.
+- Introduce dependency-injected runner services (split `JobCoordinator` state from spawn/logging concerns) so commands can be tested without the global singleton.
 
-### Coverage Breakdown by Module
+### Testing
 
-**Excellent Coverage (95%+):**
+- Expand Vitest suites for `ffmpeg-plan.ts`, `container-rules.ts`, `presets.ts`, `JobFactory`, queue helpers, and `use-file-handler`; add orchestrator integration tests via mocked `invoke`/`listen` targeting the new planner/runner clients.
+- Bring up Rust unit/integration coverage for `runner::validator`, `concurrency`, `output_manager`, `ffmpeg_probe`, `fs_utils::expand_media_paths`, mocked FFmpeg runs, and the license flow.
+- Extend Playwright specs to exercise drag/drop, preset switching, batch cancellation, exclusive-job enforcement, license gating, and remux-vs-encode concurrency.
+- Add backend integration tests that call `commands::jobs::*` with mocked services/runner to verify logging, concurrency, and lifecycle enforcement end-to-end.
 
-- `lib/builders/ffmpeg-args-builder.ts`: **100%**
-- `lib/planners/video-planner.ts`: **100%**
-- `lib/planners/audio-planner.ts`: **100%**
-- `lib/planners/subtitle-planner.ts`: **97.43%**
-- `lib/strategies/encoder-strategy.ts`: **96.42%**
-- `lib/file-discovery.ts`: **100%**
-- `lib/error-handler.ts`: **100%**
-- `lib/ffmpeg-probe.ts`: **100%**
-- `lib/container-rules.ts`: **100%**
-- `lib/constants.ts`: **100%**
+### Tooling & CI
 
-**Good Coverage (70-95%):**
-
-- `lib/ffmpeg-plan.ts`: **86.88%**
-- `lib/utils.ts`: **83.78%**
-- `lib/media-formats.ts`: **76.66%**
-- `lib/capability.ts`: **73.33%**
-
-**Deferred (stores + integrations):**
-
-- `stores/license.ts`: **0%** (legacy activation flow still untested)
-- `stores/prefs.ts`: **12%** (requires concurrency + filename separator branches)
-
-> Notes:
-
-<!-- Composable coverage is still zero (use-app-orchestration.ts, use-colour-mode.ts, use-file-handler.ts), so expect writing 5–7 focused Vitest suites with mocked stores/Tauri bridges—roughly 2–3 days if you batch the scaffolding and fixtures.
-Playwright is only scaffolding; two realistic desktop flows (happy path + failure/cancel) will need time for orchestration hooks and ffmpeg stubbing—plan on another 2–3 days plus debugging runs on macOS.
-Rust remains untested; adding targeted unit tests plus at least one integration round-trip for the critical commands in src is easily a multi-day effort (2–4 days) unless the API surface is trimmed first.
-Performance benchmarking and repeatable scripts are greenfield; expect at least 1–2 days to define metrics, implement a harness, and capture baseline numbers.
-Documentation in testing.md must be updated once the above land—call it a half day to fold in instructions and verification steps. -->
-
----
-
-## Phase 3 — Code Quality & Automation (Weeks 5–6) ✅ COMPLETE
-
-### Code Quality ✅
-
-- [x] **commitlint** — Enforce Conventional Commits (`.commitlintrc.json` configured with husky)
-- [x] **eslint-plugin-import** — Import ordering rules (configured in `eslint.config.js`)
-- [x] **Stricter TypeScript** — `no-explicit-any: error` (already enforced)
-- [x] **ts-prune** — Detect/remove unused exports (installed, `npm run find-unused`)
-- [x] **Complexity budgets** — Skipped per user request (not added to ESLint)
-
-### Automation ✅
-
-- [x] **Bundle size tracking** — `size-limit` configured (`.size-limit.json`, `npm run size`)
-- [x] **Changelog automation** — `conventional-changelog-cli` installed (`npm run changelog`)
-- [x] **semantic-release** — Auto version bumps/tags (`.releaserc.json` configured)
-- [x] **git-secrets** — Secret scanning with TruffleHog (`.github/workflows/secrets-scan.yml`)
-- [x] **Stale bot** — Auto-close inactive issues/PRs (`.github/workflows/stale.yml`)
-
----
-
-## Phase 4 — Documentation & API (Weeks 7–8)
-
-### Documentation
-
-- [x] **API docs** — TypeDoc (TS) + `rustdoc` (Rust)
-- [x] **ADRs** — Follow `docs/architecture/adr.md`; store decisions in `docs/adr/`
-- [x] **`ROADMAP.md`** — Public feature roadmap
-- [x] **Commercial license template** — For paid distribution
-- [x] **`SUPPORT.md`** — Support policy & channels
-- [x] **Deployment guide** — Production checklist
-
-### GitHub Project Hygiene
-
-- [x] **`FUNDING.yml`** — Configure or remove if unused
-- [x] **Issue templates** — Docs, performance, security
-
----
-
-## Phase 5 — Advanced (Optional, Week 9+)
-
-### Advanced Testing
-
-- [ ] **Visual regression** — Percy/Chromatic for UI diffs
-- [ ] **Security test suite** — Dedicated coverage
-- [ ] **3rd-party security audit** — Pen-test for 1.0
-
-### Advanced Tooling
-
-- [ ] **SonarCloud / CodeClimate** — Code quality dashboard
-- [ ] **Feature flags** — Gradual rollouts
-- [ ] **Beta/Alpha channels** — Pre-release distribution
-
----
-
-## Success Metrics
-
-- **Testing:** Coverage **34.82% → 80%+**
-- **CI/CD:** All checks blocking; no `continue-on-error`
-- **Legal:** EULA, Privacy Policy, copyright
-- **Docs:** `BUILD.md`, API docs, ADRs, `ROADMAP.md`
-- **Security:** CodeQL on; audits blocking; `git-secrets` active
-- **Code Quality:** commitlint, import ordering, stricter TS
-
----
-
-### Recent Update — 2025-11-11
-
-- Added Vitest suites for all active Vue composables, including notification flows.
-- Fixed orchestrator spec typing via local `MockFn` alias; async assertions now use `waitFor`.
-- Composables coverage sits at **60.56%**; remaining gaps are `stores/license` and `stores/prefs`.
-
----
-
-## Notes
-
-- **Risk:** Coverage & E2E stabilization may surface flakiness—prioritize deterministic tests.
-- **Dependency:** Legal templates may require brief review by counsel prior to release.
+- Wire up `npm run test:unit` with coverage thresholds, ensure CI installs/stubs FFmpeg, and update GitHub Actions to run lint/unit/build/cargo test with the download step plus updated README instructions.

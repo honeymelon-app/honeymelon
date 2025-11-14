@@ -70,12 +70,14 @@ Presets define target container + codec combinations with quality tiers:
 - Presets auto-disable if required encoder unavailable
 - Supports bundled FFmpeg (`src-tauri/resources/bin/`) or system FFmpeg path
 
-### Job Queue ([src/stores/jobs.ts](src/stores/jobs.ts), [src/composables/use-job-orchestrator.ts](src/composables/use-job-orchestrator.ts))
+### Job Queue & Orchestrator
 
-- Pinia store manages job lifecycle: `queued` → `probing` → `planning` → `running` → `completed/failed/cancelled`
-- Orchestrator handles concurrency limits (default 2) and exclusive jobs
-- Exclusive jobs (AV1, ProRes) block parallel execution to prevent resource exhaustion
-- Progress updates streamed via Tauri events update job state in real-time
+- `src/stores/job-queue.ts` owns enqueue/start/cancel flows and delegates persistence to the job service
+- `src/stores/job-state.ts` applies lifecycle transitions validated against `src/lib/job-lifecycle.ts` (DEV-only assertions mirror the Rust state chart)
+- `src/services/job-service.ts` wraps the repository for duplicate detection, timestamp patching, and transactional saves
+- `src/composables/orchestrator/{planner-client,runner-client,event-subscriber}.ts` isolate planner invocation, runner control, and Tauri listener management
+- `src/composables/use-job-orchestrator.ts` now composes those clients while `use-app-orchestration.ts` focuses on queue coordination, `use-capability-gate.ts` on preset readiness, and `use-desktop-bridge.ts` on drag/drop + menu wiring
+- Exclusive jobs (AV1, ProRes) still block parallel execution; concurrency settings stay synced with the Rust backend
 
 ### Tauri Commands ([src-tauri/src/lib.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/lib.rs))
 
@@ -99,12 +101,20 @@ Exposed commands:
   - `container-rules.ts` — MP4/WebM/MOV/MKV codec constraints
   - `presets.ts` — Preset definitions with tier defaults
   - `capability.ts` — Capability loading and preset filtering
+  - `job-lifecycle.ts` — Shared lifecycle assertions for frontend + Rust
   - `types.ts` — Shared TypeScript types
+- `services/`:
+  - `job-service.ts` — Repository proxy that enforces duplicate detection and transactional writes
 - `stores/` — Pinia stores:
-  - `jobs.ts` — Job queue state machine
+  - `job-queue.ts` — Job queue operations (enqueue/start/cancel)
+  - `job-state.ts` — Status transitions validated by `job-lifecycle`
   - `prefs.ts` — User preferences (FFmpeg path, output directory, defaults)
 - `composables/` — Vue composables:
-  - `use-job-orchestrator.ts` — Orchestrates probe → plan → execute lifecycle
+  - `use-app-orchestration.ts` — Bridges UI events into queue actions
+  - `use-capability-gate.ts` — Capability snapshot loading + preset readiness
+  - `use-desktop-bridge.ts` — Drag/drop and menu event wiring
+  - `use-job-orchestrator.ts` — Coordinates planner/runner clients
+  - `orchestrator/` folder for `planner-client.ts`, `runner-client.ts`, and `event-subscriber.ts`
 - `components/ui/` — shadcn-vue UI components (auto-generated, edit carefully)
 
 ### Backend (`src-tauri/src/`)
@@ -146,10 +156,11 @@ Exposed commands:
 
 ### Testing Strategy
 
-- Automated JS tests not yet configured (add Vitest specs to `src/lib/__tests__/` when ready)
-- Smoke-test with `npm run tauri dev` and real media files
-- Rust tests: `cd src-tauri && cargo test`
-- Manual verification steps documented in PRs
+- Frontend: Vitest suites cover planners, presets, job services, orchestrator clients, and file handlers. Run with `npm run test:unit`, `npm run test:unit:watch`, or `npm run test:unit:coverage` (ensure `npm run download-ffmpeg` has fetched binaries first).
+- Backend: `cd src-tauri && cargo test` executes Rust unit + integration suites, mirroring the `JobLifecycle` invariants and runner validator/concurrency logic.
+- E2E: Playwright specs under `e2e/tests` require `npm run tauri dev` in another terminal; launch via `npm run test:e2e` or `npm run test:e2e:ui` for debugging.
+- CI: `ci.yml` enforces lint → type-check → Vitest → build → `cargo test`; match that locally before pushing.
+- Use the shared orchestrator teardown helper in tests to avoid leaking mocked `listen` subscriptions between runs.
 
 ## FFmpeg Integration Notes
 
@@ -189,9 +200,10 @@ Exposed commands:
 
 ### Modifying Job State Machine
 
-- All state transitions in [src/stores/jobs.ts](src/stores/jobs.ts)
-- State type defined in [src/lib/types.ts](src/lib/types.ts) as discriminated union
-- Use helper functions: `isActiveState()`, `isTerminalState()`
+- Enqueue/start/cancel logic resides in [src/stores/job-queue.ts](src/stores/job-queue.ts); state mutations live in [src/stores/job-state.ts](src/stores/job-state.ts).
+- Legal transitions are defined once in [src/lib/job-lifecycle.ts](src/lib/job-lifecycle.ts) (DEV-only assertions) and mirrored in the Rust backend.
+- Repository writes go through [src/services/job-service.ts](src/services/job-service.ts) to enforce duplicate detection + timestamp patching.
+- Helper guards like `isActiveState()` and `isTerminalState()` stay in [src/lib/types.ts](src/lib/types.ts).
 
 ## Platform Notes
 

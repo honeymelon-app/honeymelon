@@ -79,6 +79,29 @@ export interface JobRepository {
    * @returns True if job exists
    */
   exists(id: JobId): boolean;
+
+  /**
+   * Retrieves jobs by multiple statuses
+   *
+   * @param statuses - Array of statuses to match
+   * @returns Jobs matching any of the provided statuses
+   */
+  getByStatuses(statuses: JobStatus[]): JobRecord[];
+
+  /**
+   * Retrieves jobs by path (used for duplicate detection)
+   *
+   * @param path - Absolute path of the input file
+   * @returns Jobs that reference the same path
+   */
+  getByPath(path: string): JobRecord[];
+
+  /**
+   * Provides low-level access to the internal storage map. Mainly used to keep
+   * a reactive reference in the queue/store layer while still shielding
+   * consumers from direct mutations.
+   */
+  getInternalMap(): Map<JobId, JobRecord>;
 }
 
 /**

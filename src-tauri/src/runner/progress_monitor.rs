@@ -1,19 +1,16 @@
 use crate::error::AppError;
-use serde::Serialize;
-use serde_json::json;
 use std::collections::VecDeque;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ExitStatus};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter};
 
-use super::output_manager::OutputManager;
-
-pub const PROGRESS_EVENT: &str = "ffmpeg://progress";
-pub const COMPLETION_EVENT: &str = "ffmpeg://completion";
-pub const STDERR_EVENT: &str = "ffmpeg://stderr";
+use super::{
+    events::{CompletionPayload, ProgressMetrics, ProgressPayload, SharedEmitter},
+    job_registry::JobRegistry,
+    output_manager::OutputManager,
+};
 
 /// Wrapper around an active FFmpeg child process with management metadata
 pub struct RunningProcess {
@@ -36,14 +33,14 @@ impl RunningProcess {
         }
     }
 
-    /// Returns whether this process is currently exclusive
-    pub fn is_exclusive(&self) -> bool {
-        self.exclusive.load(Ordering::SeqCst)
-    }
-
     /// Updates the exclusivity flag, typically when cleaning up
     pub fn set_exclusive(&self, exclusive: bool) {
         self.exclusive.store(exclusive, Ordering::SeqCst);
+    }
+
+    #[allow(dead_code)]
+    pub fn is_exclusive(&self) -> bool {
+        self.exclusive.load(Ordering::SeqCst)
     }
 
     pub fn mark_cancelled(&self) {
@@ -71,58 +68,28 @@ impl RunningProcess {
     }
 }
 
-/// Parsed progress metrics extracted from FFmpeg output
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ProgressMetrics {
-    pub processed_seconds: Option<f64>,
-    pub fps: Option<f64>,
-    pub speed: Option<f64>,
-}
-
-/// Payload for progress update events
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ProgressPayload {
-    pub job_id: String,
-    pub progress: Option<ProgressMetrics>,
-    pub raw: String,
-}
-
-/// Payload for job completion events
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CompletionPayload {
-    pub job_id: String,
-    pub success: bool,
-    pub cancelled: bool,
-    pub exit_code: Option<i32>,
-    pub signal: Option<i32>,
-    pub code: String,
-    pub message: Option<String>,
-    pub logs: Vec<String>,
-}
-
 /// Monitors FFmpeg process progress and completion
 pub struct ProgressMonitor;
 
 impl ProgressMonitor {
     /// Starts monitoring an FFmpeg process
     pub fn start(
-        app: AppHandle,
+        emitter: SharedEmitter,
+        registry: Arc<JobRegistry>,
         job_id: String,
         process: Arc<RunningProcess>,
         final_path: PathBuf,
         temp_path: PathBuf,
     ) {
         tauri::async_runtime::spawn_blocking(move || {
-            Self::monitor_process(&app, &job_id, &process);
-            Self::handle_completion(&app, &job_id, &process, &final_path, &temp_path);
+            Self::monitor_process(emitter.clone(), &job_id, &process);
+            Self::handle_completion(emitter, &job_id, &process, &final_path, &temp_path);
+            registry.remove(&job_id);
         });
     }
 
     /// Monitors FFmpeg stderr for progress
-    fn monitor_process(app: &AppHandle, job_id: &str, process: &Arc<RunningProcess>) {
+    fn monitor_process(emitter: SharedEmitter, job_id: &str, process: &Arc<RunningProcess>) {
         let mut child_guard = process.child.lock().expect("child mutex poisoned");
         let Some(child) = child_guard.as_mut() else {
             return;
@@ -144,14 +111,7 @@ impl ProgressMonitor {
 
             eprintln!("[ffmpeg][{}] {}", job_id, line);
 
-            // Emit raw stderr
-            let _ = app.emit(
-                STDERR_EVENT,
-                json!({
-                    "jobId": job_id,
-                    "line": line.clone(),
-                }),
-            );
+            emitter.emit_stderr(job_id, &line);
 
             process.push_log(&line);
 
@@ -165,13 +125,13 @@ impl ProgressMonitor {
                 progress,
                 raw: line,
             };
-            let _ = app.emit(PROGRESS_EVENT, &payload);
+            emitter.emit_progress(&payload);
         }
     }
 
     /// Handles process completion and file finalization
     fn handle_completion(
-        app: &AppHandle,
+        emitter: SharedEmitter,
         job_id: &str,
         process: &Arc<RunningProcess>,
         final_path: &Path,
@@ -192,14 +152,11 @@ impl ProgressMonitor {
                 code_override = Some(err.code);
                 let detail = format!("ffmpeg wait error: {}", err.message);
                 process.push_log(&detail);
-                let _ = app.emit(
-                    PROGRESS_EVENT,
-                    &ProgressPayload {
-                        job_id: job_id.to_string(),
-                        progress: None,
-                        raw: detail.clone(),
-                    },
-                );
+                emitter.emit_progress(&ProgressPayload {
+                    job_id: job_id.to_string(),
+                    progress: None,
+                    raw: detail.clone(),
+                });
                 message_override = Some(detail);
                 (false, None, None)
             },
@@ -255,7 +212,7 @@ impl ProgressMonitor {
         };
 
         process.set_exclusive(false);
-        let _ = app.emit(COMPLETION_EVENT, &completion);
+        emitter.emit_completion(&completion);
     }
 
     fn wait_for_exit(job_id: &str, process: &Arc<RunningProcess>) -> Result<ExitStatus, AppError> {
@@ -352,5 +309,33 @@ impl ProgressMonitor {
             let _ = status;
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_timecode_supports_hms_and_seconds_only() {
+        assert_eq!(ProgressMonitor::parse_timecode("01:02:03"), Some(3723.0));
+        assert_eq!(ProgressMonitor::parse_timecode("42.5"), Some(42.5));
+        assert_eq!(ProgressMonitor::parse_timecode(""), None);
+    }
+
+    #[test]
+    fn parse_progress_line_detects_metrics_from_tokens() {
+        let line = "frame=10 fps=29.97 q=-1.0 time=00:00:05.00 speed=1.5x";
+        let metrics = ProgressMonitor::parse_progress_line(line).expect("metrics");
+        assert_eq!(metrics.processed_seconds, Some(5.0));
+        assert_eq!(metrics.fps, Some(29.97));
+        assert_eq!(metrics.speed, Some(1.5));
+    }
+
+    #[test]
+    fn explain_exit_code_handles_known_values() {
+        assert!(ProgressMonitor::explain_ffmpeg_exit_code(1).is_some());
+        assert!(ProgressMonitor::explain_ffmpeg_exit_code(69).is_some());
+        assert!(ProgressMonitor::explain_ffmpeg_exit_code(9999).is_none());
     }
 }

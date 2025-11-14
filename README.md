@@ -45,6 +45,7 @@
   - [Build Commands](#build-commands)
   - [Code Style](#code-style)
   - [Testing](#testing)
+  - [Continuous Integration](#continuous-integration)
   - [Release Process](#release-process)
 - [Legal \& Licensing](#legal--licensing)
   - [Proprietary Software](#proprietary-software)
@@ -211,7 +212,7 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 - **Progress Parsing**: Background thread parses stderr for time/fps/speed metrics, emits Tauri events
 - **Security**: Command injection prevention validates all arguments before spawning
 
-**Implementation**: runner modules under `src-tauri/src/runner/` (e.g. `mod.rs`, `process_spawner.rs`, `progress_monitor.rs`, `output_manager.rs`, `validator.rs`, `concurrency.rs`) + `src/composables/use-job-orchestrator.ts` (frontend orchestration)
+**Implementation**: runner modules under `src-tauri/src/runner/` (e.g. `mod.rs`, `process_spawner.rs`, `progress_monitor.rs`, `output_manager.rs`, `validator.rs`, `concurrency.rs`) + the frontend orchestration stack (`src/composables/use-job-orchestrator.ts`, `src/composables/orchestrator/planner-client.ts`, `src/composables/orchestrator/runner-client.ts`, `src/composables/orchestrator/event-subscriber.ts`, `src/composables/use-capability-gate.ts`, `src/composables/use-desktop-bridge.ts`)
 
 **Event System**:
 
@@ -250,6 +251,7 @@ src/
 │   ├── ffmpeg-probe.ts     # Probe wrapper
 │   ├── container-rules.ts  # Codec compatibility
 │   ├── presets.ts          # Dynamic preset generation
+│   ├── job-lifecycle.ts    # Shared lifecycle chart + DEV assertions
 │   └── types.ts            # TypeScript definitions
 ├── stores/                 # Pinia state
 │   ├── job-queue.ts        # Job queue operations (enqueue/start/peek)
@@ -257,8 +259,17 @@ src/
 │   ├── job-progress.ts     # Progress tracking utilities
 │   ├── job-logs.ts         # Circular job log buffer
 │   └── prefs.ts            # User preferences
+├── services/               # Shared service layer
+│   └── job-service.ts      # Repository proxy with duplicate detection
 ├── composables/            # Vue composables
-│   └── use-job-orchestrator.ts  # Main orchestrator
+│   ├── use-app-orchestration.ts # Queue/start/cancel coordination
+│   ├── use-capability-gate.ts  # Capability gating + preset readiness
+│   ├── use-desktop-bridge.ts   # Drag/drop and menu wiring
+│   ├── use-job-orchestrator.ts # Coordinates planner/runner clients
+│   └── orchestrator/
+│       ├── event-subscriber.ts # Centralized event lifecycle management
+│       ├── planner-client.ts   # Frontend bridge to planner commands
+│       └── runner-client.ts    # Frontend bridge to runner commands
 └── components/             # Vue UI components
 
 src-tauri/
@@ -339,19 +350,20 @@ src-tauri/
 
 ### Build Commands
 
-| Command                        | Purpose                                    |
-| ------------------------------ | ------------------------------------------ |
-| `npm install`                  | Install dependencies                       |
-| `npm run tauri dev`            | Run full app with hot reload (recommended) |
-| `npm run dev`                  | Run frontend only (no FFmpeg)              |
-| `npm run build`                | Build frontend assets                      |
-| `npm run tauri build`          | Build production DMG                       |
-| `npm run lint`                 | Lint TypeScript + Rust                     |
-| `npm run format`               | Format all code                            |
-| `npm run type-check`           | Validate TypeScript                        |
-| `npm test`                     | Run all tests                              |
-| `cd src-tauri && cargo test`   | Run Rust tests                             |
-| `cd src-tauri && cargo clippy` | Lint Rust code                             |
+| Command                        | Purpose                                     |
+| ------------------------------ | ------------------------------------------- |
+| `npm install`                  | Install dependencies                        |
+| `npm run tauri dev`            | Run full app with hot reload (recommended)  |
+| `npm run dev`                  | Run frontend only (no FFmpeg)               |
+| `npm run build`                | Build frontend assets                       |
+| `npm run tauri build`          | Build production DMG                        |
+| `npm run lint`                 | Lint TypeScript + Rust                      |
+| `npm run format`               | Format all code                             |
+| `npm run type-check`           | Validate TypeScript                         |
+| `npm run test:unit`            | Run Vitest suites for planners/runners/jobs |
+| `npm test`                     | Run all tests                               |
+| `cd src-tauri && cargo test`   | Run Rust tests                              |
+| `cd src-tauri && cargo clippy` | Lint Rust code                              |
 
 ### Code Style
 
@@ -378,10 +390,34 @@ src-tauri/
 
 ### Testing
 
-- **Frontend**: Vitest for unit tests (`npm run test:unit`)
-- **Backend**: ~108 Rust tests covering probe parsing, capabilities, runner logic
-- **Integration**: Playwright E2E tests (infrastructure in place, minimal coverage)
-- **Coverage**: Run `npm run test:unit:coverage` for frontend coverage report
+**Stack**
+
+- **Frontend**: Vitest powers unit suites for ffmpeg-plan, planner/runner clients, repositories, and composables
+- **Backend**: `cargo test` exercises probe parsing, runner validator/concurrency, filesystem helpers, and the mirrored Rust `JobLifecycle`
+- **Integration**: Playwright drives drag/drop, preset selection, licensing, and exclusive-job workflows
+- **Coverage**: `npm run test:unit:coverage` emits V8 coverage for the TypeScript surface area
+
+**Coverage highlights**
+
+- `src/services/job-service.ts` and repository helpers guard duplicate detection, timestamp patching, and transactional writes
+- `src/lib/job-lifecycle.ts` enforces legal transitions in Pinia stores while matching the Rust backend state chart
+- `src/composables/orchestrator/*.ts` suites rely on a shared teardown helper, ensuring mocked Tauri listeners are cleaned after each run
+- Planner tests assert tier fallbacks, warning propagation, and capability filtering for video-optional inputs; runner tests cover exclusive job fan-out and cleanup paths
+- `use-file-handler` specs verify browser vs. Tauri file acquisition, preset readiness fallbacks, and mixed-media filtering
+
+**Running tests locally**
+
+1. `npm run download-ffmpeg` – fetch Apple Silicon FFmpeg sidecars used by planner/orchestrator specs (alternatively set `HONEYMELON_FFMPEG_PATH` to your own build)
+2. `npm run test:unit` – execute Vitest suites headlessly; use `npm run test:unit:watch` for rapid cycles
+3. `cd src-tauri && cargo test` – run backend unit and integration tests
+4. `npm run test:e2e` – launch Playwright against the Tauri shell (requires `npm run tauri dev` in another terminal)
+5. Optional: `npm run test:unit:coverage` for per-file coverage gating
+
+### Continuous Integration
+
+- `ci.yml` installs FFmpeg via `npm run download-ffmpeg`, runs ESLint/Clippy, enforces Markdown lint + format checks, executes `npm run type-check`, `npm run test:unit`, `npm run build`, and finishes with `cargo test`
+- `release.yml` mirrors those gates (lint → type-check → unit tests → coverage → build) before packaging artifacts, preventing regressions from skipping CI
+- Both workflows cache npm/cargo artifacts for speed and fail fast when Vitest coverage or Markdown formatting drifts from the expected state
 
 ### Release Process
 

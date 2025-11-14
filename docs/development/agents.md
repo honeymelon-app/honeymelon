@@ -23,7 +23,11 @@ Use TypeScript with Vue `<script setup>`. Keep 2-space indentation and group imp
 
 ## Testing Guidelines
 
-Automated JS tests are not configured yet; when adding deterministic logic in `src/lib`, introduce Vitest specs under `src/lib/__tests__` (run via `npx vitest` once added) or document manual checks. For now, smoke-test changes with `npm run tauri dev`, capturing logs or screenshots for conversions touched. Rust additions should include inline `#[cfg(test)]` blocks and be exercised with `cargo test` from `src-tauri`.
+- Frontend unit suites live under `src/**/__tests__` and run with `npm run test:unit` (Vitest + happy-dom). Always run `npm run download-ffmpeg` first or set `HONEYMELON_FFMPEG_PATH` so planner/orchestrator tests can probe binaries.
+- Orchestrator specs use a teardown helper—import it when spinning up `useJobOrchestrator` to avoid leaking mocked `listen` handles.
+- Rust code requires inline `#[cfg(test)]` blocks plus `cargo test` (run from `src-tauri`). Use `cargo test -- --nocapture` when debugging FFmpeg fixtures.
+- End-to-end coverage uses Playwright in `e2e/tests`; execute with `npm run test:e2e` while `npm run tauri dev` is serving the desktop shell.
+- CI enforces `npm run lint`, `npm run type-check`, `npm run test:unit`, `npm run build`, and `cargo test`—mirror that locally before opening a PR.
 
 ## Commit & Pull Request Guidelines
 

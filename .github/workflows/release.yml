@@ -61,18 +61,51 @@ jobs:
       - run: npm ci
       - name: Refresh FFmpeg sidecars
         run: npm run download-ffmpeg
-      - run: npm run build --if-present
-      - run: npm run lint:js || true
-      - run: npm run format:check:js || true
+      - name: Lint JavaScript/TypeScript
+        run: npm run lint:js
+      - name: Lint Markdown docs
+        run: npm run lint:md
+      - name: Check JS/TS formatting
+        run: npm run format:check:js
+      - name: Check Markdown formatting
+        run: npm run format:check:md
+      - name: Type-check TypeScript sources
+        run: npm run type-check
+      - name: Build frontend bundle
+        run: npm run build
+      - name: Run unit tests with coverage
+        run: npm run test:unit:coverage -- --reporter=default
+      - name: Enforce coverage thresholds
+        run: |
+          if [ -f "coverage/coverage-summary.json" ]; then
+            node -e '
+              const coverage = require("./coverage/coverage-summary.json");
+              const total = coverage.total;
+              const threshold = 80;
+              const metrics = ["lines", "functions", "branches", "statements"];
+              let failed = false;
+              for (const metric of metrics) {
+                const pct = total[metric]?.pct ?? 0;
+                console.log(`${metric}: ${pct}%`);
+                if (pct < threshold) {
+                  console.error(`${metric} coverage ${pct}% is below threshold ${threshold}%`);
+                  failed = true;
+                }
+              }
+              if (failed) {
+                console.error("Coverage check failed");
+                process.exit(1);
+              } else {
+                console.log("All coverage thresholds met");
+              }
+            '
+          else
+            echo "No coverage report found, skipping threshold check"
+          fi
       - run: cd src-tauri && cargo fmt --all -- --check
       - run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
       - run: cd src-tauri && cargo test --all-features --lib
-      - run: |
-          if grep -q '"vitest"' package.json || [ -f "vitest.config.ts" ] || [ -f "vitest.config.js" ]; then
-            npm run test:unit
-          else
-            echo "No tests configured"
-          fi
+      - run: cd src-tauri && cargo test --test '*' --all-features || true
 
   build-and-upload:
     name: Build and Upload Artifacts

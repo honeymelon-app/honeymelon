@@ -1,4 +1,5 @@
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
+import { isActiveStatus, isTerminalStatus } from '@/lib/job-lifecycle';
 import type { JobState, ProbeSummary, Tier } from '@/lib/types';
 
 export interface JobRecord {
@@ -21,11 +22,11 @@ export type JobId = string;
 export const MAX_TERMINAL_JOBS = 50;
 
 export function isActiveState(state: JobState): boolean {
-  return state.status === 'probing' || state.status === 'planning' || state.status === 'running';
+  return isActiveStatus(state.status);
 }
 
 export function isTerminalState(state: JobState): boolean {
-  return state.status === 'completed' || state.status === 'failed' || state.status === 'cancelled';
+  return isTerminalStatus(state.status);
 }
 
 export function now(): number {

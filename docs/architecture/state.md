@@ -141,6 +141,12 @@ stateDiagram-v2
 
 ```
 
+#### Shared Lifecycle Module
+
+- Frontend transitions are now codified in `src/lib/job-lifecycle.ts`, which enumerates allowed edges, exposes `isActiveStatus` / `isTerminalStatus`, and provides a DEV-only `jobLifecycle.ensureTransition` guard that raises when code attempts to skip a required step.
+- The same state chart lives in Rust via `src-tauri/src/job_lifecycle.rs`, and the integration tests in `src-tauri/tests/command_integration_tests.rs` assert that `can_transition_status` mirrors the TypeScript contract.
+- `src/stores/job-state.ts` calls the shared guard before every mutation (probing → planning → running → terminal) so Pinia, orchestrator composables, and background listeners all honor the canonical job lifecycle.
+
 ### Type-Safe Updates
 
 TypeScript ensures only valid transitions:

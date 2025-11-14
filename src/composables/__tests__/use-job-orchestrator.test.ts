@@ -16,6 +16,7 @@ const parseErrorDetailsMock = vi.fn();
 const formatCompletionErrorMock = vi.fn();
 const executionStartMock = vi.fn();
 const executionCancelMock = vi.fn();
+const executionSetConcurrencyMock = vi.fn();
 const probeMediaMock = vi.fn();
 const notificationModuleMock = {
   isPermissionGranted: vi.fn(),
@@ -80,6 +81,7 @@ vi.mock('@/services/execution-service', () => ({
   executionService: {
     start: (...args: unknown[]) => executionStartMock(...args),
     cancel: (...args: unknown[]) => executionCancelMock(...args),
+    setConcurrency: (...args: unknown[]) => executionSetConcurrencyMock(...args),
   },
 }));
 
@@ -249,6 +251,8 @@ function setupStores(jobOverrides: Partial<MockJob> = {}): SetupStoresResult {
 }
 
 describe('useJobOrchestrator', () => {
+  const activeOrchestrators: Array<ReturnType<typeof useJobOrchestrator>> = [];
+
   beforeEach(() => {
     vi.clearAllMocks();
     loadCapabilitiesMock.mockResolvedValue({
@@ -276,12 +280,17 @@ describe('useJobOrchestrator', () => {
     invokeMock.mockResolvedValue(undefined);
     executionStartMock.mockResolvedValue({ success: true });
     executionCancelMock.mockResolvedValue({ success: true });
+    executionSetConcurrencyMock.mockResolvedValue(undefined);
+    activeOrchestrators.length = 0;
   });
 
   afterEach(() => {
     vi.useRealTimers();
     delete (window as unknown as { __TAURI_INTERNALS__?: Record<string, unknown> })
       .__TAURI_INTERNALS__;
+    activeOrchestrators.splice(0).forEach((instance) => {
+      instance.teardown?.();
+    });
   });
 
   it('starts a job in simulation mode and completes with generated output path', async () => {
@@ -298,6 +307,10 @@ describe('useJobOrchestrator', () => {
     });
 
     const orchestrator = useJobOrchestrator({ simulate: true, autoStartNext: false });
+    activeOrchestrators.push(orchestrator);
+    activeOrchestrators.push(orchestrator);
+    activeOrchestrators.push(orchestrator);
+    activeOrchestrators.push(orchestrator);
 
     expect(jobsStore.setConcurrency).toHaveBeenCalledWith(2);
     expect(prefsStore.setPreferredConcurrency).not.toHaveBeenCalled();
@@ -413,6 +426,7 @@ describe('useJobOrchestrator', () => {
     probeMediaMock.mockResolvedValue({ summary: { durationSec: 2 } });
 
     const orchestrator = useJobOrchestrator({ simulate: false, autoStartNext: false });
+    activeOrchestrators.push(orchestrator);
 
     await orchestrator.startJob({
       jobId: job.id,
@@ -441,7 +455,8 @@ describe('useJobOrchestrator', () => {
       registeredHandlers[event] = handler;
       return Promise.resolve(vi.fn());
     });
-    useJobOrchestrator({ simulate: false, autoStartNext: false });
+    const orchestrator = useJobOrchestrator({ simulate: false, autoStartNext: false });
+    activeOrchestrators.push(orchestrator);
 
     job.outputPath = '/media/output.mp4';
     jobsStore.getJob.mockReturnValue(job);

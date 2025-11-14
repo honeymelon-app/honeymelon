@@ -20,17 +20,17 @@ Version 0.0.1 includes the complete core conversion pipeline, all fundamental fe
 
 ### Version 0.1.0 – Polish & Testing Infrastructure
 
-**Target**: Q1 2025
+**Target**: Q1 2026
 
-- Comprehensive unit test suite (Vitest)
-- End-to-end testing (Playwright)
+- Expand Vitest coverage (planner clients, stores, components) with enforced coverage thresholds
+- Integrate Playwright suites for activation, queue management, and presets
 - UI/UX refinements
 - Performance optimizations
-- Documentation improvements
+- Documentation improvements (support + troubleshooting)
 
 ### Version 0.2.0 – Advanced Features
 
-**Target**: Q2 2025
+**Target**: Q2 2026
 
 - Subtitle burn-in support
 - Extended format support (improvements to MKV, MOV)
@@ -40,7 +40,7 @@ Version 0.0.1 includes the complete core conversion pipeline, all fundamental fe
 
 ### Version 0.3.0 – Extensibility & Integration
 
-**Target**: Q3 2025
+**Target**: Q3 2026
 
 - Custom FFmpeg arguments editor
 - Filter graph UI builder
@@ -50,7 +50,7 @@ Version 0.0.1 includes the complete core conversion pipeline, all fundamental fe
 
 ### Version 1.0.0 – Stability & Polish
 
-**Target**: Q4 2025 / Q1 2026
+**Target**: Q4 2026 / Q1 2027
 
 - 100% test coverage for critical paths
 - Performance benchmarks

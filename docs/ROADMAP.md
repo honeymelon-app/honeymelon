@@ -32,8 +32,8 @@ Honeymelon follows semantic versioning. Each release trains on three pillars:
 
 ### Outstanding Follow-Ups
 
-- Finish Vitest configuration for deterministic unit testing
-- Expand Playwright coverage of activation, queue management, and presets
+- Harden the Playwright suite to cover activation, queue exclusivity, and preset switching end-to-end
+- Restructure `src-tauri/src/lib.rs` into domain submodules and extract the runner registry for better backend testability
 
 ## Version 0.1.0 - Polish & Testing Infrastructure
 
@@ -42,7 +42,7 @@ Honeymelon follows semantic versioning. Each release trains on three pillars:
 ### Major Goals
 
 - Stabilize UI/UX rough edges discovered during launch
-- Land comprehensive unit test suite (Vitest + Happy DOM)
+- Grow Vitest coverage beyond planners/services to components and stores, enforcing coverage thresholds in CI
 - Prioritize end-to-end tests (Playwright) for core conversion flows
 - Improve empty and error states across the application
 - Harden logging, FFmpeg error surfacing, and user messaging

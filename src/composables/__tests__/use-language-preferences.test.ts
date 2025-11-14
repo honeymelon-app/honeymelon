@@ -9,8 +9,29 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => useI18nMock(),
 }));
 
+function createStorageMock(): Storage {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => (key in store ? store[key] : null),
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+    key: (index: number) => Object.keys(store)[index] ?? null,
+    get length() {
+      return Object.keys(store).length;
+    },
+  } as Storage;
+}
+
 describe('useLanguagePreferences', () => {
   beforeEach(() => {
+    vi.stubGlobal('localStorage', createStorageMock());
     useI18nMock.mockReset();
     localStorage.clear();
   });
