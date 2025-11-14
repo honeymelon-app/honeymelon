@@ -124,8 +124,8 @@ See [Presets & Quality](/guide/presets) for detailed explanations.
 
 **Detection Order**:
 
-1. Bundled binaries in `public/bin/ffmpeg`
-2. Environment variable `FFMPEG_PATH`
+1. Bundled binaries in `src-tauri/resources/bin/ffmpeg`
+2. Environment variable `HONEYMELON_FFMPEG_PATH`
 3. System FFmpeg (`/usr/local/bin/ffmpeg`, `/opt/homebrew/bin/ffmpeg`)
 
 **Custom Path**: Enter a full path to a specific FFmpeg binary.
@@ -152,7 +152,7 @@ Most users don't need to change this. Auto-detection works for standard installa
 
 **Default**: Auto-detect (same logic as FFmpeg)
 
-**Recommendation**: Keep synchronized with FFmpeg (same installation).
+**Recommendation**: Keep synchronized with FFmpeg (same installation). Set `HONEYMELON_FFPROBE_PATH` if you override FFmpeg.
 
 ---
 

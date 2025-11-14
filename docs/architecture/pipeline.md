@@ -86,7 +86,7 @@ Each error is caught and reported with a user-friendly message.
 
 ### Plan: Implementation
 
-**Location**: [src/lib/ffmpeg-plan.ts](../../src/lib/ffmpeg-plan.ts)
+**Location**: [src/lib/ffmpeg-plan.ts](../../src/lib/ffmpeg-plan.ts) with planner/runner clients in `src/composables/orchestrator/`
 
 **Process**:
 
@@ -259,7 +259,7 @@ FFmpeg Command:
 
 ### Execute: Implementation
 
-**Location**: runner modules under `src-tauri/src/runner` (backend) and `src/composables/use-job-orchestrator.ts` (frontend)
+**Location**: runner modules under `src-tauri/src/runner` (backend) and frontend orchestration stack (`use-job-orchestrator.ts`, `orchestrator/planner-client.ts`, `orchestrator/runner-client.ts`, `orchestrator/event-subscriber.ts`)
 
 ### Process
 

@@ -17,11 +17,12 @@ Honeymelon is built with modern web and native technologies, combining the flexi
 - TypeScript for type safety
 - Vite for fast development and optimized production builds
 
-**State Management**: Pinia
+**State Management**: Pinia + shared services
 
 - Reactive stores for application state
-- Discriminated union types for type-safe state transitions
-- Separate stores for jobs and preferences
+- Discriminated union types for type-safe state transitions enforced by `src/lib/job-lifecycle.ts`
+- Job queue split across focused stores (`job-queue`, `job-state`, `job-progress`, `job-logs`) backed by `job-service`
+- Separate stores for preferences and desktop integration metadata
 
 **UI Components**: shadcn-vue
 
@@ -153,7 +154,7 @@ stateDiagram-v2
 
 ```
 
-Each state has specific data associated with it (discriminated unions).
+Each state has specific data associated with it (discriminated unions) and transitions are centrally enforced by `jobLifecycle.ensureTransition` on the frontend plus the mirrored guard in `src-tauri/src/job_lifecycle.rs`.
 
 ## Directory Structure
 
@@ -168,16 +169,27 @@ honeymelon/
 │   │   ├── ffmpeg-probe.ts       # FFprobe wrapper
 │   │   ├── ffmpeg-plan.ts        # Conversion planning
 │   │   ├── container-rules.ts    # Codec compatibility
-│   │   ├── presets.ts           # Dynamic preset generation
+│   │   ├── presets.ts            # Dynamic preset generation
 │   │   ├── capability.ts         # Encoder detection
-│   │   └── types.ts             # TypeScript definitions
+│   │   ├── job-lifecycle.ts      # Canonical job state transitions
+│   │   └── types.ts              # TypeScript definitions
+│   │
+│   ├── services/                 # Shared service layer
+│   │   └── job-service.ts        # Repository proxy + duplicate detection
 │   │
 │   ├── stores/                   # Pinia stores
-│   │   ├── jobs.ts              # Job queue management
-│   │   └── prefs.ts             # User preferences
+│   │   ├── job-queue.ts          # Queue operations & concurrency tracking
+│   │   ├── job-state.ts          # Lifecycle mutations validated by job-lifecycle
+│   │   ├── job-progress.ts       # Progress metrics + ETA helpers
+│   │   ├── job-logs.ts           # Circular buffer per job
+│   │   └── prefs.ts              # User preferences
 │   │
 │   ├── composables/              # Vue composables
-│   │   └── use-job-orchestrator.ts  # Job lifecycle
+│   │   ├── use-app-orchestration.ts # Bridges UI events into queue orchestration
+│   │   ├── use-capability-gate.ts  # Capability snapshot loading + preset readiness
+│   │   ├── use-desktop-bridge.ts   # Drag/drop + menu integration
+│   │   ├── use-job-orchestrator.ts # Coordinates planner/runner clients
+│   │   └── orchestrator/           # Planner/runner clients + event subscriber
 │   │
 │   └── components/               # Vue components
 │       ├── JobQueueItem.vue      # Individual job card
@@ -187,20 +199,23 @@ honeymelon/
 │
 ├── src-tauri/                    # Rust backend
 │   ├── src/
-│   │   ├── lib.rs               # Main entry, menu bar
-│   │   ├── ffmpeg_probe.rs      # FFprobe spawning
-│   │   ├── runner/              # FFmpeg execution (split into modules under `src-tauri/src/runner`)
-│   │   ├── ffmpeg_capabilities.rs  # Encoder detection
-│   │   ├── fs_utils.rs          # File operations
-│   │   └── error.rs             # Error handling
+│   │   ├── lib.rs                # Command wiring + menu/IPC registration
+│   │   ├── commands/             # Domain-specific Tauri commands (jobs, filesystem, license, dialogs)
+│   │   ├── ffmpeg_probe.rs       # FFprobe spawning
+│   │   ├── runner/               # Coordinator, registry, validator, and process spawner modules
+│   │   ├── job_lifecycle.rs      # Rust mirror of frontend lifecycle guard
+│   │   ├── ffmpeg_capabilities.rs # Encoder detection
+│   │   ├── services/             # Backend services (license, telemetry, filesystem)
+│   │   ├── fs_utils.rs           # File operations
+│   │   └── error.rs              # Error handling
 │   │
 │   ├── tauri.conf.json          # Tauri configuration
 │   └── Cargo.toml               # Rust dependencies
 │
 ├── docs/                         # VitePress documentation
 ├── e2e/                          # Playwright tests
-└── public/                       # Static assets
-    └── bin/                      # Bundled FFmpeg binaries
+├── public/                       # Static assets served as-is
+└── src-tauri/resources/bin/      # Bundled FFmpeg binaries (ffmpeg/ffprobe)
 
 ```
 
@@ -303,13 +318,22 @@ for line in reader.lines() {
 ### Frontend Types
 
 ```typescript
-// Discriminated union for job states
-type Job =
-  | { status: 'queued'; id: string; sourceFile: string }
-  | { status: 'probing'; id: string; sourceFile: string }
-  | { status: 'running'; id: string; progress: number; fps: number }
-  | { status: 'completed'; id: string; outputFile: string }
-  | { status: 'failed'; id: string; error: string };
+type JobState =
+  | { status: 'queued'; sourceFile: string; presetId: string; tier: QualityTier }
+  | { status: 'probing'; probeStartedAt: number }
+  | { status: 'planning'; probe: ProbeSummary }
+  | { status: 'running'; progress: number; fps?: number; etaSeconds?: number }
+  | { status: 'completed'; outputFile: string; durationMs: number }
+  | { status: 'failed'; error: string; logs: string[] }
+  | { status: 'cancelled'; reason?: string };
+
+interface JobRecord {
+  id: string;
+  state: JobState;
+  exclusive: boolean;
+  updatedAt: number;
+  logs: string[];
+}
 ```
 
 ### Backend Types
@@ -375,9 +399,9 @@ Rust types are serialized to JSON and deserialized in TypeScript, maintaining ty
 
 ### Frontend Tests (Vitest)
 
-- Unit tests for business logic
-- Component tests for UI
-- Store tests for state management
+- Suites cover planners, presets, job services, orchestrator clients, and Pinia stores
+- Shared teardown helper ensures mocked Tauri listeners are cleaned between specs
+- Coverage thresholds enforced in CI via `npm run test:unit:coverage`
 
 ### Backend Tests (Cargo Test)
 

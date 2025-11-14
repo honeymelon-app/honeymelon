@@ -18,8 +18,8 @@ This guide helps you resolve common issues with Honeymelon.
 1. **Check bundled binaries**:
 
    ```bash
-   ls public/bin/ffmpeg
-   ls public/bin/ffprobe
+   ls src-tauri/resources/bin/ffmpeg
+   ls src-tauri/resources/bin/ffprobe
    ```
 
    If missing, download them:
@@ -44,7 +44,7 @@ This guide helps you resolve common issues with Honeymelon.
 3. **Set custom path** in Preferences:
    - Open Preferences (`Cmd + ,`)
    - Navigate to FFmpeg Settings
-   - Enter full path to FFmpeg binary
+   - Enter full path to FFmpeg binary or set `HONEYMELON_FFMPEG_PATH`
 
 ### FFmpeg Version Issues
 

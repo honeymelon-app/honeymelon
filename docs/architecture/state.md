@@ -9,11 +9,13 @@ Honeymelon uses Pinia for reactive state management with discriminated union typ
 
 ## Pinia Stores
 
-### Jobs Store
+### Job Stores
 
-**Location**: `src/stores/` — split into `job-queue.ts`, `job-state.ts`, `job-progress.ts`, `job-logs.ts`, with a facade `jobs.ts` that composes them.
-
-Manages the conversion job queue and job lifecycle. The public API is exposed via the `useJobsStore()` facade which composes the focused composables.
+- `src/stores/job-queue.ts`: Enqueue/start/cancel, concurrency tracking, duplicate detection via `jobService`
+- `src/stores/job-state.ts`: Mutations validated by `job-lifecycle.ts`
+- `src/stores/job-progress.ts`: Aggregated progress, ETA, speed metrics
+- `src/stores/job-logs.ts`: Circular buffer of recent stderr lines per job
+- `src/stores/jobs.ts`: Thin facade composing the above utilities for legacy consumers
 
 ```typescript
 // Usage (facade):
@@ -31,9 +33,7 @@ const running = jobs.activeJobs;
 
 ### Preferences Store
 
-**Location**: `src/stores/prefs.ts` (uses a persistent store via `tauri-plugin-store` on desktop builds, and falls back to in-memory/localStorage in non-Tauri environments for tests)
-
-Manages user preferences and application settings. The implementation persists preferences using the Tauri `Store` API (file-backed) when running as a desktop app.
+**Location**: `src/stores/prefs.ts` (persists via `@tauri-apps/plugin-store` in desktop builds and falls back to local storage in browser/unit-test contexts)
 
 ```typescript
 // Example usage inside a composable
@@ -43,85 +43,32 @@ const store = new Store('.settings.dat');
 
 export function usePrefs() {
   const outputDirectory = ref<string | null>(null);
-
-  async function load() {
-    const stored = await store.get('prefs');
-    if (stored) {
-      outputDirectory.value = stored.outputDirectory ?? null;
-      // ... load other prefs
-    }
-  }
-
-  async function save() {
-    await store.set('prefs', {
-      outputDirectory: outputDirectory.value,
-      // ... other prefs
-    });
-    await store.save();
-  }
-
-  return { outputDirectory, load, save };
+  // ... implementation omitted
 }
 ```
 
-## Job State Machine
+### Job State Representation
 
-### Discriminated Union Types
-
-Jobs use discriminated unions for type-safe state management:
+Job records wrap the discriminated union state along with metadata used by stores/services:
 
 ```typescript
-type Job =
-  | QueuedJob
-  | ProbingJob
-  | PlanningJob
-  | RunningJob
-  | CompletedJob
-  | FailedJob
-  | CancelledJob;
+type JobState =
+  | { status: 'queued'; source: MediaFile; presetId: string; tier: QualityTier }
+  | { status: 'probing'; probeStartedAt: number }
+  | { status: 'planning'; probe: ProbeSummary }
+  | { status: 'running'; progress: number; fps?: number; etaSeconds?: number }
+  | { status: 'completed'; outputFile: string; durationMs: number }
+  | { status: 'failed'; error: string; logs: string[] }
+  | { status: 'cancelled'; reason?: string };
 
-interface QueuedJob {
-  status: 'queued';
+interface JobRecord {
   id: string;
-  sourceFile: string;
-  preset: Preset;
-  quality: QualityTier;
-}
-
-interface ProbingJob {
-  status: 'probing';
-  id: string;
-  sourceFile: string;
-  preset: Preset;
-  quality: QualityTier;
-}
-
-interface RunningJob {
-  status: 'running';
-  id: string;
-  sourceFile: string;
-  outputFile: string;
-  progress: number; // 0-100
-  fps: number;
-  frame: number;
-  etaSeconds: number;
-  speed: string; // e.g., "2.5x"
-  logs: string[];
-}
-
-interface CompletedJob {
-  status: 'completed';
-  id: string;
-  sourceFile: string;
-  outputFile: string;
-  duration: number; // Total time in seconds
-}
-
-interface FailedJob {
-  status: 'failed';
-  id: string;
-  sourceFile: string;
-  error: string;
+  path: string;
+  presetId: string;
+  exclusive: boolean;
+  state: JobState;
+  createdAt: number;
+  updatedAt: number;
   logs: string[];
 }
 ```
@@ -149,33 +96,23 @@ stateDiagram-v2
 
 ### Type-Safe Updates
 
-TypeScript ensures only valid transitions:
+Shared lifecycle guards prevent invalid transitions such as `queued → completed`:
 
 ```typescript
-function updateJob(jobId: string, updates: Partial<Job>) {
-  const index = jobs.value.findIndex((j) => j.id === jobId);
-  if (index === -1) return;
+import { jobLifecycle } from '@/lib/job-lifecycle';
 
-  const currentJob = jobs.value[index];
-
-  // Type guard ensures valid state transition
-  if (currentJob.status === 'queued' && updates.status === 'probing') {
-    jobs.value[index] = {
-      ...currentJob,
-      status: 'probing',
-    };
-  } else if (currentJob.status === 'probing' && updates.status === 'planning') {
-    jobs.value[index] = {
-      ...currentJob,
-      status: 'planning',
-      probe: updates.probe, // Only available in planning state
-    };
-  }
-  // ... more transitions
-}
+jobService.update(jobId, (current) => {
+  const nextState = reducer(current.state);
+  jobLifecycle.ensureTransition(current.state.status, nextState.status);
+  return {
+    ...current,
+    state: nextState,
+    updatedAt: Date.now(),
+  };
+});
 ```
 
-This prevents invalid transitions like `queued → completed`.
+The Rust backend mirrors this check inside `can_transition_status` so commands and frontend stores remain consistent.
 
 ## Reactive Patterns
 
@@ -225,50 +162,43 @@ watch(
 
 ## Job Orchestration
 
-### Composable
+### Composables
 
-**Location**: [src/composables/use-job-orchestrator.ts](../../src/composables/use-job-orchestrator.ts)
-
-Coordinates job lifecycle and event handling:
+- `src/composables/use-app-orchestration.ts`: Bridges UI events (drop, menu, shortcuts) into queue operations
+- `src/composables/use-capability-gate.ts`: Loads capability snapshots, determines preset readiness, and surfaces warnings
+- `src/composables/use-desktop-bridge.ts`: Wires drag/drop + menu handlers when running inside the Tauri shell
+- `src/composables/use-job-orchestrator.ts`: Coordinates planner/runner clients and maintains concurrency sync with the backend
+- `src/composables/orchestrator/planner-client.ts`: Frontend wrapper around planner commands (`probe`, `plan`)
+- `src/composables/orchestrator/runner-client.ts`: Bridges to runner commands (`start_job`, `cancel_job`, `set_max_concurrency`)
+- `src/composables/orchestrator/event-subscriber.ts`: Centralizes `listen`/`unlisten` for `ffmpeg://*` events with a shared teardown helper used in tests
 
 ```typescript
-export function useJobOrchestrator() {
-  const jobsStore = useJobsStore();
-  const prefsStore = usePrefsStore();
+const teardown = createOrchestratorTeardown();
 
-  // Listen for FFmpeg events
-  onMounted(() => {
-    listen('ffmpeg://progress', handleProgress);
-    listen('ffmpeg://completion', handleCompletion);
-    listen('ffmpeg://error', handleError);
+const planner = createPlannerClient({ invoke });
+const runner = createRunnerClient({ invoke });
+const subscriber = createEventSubscriber({ listen });
+
+subscriber.onProgress((payload) => {
+  jobsStore.updateJobProgress(payload.job_id, {
+    percentage: payload.percentage,
+    fps: payload.fps,
+    etaSeconds: payload.eta_seconds,
   });
+});
 
-  function handleProgress(event: Event<ProgressPayload>) {
-    const { job_id, percentage, fps, eta_seconds } = event.payload;
-    jobsStore.updateJobProgress(job_id, { percentage, fps, eta_seconds });
+subscriber.onCompletion((payload) => {
+  if (payload.success) {
+    jobsStore.completeJob(payload.job_id, payload.output_path);
+    startNextJob();
+  } else {
+    jobsStore.failJob(payload.job_id, payload.error);
   }
+});
 
-  function handleCompletion(event: Event<CompletionPayload>) {
-    const { job_id, success, output_path } = event.payload;
-    if (success) {
-      jobsStore.completeJob(job_id, output_path);
-      startNextJob(); // Start next queued job
-    } else {
-      jobsStore.failJob(job_id, event.payload.error);
-    }
-  }
-
-  async function startNextJob() {
-    const queuedJobs = jobsStore.jobs.filter((j) => j.status === 'queued');
-    const runningCount = jobsStore.jobs.filter((j) => j.status === 'running').length;
-
-    if (queuedJobs.length > 0 && runningCount < prefsStore.concurrentJobs) {
-      await jobsStore.startJob(queuedJobs[0].id);
-    }
-  }
-
-  return { startNextJob };
-}
+onBeforeUnmount(() => {
+  teardown.cleanup();
+});
 ```
 
 ## Persistence
@@ -341,20 +271,10 @@ const debouncedUpdateProgress = useDebounceFn((jobId, progress) => {
 Process multiple jobs efficiently:
 
 ```typescript
-function cancelAllJobs() {
-  const toCancel = jobs.value.filter((j) => j.status === 'queued' || j.status === 'running');
-
-  // Batch cancel
-  toCancel.forEach((job) => {
-    if (job.status === 'running') {
-      invoke('cancel_ffmpeg', { jobId: job.id });
-    }
-  });
-
-  // Single reactive update
-  jobs.value = jobs.value.map((job) =>
-    toCancel.includes(job) ? { ...job, status: 'cancelled' } : job,
-  );
+async function cancelAllJobs() {
+  const { running, queued } = jobService.partitionByStatus(['running', 'queued']);
+  await runner.cancelMany(running.map((job) => job.id));
+  jobService.markCancelled([...running, ...queued]);
 }
 ```
 
@@ -362,7 +282,11 @@ function cancelAllJobs() {
 
 ### Unit Tests
 
-**Location**: [src/stores/**tests**/jobs.spec.ts](../../src/stores/__tests__/jobs.spec.ts)
+**Locations**:
+
+- Job queue/service coverage: `src/stores/__tests__/job-queue.test.ts`, `src/services/__tests__/job-service.test.ts`
+- Orchestrator integration specs: `src/composables/__tests__/use-job-orchestrator.test.ts`
+- Lifecycle guard unit tests: `src/lib/__tests__/job-lifecycle.test.ts`
 
 ```typescript
 import { setActivePinia, createPinia } from 'pinia';

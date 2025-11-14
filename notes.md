@@ -104,3 +104,222 @@
 ### Tooling & CI
 
 - Wire up `npm run test:unit` with coverage thresholds, ensure CI installs/stubs FFmpeg, and update GitHub Actions to run lint/unit/build/cargo test with the download step plus updated README instructions.
+
+---
+
+## End-to-End Testing: Current State and Expansion Plan
+
+This document describes where the E2E test suite stands today and a concrete plan to turn it into a robust, production-grade end-to-end testing setup for the Tauri/Vue app.
+
+---
+
+## 1. Current State
+
+Right now the E2E layer is mostly scaffolding:
+
+- **Playwright configuration and helpers exist but are mostly placeholders**
+  - `e2e/playwright.config.ts` is present, along with helper modules such as:
+    - `e2e/helpers/tauri.ts`
+    - `e2e/helpers/media-fixtures.ts`
+
+  - Most of the functions inside these helpers are stubs or incomplete.
+  - No tests actually **launch the real Tauri bundle** or **attach to the live WebView**.
+
+- **Spec files are descriptive but not functional**
+  - There are eight spec files under `e2e/tests/`.
+  - Each file contains **comments and scenario descriptions**, but there are **no real UI interactions** (no clicks, assertions, or flows implemented yet).
+
+- **Key helper behavior is not implemented**
+  - Drag & drop simulation is not wired up.
+  - Tauri IPC mocking (e.g. intercepting `invoke` calls) is missing.
+  - Utilities for seeding and clearing application data (local stores, job queues, etc.) are not implemented.
+
+- **Vitest covers logic, but not the full vertical integration**
+  - Vitest already exercises orchestration and service logic, for example:
+    - `src/services/**tests**/job-service.test.ts`
+    - `src/composables/orchestrator/**tests**/orchestrator-clients.integration.test.ts`
+
+  - However, there is **no cross-check** that the **frontend bridge actually talks to the real Tauri backend** and behaves correctly end-to-end (UI → bridge → Tauri → filesystem).
+
+---
+
+## 2. Plan to Expand E2E Coverage
+
+### 2.1 Foundation / Infrastructure
+
+Goal: Make it trivial for any E2E test to boot the real Tauri app, attach a Playwright `page` to the WebView, and start from a clean, deterministic app state.
+
+- **Enable remote debugging for the Tauri production bundle**
+  - In `tauri.conf.json`, enable `enableRemoteDebugging`.
+  - This allows Playwright to connect to the Tauri WebView via the Chrome DevTools Protocol (CDP).
+
+- **Complete `launchTauriApp` helper**
+  - Implement `launchTauriApp` in `e2e/helpers/tauri.ts` to:
+    - Resolve the correct path to the built Tauri bundle (e.g. `.app` on macOS).
+    - Start the app process and wait until it is ready (main window available, devtools endpoint active).
+    - Ensure proper cleanup after each test (close windows, kill process).
+
+- **Implement `connectToTauriWebView`**
+  - Use CDP to attach Playwright’s `page` object to the Tauri WebView.
+  - Wrap this logic in a `test.extend` fixture so every spec automatically gets something like:
+
+    ```ts
+    test('...', async ({ app, page }) => { ... })
+    ```
+
+  - This standardizes how tests acquire `app` and `page`, reducing boilerplate.
+
+- **Add storage helpers for app data**
+  - Detect the app data directory on macOS (e.g. `~/Library/Application Support/com.honeymelon.app`).
+  - Implement:
+    - `clearAppData()` to wipe relevant JSON/SQLite stores (preferences, jobs, licenses, etc.).
+    - `setAppData()` to seed specific scenarios (e.g. existing jobs, trial state, license expired).
+
+  - These helpers ensure tests start from a known baseline and can reproduce tricky stateful flows.
+
+- **Implement realistic drag & drop**
+  - Introduce a `simulateFileDrop` helper that:
+    - Uses `page.evaluateHandle` to create and dispatch `DragEvent`s.
+    - Injects a `DataTransfer` object with fake file entries that the app can read.
+
+  - This lets tests exercise the same drag & drop flow users experience when adding media.
+
+- **Implement Tauri command mocking (`mockTauriCommands`)**
+  - Inject JS in the WebView that wraps `window.__TAURI_INTERNALS__.invoke` (or the equivalent) and:
+    - Returns mocked responses for specific commands.
+    - Enables tests to force error scenarios without hitting the real backend.
+
+  - Ideal for stress-testing error flows, edge cases, and telemetry paths.
+
+- **Introduce fixture generation via `media-fixtures.ts`**
+  - Use `e2e/helpers/media-fixtures.ts` to:
+    - Pre-generate small media files (e.g. tiny MP4, MP3, and intentionally corrupted files).
+    - Run this as a pre-step for CI and cache the artifacts.
+
+  - This keeps tests fast, deterministic, and independent of external assets.
+
+---
+
+### 2.2 Playwright Scenario Coverage
+
+Goal: Encode the core user journeys and critical edge cases as executable Playwright specs.
+
+- **Launch & Smoke Tests (`app-launch.spec.ts`)**
+  - Verify the splash screen (if any) and main window appear.
+  - Confirm the primary UI loads and the initial preset list renders.
+  - Detect and assert capability errors (e.g. missing FFmpeg, unsupported codecs).
+
+- **Preset Selection & Settings**
+  - Interact with preset filters and categories.
+  - Change preferences (e.g. default output folder, quality settings).
+  - Close and reopen the app to confirm preferences persist correctly.
+
+- **Conversion Flow**
+  - Simulate dropping multiple files via `simulateFileDrop`.
+  - Select different presets and trigger conversions.
+  - Observe queue states transitioning from `queued → running → completed`.
+  - Assert that:
+    - Output files exist in the target directory, **or**
+    - The UI clearly shows success (progress bars, status text, job cards).
+
+- **Error Handling**
+  - Use `mockTauriCommands` to inject backend failures such as:
+    - `job_invalid_args`
+    - `job_already_running`
+    - Disk full errors
+    - Corrupted probe/metadata responses
+
+  - Assert that:
+    - `job://error` events are emitted.
+    - Error toasts, banners, or logs appear as expected.
+
+- **Job Queue Behavior**
+  - Add, remove, and duplicate jobs in the queue.
+  - Validate “exclusive job” behavior (e.g. certain jobs block others).
+  - Adjust the concurrency slider and ensure it drives the backend (e.g. `set_max_concurrency` command).
+
+- **License Flows**
+  - Seed license data via `setAppData` for different states:
+    - Fresh trial
+    - Expired trial
+    - Activated license
+
+  - Test activation flow with valid and invalid network responses (mocked or proxied).
+  - Ensure UI reflects trial countdown, grace periods, and locked features.
+
+- **Internationalization (i18n)**
+  - Change locale from the UI or seeded state.
+  - Verify key screens render translated text.
+  - Confirm directionality and layout if right-to-left (RTL) languages are added later.
+
+- **Drag & Drop + Desktop Bridges**
+  - Use `simulateFileDrop` to ensure `useDesktopBridge` reacts correctly.
+  - Test menu keyboard shortcuts (e.g. ⌘O, ⌘Q) by emitting app events (`app.emit`) and verifying behavior.
+
+- **Recovery & Resilience**
+  - Start a conversion queue, then forcibly close/kill the Tauri app mid-run.
+  - Relaunch the app and verify that:
+    - Persisted jobs rehydrate correctly.
+    - The queue resumes or recovers gracefully.
+
+---
+
+### 2.3 Vitest + Bridge Coverage
+
+Goal: Strengthen the “bridge” layer between frontend code and Tauri APIs, ensuring orchestration logic and UI stay in sync.
+
+- **Service behavior with mocked Tauri API**
+  - Add Vitest suites that mock `@tauri-apps/api/core` to validate:
+    - `executionService.start()` correctly handles already-running or exclusive jobs.
+    - `executionService.cancel()` performs proper cleanup and error handling.
+
+  - Some groundwork already exists in:
+    - `src/services/**tests**/execution-service.integration.test.ts`
+
+- **Event bridge and telemetry**
+  - Add tests for composables such as `useDesktopBridge` and `useTauriEvents` to ensure:
+    - `job://error` and other telemetry events are consumed correctly.
+    - Queue stores and UI state update as expected when new events arrive.
+
+---
+
+### 2.4 CI & Developer Ergonomics
+
+Goal: Make running and maintaining E2E tests easy for both local development and CI.
+
+- **NPM scripts**
+  - Add scripts such as:
+    - `"test:e2e"` – headless, full E2E suite.
+    - `"test:e2e:ui"` – launches Playwright’s UI mode for local debugging.
+    - `"test:e2e:smoke"` – a fast subset for quick checks on PRs.
+
+- **E2E documentation**
+  - Create a short `e2e/README.md` with:
+    - Prerequisites (FFmpeg installed, remote debugging enabled).
+    - How to generate media fixtures.
+    - Common commands and troubleshooting tips (e.g. what to do when the app doesn’t launch).
+
+- **CI artifacts**
+  - Configure Playwright’s HTML report and upload it as a CI artifact.
+  - Optionally, capture video or screenshot artifacts for failing tests to speed up debugging.
+
+---
+
+### 2.5 Stretch Goals
+
+These are enhancements that can be tackled once the core E2E pipeline is in place.
+
+- **Cross-platform E2E configuration**
+  - Parameterize Playwright config to support Windows and Linux once Tauri bundles for those platforms are available.
+  - Ensure path resolution, app data directories, and environment specifics are handled per OS.
+
+- **Component-level UI testing**
+  - Use Playwright component testing or Storybook to test Vue components that rely heavily on Tauri events.
+  - Mock Tauri APIs at the component level to verify behavior without booting the entire app.
+
+- **Synthetic license server / proxy**
+  - Introduce a small mock license server or HTTP proxy:
+    - Avoids hardcoding license keys in tests.
+    - Enables controlled responses for activation, renewal, and revocation flows.
+
+  - Integrate this mock into both E2E and integration tests for consistent license behavior.

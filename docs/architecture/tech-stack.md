@@ -83,19 +83,24 @@ const doubled = computed(() => count.value * 2);
 **Usage**:
 
 ```typescript
-interface Job {
+interface JobRecord {
   id: string;
-  status: 'queued' | 'running' | 'completed';
-  progress: number;
-# Technology Stack
----
-title: Technology Stack
-description: Overview of the frameworks, languages, and services that power Honeymelon.
----
+  state: JobState;
+  exclusive: boolean;
 }
 
-function updateJob(job: Job, progress: number): Job {
-  return { ...job, progress };
+function updateJob(job: JobRecord, progress: number): JobRecord {
+  if (job.state.status !== 'running') {
+    throw new Error('Job must be running to update progress');
+  }
+
+  return {
+    ...job,
+    state: {
+      ...job.state,
+      progress,
+    },
+  };
 }
 ```
 

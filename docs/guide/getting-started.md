@@ -22,9 +22,9 @@ Honeymelon is built exclusively for Apple Silicon Macs. If you have an Intel-bas
 
 ## Installation
 
-### Option 1: Download Pre-built Binary (Coming Soon)
+### Option 1: Download Pre-built Binary
 
-Pre-built releases will be available on GitHub once the application reaches a stable release version.
+Grab the latest signed DMG from the [GitHub Releases](https://github.com/honeymelon-app/honeymelon/releases) page and drag `Honeymelon.app` into `/Applications`.
 
 ### Option 2: Build from Source
 
@@ -86,7 +86,7 @@ Honeymelon requires FFmpeg to perform media conversions. There are three ways to
 
 ### Option 1: Bundled FFmpeg (Automatic)
 
-The `npm install` step automatically downloads FFmpeg binaries and places them in the `public/bin` directory. These binaries are then bundled with the application.
+The `npm install` step automatically downloads FFmpeg binaries and places them in `src-tauri/resources/bin/`. These binaries ship inside the Tauri bundle.
 
 ### Option 2: System FFmpeg
 
@@ -101,7 +101,7 @@ The application will automatically detect system FFmpeg if bundled binaries are 
 
 ### Option 3: Custom FFmpeg Path
 
-You can set the `FFMPEG_PATH` and `FFPROBE_PATH` environment variables to point to custom FFmpeg installations.
+Set the `HONEYMELON_FFMPEG_PATH` and `HONEYMELON_FFPROBE_PATH` environment variables (or configure the path inside Preferences) to point to custom FFmpeg builds.
 
 ## First Launch
 
@@ -112,7 +112,7 @@ When you first launch Honeymelon:
 3. **Set Preferences** (optional): Open Preferences to configure output directory and concurrency
 
 ::: tip
-If you see a message about FFmpeg not being found, check that either bundled binaries exist in `public/bin/` or that FFmpeg is installed via Homebrew.
+If you see a message about FFmpeg not being found, run `npm run download-ffmpeg` to repopulate `src-tauri/resources/bin/` or install FFmpeg via Homebrew and set `HONEYMELON_FFMPEG_PATH`.
 :::
 
 ## Your First Conversion

@@ -115,7 +115,7 @@ Extract media file metadata without full decoding.
 
 **Command**:
 
-```bash
+````bash
 ffprobe \
   -v quiet \
   -print_format json \
@@ -123,36 +123,44 @@ ffprobe \
   -show_streams \
   input.mp4
 
-```
+### 2. Environment Overrides
 
-**Arguments**:
+```bash
+export HONEYMELON_FFMPEG_PATH=/custom/path/to/ffmpeg
+export HONEYMELON_FFPROBE_PATH=/custom/path/to/ffprobe
 
-- `-v quiet`: Suppress log output
-- `-print_format json`: Output as JSON
-- `-show_format`: Container-level metadata
-- `-show_streams`: Individual stream metadata
+````
 
-### Output Parsing
+### 3. Development Bundled Binaries
 
-**Location**: [src-tauri/src/ffmpeg_probe.rs](https://github.com/honeymelon-app/honeymelon/blob/main/src-tauri/src/ffmpeg_probe.rs)
-
-```rust
-#[derive(Deserialize)]
-struct FFprobeOutput {
-    format: Format,
-    streams: Vec<Stream>,
-}
-
-#[derive(Deserialize)]
-struct Stream {
-    codec_name: Option<String>,
-    codec_type: String,
-    width: Option<u32>,
-    height: Option<u32>,
-    // ... more fields
-}
+```text
+src-tauri/resources/bin/ffmpeg
+src-tauri/resources/bin/ffprobe
 
 ```
+
+`npm install` (or `npm run download-ffmpeg`) populates these paths for local development.
+
+### 4. Packaged App Resources
+
+When shipped, the macOS bundle includes binaries under:
+
+```text
+Honeymelon.app/Contents/Resources/bin/{ffmpeg,ffprobe}
+
+```
+
+### 5. System PATH Fallback
+
+If none of the above exist, Honeymelon falls back to the first matching binary on `PATH` (for example `/opt/homebrew/bin/ffmpeg`).
+codec_name: Option<String>,
+codec_type: String,
+width: Option<u32>,
+height: Option<u32>,
+// ... more fields
+}
+
+````
 
 Parse JSON with `serde_json`:
 
@@ -164,7 +172,7 @@ let output = Command::new(&ffprobe_path)
 let probe_result: FFprobeOutput =
     serde_json::from_slice(&output.stdout)?;
 
-```
+````
 
 ### FFprobe: Error Handling
 
