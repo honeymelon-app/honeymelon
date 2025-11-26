@@ -1,8 +1,9 @@
 import type { Locator, Page } from '@playwright/test';
 
 import { simulateFileDrop } from '../helpers/tauri';
-import { loadFixtureManifest } from './global-setup';
+
 import { expect, test } from './fixtures';
+import { loadFixtureManifest } from './global-setup';
 import { withLicense } from './support/app-state';
 
 type FixtureManifest = Record<string, Record<string, string>>;
@@ -66,6 +67,21 @@ test.describe('Job Queue Management', () => {
     await waitForJobState(jobOne, 'completed');
     await waitForJobState(jobTwo, 'completed');
     await expect(page.locator('[data-test="app-footer"]')).toContainText('0 files in queue');
+  });
+
+  test('cancels running and queued jobs via the footer control', async ({ page }) => {
+    const runningJob = await enqueue(page, getManifest().video.h264, 'video');
+    await enqueue(page, getManifest().video.hevc, 'video');
+
+    await startJob(runningJob);
+    await waitForJobState(runningJob, 'running');
+
+    await page.locator('[data-test="cancel-all-button"]').click();
+
+    await waitForJobState(runningJob, 'cancelled');
+    await expect(page.locator('[data-test="job-card"][data-state="queued"]')).toHaveCount(0);
+    await page.locator('[data-test="clear-completed-button"]').click();
+    await expect(page.locator('[data-test="job-card"]')).toHaveCount(0);
   });
 });
 

@@ -37,6 +37,7 @@
  * for debugging while maintaining UI stability.
  */
 
+import type * as NotificationPlugin from '@tauri-apps/plugin-notification';
 import { storeToRefs } from 'pinia';
 import { computed, getCurrentInstance, onMounted, ref, watch, type Ref } from 'vue';
 
@@ -45,6 +46,15 @@ import { useDesktopBridge } from '@/composables/use-desktop-bridge';
 import { useFileHandler } from '@/composables/use-file-handler';
 import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
 import { useJobsStore } from '@/stores/jobs';
+
+type NotificationModule = typeof NotificationPlugin;
+
+/**
+ * Checks if running in Tauri desktop environment.
+ */
+function isTauriRuntime(): boolean {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
 
 /**
  * Job statuses that indicate active/processing state.
@@ -113,6 +123,54 @@ export function useAppOrchestration() {
    * Handles the actual starting, monitoring, and cancellation of conversion jobs.
    */
   const orchestrator = useJobOrchestrator({ autoStartNext: false });
+
+  /**
+   * Notification module for macOS notifications.
+   */
+  let notificationModulePromise: Promise<NotificationModule | null> | null = null;
+
+  /**
+   * Prepares the notification module for sending macOS notifications.
+   */
+  async function prepareNotificationModule(): Promise<NotificationModule | null> {
+    if (!isTauriRuntime()) {
+      return null;
+    }
+    if (notificationModulePromise) {
+      return notificationModulePromise;
+    }
+
+    notificationModulePromise = (async () => {
+      try {
+        const module = await import('@tauri-apps/plugin-notification');
+        let granted = await module.isPermissionGranted();
+        if (!granted) {
+          const permission = await module.requestPermission();
+          granted = permission === 'granted';
+        }
+        return granted ? module : null;
+      } catch (error) {
+        console.warn('[app] Notification module unavailable:', error);
+        return null;
+      }
+    })();
+
+    return notificationModulePromise;
+  }
+
+  /**
+   * Sends a macOS notification.
+   */
+  async function sendNotification(title: string, body: string): Promise<void> {
+    const module = await prepareNotificationModule();
+    if (!module) return;
+
+    try {
+      await module.sendNotification({ title, body });
+    } catch (error) {
+      console.warn('[app] Failed to send notification:', error);
+    }
+  }
 
   /**
    * Active jobs (currently processing or queued).
@@ -198,6 +256,33 @@ export function useAppOrchestration() {
    */
   async function handleBrowse(mediaKind?: string) {
     await fileHandler.browseForFiles(mediaKind);
+  }
+
+  /**
+   * Handles retry requests for failed or cancelled jobs.
+   *
+   * Requeues the job so it can be started again. Optionally auto-starts the job.
+   */
+  function handleRetryJob(jobId: string, autoStart = false) {
+    const job = jobsStore.getJob(jobId);
+    if (!job) {
+      return;
+    }
+
+    // Only allow retrying failed or cancelled jobs
+    if (job.state.status !== 'failed' && job.state.status !== 'cancelled') {
+      console.warn('[app] Can only retry failed or cancelled jobs:', jobId);
+      return;
+    }
+
+    // Requeue the job
+    jobsStore.requeue(jobId);
+
+    // Optionally start the job immediately
+    if (autoStart) {
+      // Give the state a tick to update before starting
+      setTimeout(() => handleStartJob(jobId), 0);
+    }
   }
 
   /**
@@ -374,11 +459,17 @@ export function useAppOrchestration() {
    * according to concurrency limits.
    */
   function startAll() {
-    if (!queuedJobs.value.length) {
+    const queuedCount = queuedJobs.value.length;
+    if (!queuedCount) {
       return;
     }
     batchAutoStart.value = true;
     void fillActiveSlots();
+
+    // Send notification for batch start
+    const message =
+      queuedCount === 1 ? '1 conversion started.' : `${queuedCount} conversions started.`;
+    void sendNotification('Batch conversion', message);
   }
 
   /**
@@ -388,6 +479,10 @@ export function useAppOrchestration() {
    * also removes any queued jobs from the queue.
    */
   function cancelAll() {
+    const activeCount = activeJobs.value.length;
+    const queuedCount = jobs.value.filter((job) => job.state.status === 'queued').length;
+    const totalCancelled = activeCount + queuedCount;
+
     batchAutoStart.value = false;
     activeJobs.value.forEach((job) => {
       orchestrator.cancel(job.id).catch((error) => {
@@ -399,6 +494,15 @@ export function useAppOrchestration() {
       .forEach((job) => {
         jobsStore.removeJob(job.id);
       });
+
+    // Send notification for batch cancel
+    if (totalCancelled > 0) {
+      const message =
+        totalCancelled === 1
+          ? '1 conversion cancelled.'
+          : `${totalCancelled} conversions cancelled.`;
+      void sendNotification('Batch cancelled', message);
+    }
   }
 
   /**
@@ -443,16 +547,30 @@ export function useAppOrchestration() {
 
     if (fileHandler.isTauriRuntime()) {
       const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      const { exit } = await import('@tauri-apps/plugin-process');
       const currentWindow = getCurrentWindow();
       await currentWindow.onCloseRequested(async (event) => {
+        // Warn about running jobs first (they will be cancelled)
         if (hasActiveJobs.value) {
           const confirmed = window.confirm(
             `You have ${activeJobs.value.length} job(s) currently running. Are you sure you want to quit? This will cancel all active jobs.`,
           );
           if (!confirmed) {
             event.preventDefault();
+            return;
+          }
+        } else if (hasQueuedJobs.value) {
+          // Warn about queued jobs (they will be lost)
+          const confirmed = window.confirm(
+            `You have ${queuedJobs.value.length} job(s) in the queue that haven't started yet. These will be lost if you quit. Are you sure?`,
+          );
+          if (!confirmed) {
+            event.preventDefault();
+            return;
           }
         }
+        // Explicitly exit the app when the window is closed
+        await exit(0);
       });
     }
   };
@@ -489,6 +607,7 @@ export function useAppOrchestration() {
     handleFileDrop,
     handleBrowse,
     handleCancelJob,
+    handleRetryJob,
     handleUpdatePreset,
     handleStartJob,
     startAll,

@@ -24,7 +24,7 @@ import type { MediaKind } from '@/lib/types';
  * Props interface for FileUploader component.
  *
  * Mirrors the essential props from FileDropZone that are needed
- * for file upload functionality, with optional event handlers.
+ * for file upload functionality.
  */
 interface FileUploaderProps {
   /** Whether files are currently being dragged over the zone */
@@ -33,9 +33,6 @@ interface FileUploaderProps {
   hasActiveJobs: boolean;
   /** The media kind for file type filtering (optional) */
   mediaKind?: MediaKind;
-  /** Callback for file input events */
-  // eslint-disable-next-line no-unused-vars
-  onFileInput?: (event: Event) => void;
   /** Callback for browse button clicks */
   onBrowse?: () => void;
 }
@@ -51,6 +48,5 @@ defineProps<FileUploaderProps>();
     :has-active-jobs="hasActiveJobs"
     :media-kind="mediaKind"
     @browse="onBrowse"
-    @file-input="onFileInput"
   />
 </template>

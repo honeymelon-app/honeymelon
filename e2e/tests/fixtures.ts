@@ -23,7 +23,7 @@ export const test = base.extend<Fixtures, Options>({
     if (initialAppData) {
       await setAppData(initialAppData);
     }
-    const app = await launchTauriApp({ dev: false });
+    const app = await launchTauriApp({ dev: false, timeout: 180000 });
     await use(app);
     await app.stop();
   },

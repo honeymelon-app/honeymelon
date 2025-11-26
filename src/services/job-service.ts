@@ -43,8 +43,29 @@ export class JobService {
     return this.repository.getByStatuses(statuses);
   }
 
+  /**
+   * Normalizes a file path for duplicate comparison.
+   * Handles trailing slashes and normalizes path separators.
+   */
+  private normalizePath(path: string): string {
+    if (!path) return '';
+    // Remove trailing slashes and normalize separators
+    return path.replace(/\\/g, '/').replace(/\/+$/, '').trim();
+  }
+
   canEnqueuePath(path: string): boolean {
-    const duplicates = this.repository.getByPath(path);
+    const normalizedInput = this.normalizePath(path);
+    const allJobs = this.repository.getAll();
+
+    // Check against all non-terminal jobs (queued, probing, planning, running)
+    const activeStatuses = new Set(['queued', 'probing', 'planning', 'running']);
+    const duplicates = allJobs.filter((job) => {
+      if (!activeStatuses.has(job.state.status)) {
+        return false;
+      }
+      return this.normalizePath(job.path) === normalizedInput;
+    });
+
     if (duplicates.length > 0) {
       this.logDuplicate(path, `${duplicates.length} already queued`);
       return false;
@@ -58,12 +79,13 @@ export class JobService {
     const seen = new Set<string>();
 
     for (const path of paths) {
-      if (seen.has(path)) {
+      const normalized = this.normalizePath(path);
+      if (seen.has(normalized)) {
         duplicates.push(path);
         this.logDuplicate(path, 'provided twice in the same batch');
         continue;
       }
-      seen.add(path);
+      seen.add(normalized);
 
       if (!this.canEnqueuePath(path)) {
         duplicates.push(path);

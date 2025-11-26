@@ -10,6 +10,7 @@
     "core:webview:allow-internal-toggle-devtools",
     "opener:default",
     "notification:default",
+    "process:default",
     "store:default",
     "window-state:default",
     "fs:default",

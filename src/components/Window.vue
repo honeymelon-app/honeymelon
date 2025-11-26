@@ -44,7 +44,7 @@ const props = defineProps<WindowProps>();
 </script>
 
 <template>
-  <!-- Main window container with full screen height and theme-aware colors -->
+  <!-- Main window container -->
   <div class="flex h-screen flex-col bg-background text-foreground">
     <!-- Accessibility: Skip link for keyboard navigation to main content -->
     <a
@@ -61,7 +61,7 @@ const props = defineProps<WindowProps>();
     <div class="flex-1 w-full min-h-0">
       <main
         id="main-content"
-        class="flex h-full min-h-0 flex-col gap-6 p-6 pt-10"
+        class="flex h-full min-h-0 flex-col gap-5 p-5 pt-10"
         data-test="app-main"
       >
         <!-- Slot for injecting page-specific content -->

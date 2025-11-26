@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import type { Ref } from 'vue';
 
 import { ErrorHandler } from '@/lib/error-handler';
@@ -36,6 +37,53 @@ export function createRunnerClient(options: RunnerClientOptions): RunnerClient {
 
   const simulatedJobs = new Map<string, number>();
 
+  /**
+   * Checks if a file exists at the given path (via Tauri backend)
+   */
+  async function checkFileExists(path: string): Promise<boolean> {
+    try {
+      return await invoke<boolean>('file_exists', { path });
+    } catch {
+      // On error, assume file doesn't exist to avoid blocking conversions
+      return false;
+    }
+  }
+
+  /**
+   * Finds a unique output path by appending a numeric suffix if needed.
+   * E.g., if "video.mp4" exists, tries "video (1).mp4", "video (2).mp4", etc.
+   */
+  async function findUniqueOutputPath(basePath: string): Promise<string> {
+    // First check if the base path is available
+    const exists = await checkFileExists(basePath);
+    if (!exists) {
+      return basePath;
+    }
+
+    // Parse the path into components
+    const dir = pathDirname(basePath);
+    const fullName = pathBasename(basePath);
+    const lastDotIndex = fullName.lastIndexOf('.');
+    const nameWithoutExt = lastDotIndex > 0 ? fullName.slice(0, lastDotIndex) : fullName;
+    const ext = lastDotIndex > 0 ? fullName.slice(lastDotIndex) : '';
+
+    // Try numbered suffixes up to a reasonable limit
+    const maxAttempts = 100;
+    for (let i = 1; i <= maxAttempts; i++) {
+      const candidateName = `${nameWithoutExt} (${i})${ext}`;
+      const candidatePath = dir ? joinPath(dir, candidateName) : candidateName;
+      const candidateExists = await checkFileExists(candidatePath);
+      if (!candidateExists) {
+        return candidatePath;
+      }
+    }
+
+    // If we've exhausted attempts, use timestamp as fallback
+    const timestamp = Date.now();
+    const fallbackName = `${nameWithoutExt} (${timestamp})${ext}`;
+    return dir ? joinPath(dir, fallbackName) : fallbackName;
+  }
+
   async function run(jobId: string, decision: PlannerDecision): Promise<boolean> {
     if (simulate) {
       const simulatedJob = jobs.getJob(jobId);
@@ -50,7 +98,9 @@ export function createRunnerClient(options: RunnerClientOptions): RunnerClient {
       throw new JobError('Job not found', 'job_missing');
     }
 
-    const outputPath = buildOutputPath(job, decision);
+    // Build initial output path, then find a unique one if needed
+    const baseOutputPath = buildOutputPath(job, decision);
+    const outputPath = await findUniqueOutputPath(baseOutputPath);
     jobs.setOutputPath(jobId, outputPath);
 
     if (!decision.ffmpegArgs || decision.ffmpegArgs.length === 0) {

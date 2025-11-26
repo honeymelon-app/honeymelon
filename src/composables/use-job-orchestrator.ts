@@ -43,7 +43,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   const autoStartNext = options.autoStartNext ?? true;
   const jobs = useJobsStore();
   const prefs = usePrefsStore();
-  const { hasExclusiveActive, activeJobs } = storeToRefs(jobs);
+  const { hasExclusiveActive } = storeToRefs(jobs);
   const {
     maxConcurrency,
     outputDirectory,
@@ -251,14 +251,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
 
         const planningDecision = await planner.plan(summary, job.presetId, job.tier, job.path);
         const decision = planner.ensureDecisionHasInput(planningDecision, job.path);
-        const otherActive = activeJobs.value.filter(
-          (active) => active.id !== job.id && active.state.status === 'running',
-        ).length;
-
-        if (decision.remuxOnly === false && otherActive > 0) {
-          jobs.requeue(job.id);
-          return false;
-        }
 
         jobs.markRunning(job.id, decision);
 
@@ -297,14 +289,6 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
 
       const planningDecision = await planner.plan(summary, presetId, tier, path);
       const decision = planner.ensureDecisionHasInput(planningDecision, path);
-      const otherActive = activeJobs.value.filter(
-        (active) => active.id !== jobId && active.state.status === 'running',
-      ).length;
-
-      if (decision.remuxOnly === false && otherActive > 0) {
-        jobs.requeue(jobId);
-        return;
-      }
 
       jobs.markRunning(jobId, decision);
 

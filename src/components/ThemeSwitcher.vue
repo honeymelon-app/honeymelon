@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { MoonStar, Sun, SunMoon } from 'lucide-vue-next';
-import { type HTMLAttributes, onMounted } from 'vue';
+import { type HTMLAttributes, onMounted, computed } from 'vue';
 
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useColourMode } from '@/composables/use-colour-mode';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,19 @@ const props = defineProps<{
   class?: HTMLAttributes['class'];
 }>();
 
+const tooltipText = computed(() => {
+  switch (mode.value) {
+    case 'light':
+      return 'Light mode (click to switch)';
+    case 'dark':
+      return 'Dark mode (click to switch)';
+    case 'system':
+      return 'System theme (click to switch)';
+    default:
+      return 'Toggle theme';
+  }
+});
+
 onMounted(() => {
   handleColorModeChange();
 });
@@ -19,16 +33,25 @@ onMounted(() => {
 
 <template>
   <div :class="cn(props.class)">
-    <Button
-      variant="outline"
-      size="icon"
-      class="cursor-pointer"
-      @click="toggleMode"
-      data-test="theme-toggle"
-    >
-      <MoonStar v-if="mode === 'light'" class="size-4" />
-      <Sun v-if="mode === 'dark'" class="size-4" />
-      <SunMoon v-if="mode === 'system'" class="size-4" />
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <Button
+            variant="outline"
+            size="icon"
+            class="cursor-pointer"
+            @click="toggleMode"
+            data-test="theme-toggle"
+          >
+            <MoonStar v-if="mode === 'light'" class="size-4" />
+            <Sun v-if="mode === 'dark'" class="size-4" />
+            <SunMoon v-if="mode === 'system'" class="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{{ tooltipText }}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   </div>
 </template>

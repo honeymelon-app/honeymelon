@@ -33,6 +33,7 @@ e2e/
 │   ├── job-queue.spec.ts        # Job queue management tests
 │   ├── license.spec.ts          # License activation tests
 │   ├── error-handling.spec.ts   # Error handling and recovery tests
+│   ├── media-browse.spec.ts     # Picker-based enqueue + image flows
 │   └── i18n.spec.ts             # Internationalization tests
 └── README.md                     # This file
 ```
@@ -198,6 +199,11 @@ The test suite includes comprehensive coverage of all major features:
 
 - General failure banners on jobs
 - Permission-specific guidance (Full Disk Access CTA)
+
+### Media Browsing & Images ([media-browse.spec.ts](tests/media-browse.spec.ts))
+
+- Audio picker integration scoped to the Audio tab
+- Image dropzone conversion flow (enqueue → run → complete)
 
 ## Future Coverage Ideas
 

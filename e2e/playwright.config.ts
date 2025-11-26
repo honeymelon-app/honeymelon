@@ -27,7 +27,7 @@ export default defineConfig({
     },
   ],
 
-  timeout: 60000, // 60 seconds per test
+  timeout: 180000, // generous per-test timeout for Tauri boot + connection
   expect: {
     timeout: 10000, // 10 seconds for assertions
   },

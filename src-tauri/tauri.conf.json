@@ -16,9 +16,9 @@
         "title": "Honeymelon",
         "label": "main",
         "width": 700,
-        "height": 750,
+        "height": 700,
         "minWidth": 700,
-        "minHeight": 750,
+        "minHeight": 700,
         "resizable": false,
         "maximizable": false,
         "minimizable": true,
@@ -85,8 +85,8 @@
           "y": 170
         },
         "windowSize": {
-          "width": 660,
-          "height": 400
+          "width": 700,
+          "height": 700
         }
       }
     },

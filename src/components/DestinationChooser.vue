@@ -5,7 +5,14 @@ import { storeToRefs } from 'pinia';
 import { ref, computed, type HTMLAttributes } from 'vue';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { usePrefsStore } from '@/stores/prefs';
 
@@ -58,16 +65,24 @@ function openDialog() {
 
 <template>
   <div :class="cn(props.class)">
-    <Button
-      variant="outline"
-      size="icon"
-      class="cursor-pointer"
-      @click="openDialog"
-      :title="'Destination: ' + displayPath"
-      data-test="destination-trigger"
-    >
-      <Folder class="size-4" :class="{ 'text-primary': outputDirectory }" />
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <Button
+            variant="outline"
+            size="icon"
+            class="cursor-pointer"
+            @click="openDialog"
+            data-test="destination-trigger"
+          >
+            <Folder class="size-4" :class="{ 'text-primary': outputDirectory }" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Destination: {{ displayPath }}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
 
     <Dialog v-model:open="isDialogOpen">
       <DialogContent class="sm:max-w-lg">
@@ -129,13 +144,18 @@ function openDialog() {
                 <div class="font-medium text-sm">
                   {{ isChoosing ? 'Choosing folder...' : 'Custom folder' }}
                 </div>
-                <div
-                  v-if="outputDirectory"
-                  class="text-xs text-muted-foreground mt-1 truncate"
-                  :title="outputDirectory"
-                >
-                  {{ outputDirectory }}
-                </div>
+                <TooltipProvider v-if="outputDirectory">
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <div class="text-xs text-muted-foreground mt-1 truncate cursor-help">
+                        {{ outputDirectory }}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent class="max-w-sm">
+                      <p class="break-all">{{ outputDirectory }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <div v-else class="text-xs text-muted-foreground mt-1">
                   Click to choose a destination folder
                 </div>
@@ -150,6 +170,12 @@ function openDialog() {
               </div>
             </div>
           </button>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <DialogClose as-child>
+            <Button variant="outline" size="sm" class="cursor-pointer"> Close </Button>
+          </DialogClose>
         </div>
       </DialogContent>
     </Dialog>

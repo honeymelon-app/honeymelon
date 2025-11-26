@@ -12,7 +12,7 @@ const props = defineProps<{
   <div
     :class="
       cn(
-        'w-full rounded-lg bg-muted p-1 text-muted-foreground flex items-center justify-between shadow',
+        'w-full rounded-lg bg-muted p-1.5 text-muted-foreground flex items-center justify-between shadow-sm',
         props.class,
       )
     "

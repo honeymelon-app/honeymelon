@@ -1,6 +1,7 @@
 import { mockCommandError, mockTauriCommands } from '../helpers/tauri';
+
 import { expect, test } from './fixtures';
-import { withLicense } from './support/app-state';
+import { baseLicense, withLicense } from './support/app-state';
 
 const activeLicense = withLicense().license!;
 
@@ -30,6 +31,29 @@ test.describe('License Activation Flow', () => {
 
     await activateLicenseFromDialog(page, 'INVALID-INVALID-INVALID-INVALID-INVALID');
     await expect(page.locator('[data-test="license-error"]')).toContainText('License key rejected');
+  });
+
+  test('previews license details before activation', async ({ page }) => {
+    const preview = {
+      ...baseLicense,
+      key: 'PREVIEW-PREVIEW-PREVIEW-PREVIEW-PREVIEW',
+      licenseId: 'preview-license',
+      orderId: 'order-preview',
+      activatedAt: null,
+    };
+
+    await mockTauriCommands(page, {
+      current_license: null,
+      verify_license_key: preview,
+    });
+
+    await page.waitForSelector('[data-test="license-dialog"]', { state: 'visible' });
+    await page.fill('[data-test="license-input"]', preview.key);
+    await page.locator('[data-test="license-verify-button"]').click();
+
+    await expect(page.locator('text=preview-license')).toBeVisible();
+    await expect(page.locator('text=Includes Honeymelon')).toBeVisible();
+    await expect(page.locator('[data-test="license-error"]')).toBeHidden();
   });
 });
 

@@ -26,11 +26,9 @@
  */
 
 import { Upload } from 'lucide-vue-next';
-import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { Button } from '@/components/ui/button';
-import { getAcceptString } from '@/lib/media-formats';
 import type { MediaKind } from '@/lib/types';
 
 /**
@@ -57,98 +55,60 @@ interface FileDropZoneProps {
  *
  * Ensures the component works correctly even when some props are not provided.
  */
-const props = withDefaults(defineProps<FileDropZoneProps>(), {
-  isDragOver: false,
-  presetsReady: true,
-  hasActiveJobs: false,
-  mediaType: 'media',
-  mediaKind: 'video',
-});
-
-/**
- * Computed property for file input accept string.
- *
- * Generates the appropriate file type filter string based on the media kind,
- * ensuring users can only select supported file formats for conversion.
- */
-const acceptString = computed(() => getAcceptString(props.mediaKind));
+defineProps<FileDropZoneProps>();
 
 /**
  * Event emissions for file selection actions.
  *
  * Defines the events that parent components can listen to for handling
- * file uploads through different interaction methods.
+ * file uploads through Tauri's native file picker.
  */
 const emit = defineEmits<{
-  /** Emitted when user clicks browse button */
+  /** Emitted when user clicks to browse for files */
   browse: [];
-  /** Emitted when files are selected via input or drop */
-  fileInput: [event: Event];
 }>();
 
 const { t } = useI18n();
 
 /**
- * Reference to the hidden file input element.
+ * Handles browse/click actions.
  *
- * Used for programmatically triggering file selection dialogs.
- */
-const fileInput = ref<HTMLInputElement | null>(null);
-
-/**
- * Handles browse button clicks.
- *
- * Emits the browse event to allow parent components to handle
- * file dialog opening logic.
+ * Emits the browse event to trigger Tauri's native file picker.
  */
 function handleBrowse() {
   emit('browse');
-}
-
-/**
- * Handles file input change events.
- *
- * Emits the fileInput event with the change event, allowing
- * parent components to process the selected files.
- */
-function handleFileInput(event: Event) {
-  emit('fileInput', event);
 }
 </script>
 
 <template>
   <!-- Full-size drop zone displayed when no active jobs exist -->
-  <div v-if="!hasActiveJobs" class="py-3">
-    <label
-      for="file-uploader"
-      class="group bg-muted/10 rounded-lg h-52 flex flex-col items-center justify-center cursor-pointer border-2 border-dashed mx-auto"
-      :class="{ 'border-primary': isDragOver }"
+  <div v-if="!hasActiveJobs" class="py-2">
+    <div
+      class="group rounded-lg h-48 flex flex-col items-center justify-center cursor-pointer border-2 border-dashed border-border/60 mx-auto hover:border-primary/40 hover:bg-accent/30 transition-all duration-200"
+      :class="{ 'border-primary bg-primary/5 scale-[1.01]': isDragOver }"
       role="button"
       aria-label="Upload files"
       tabindex="0"
       data-test="file-dropzone"
       :data-media-kind="mediaKind"
       data-variant="full"
+      @click="handleBrowse"
       @keydown.enter="handleBrowse"
       @dragover.prevent
       @dragenter.prevent
       @drop.prevent
     >
       <!-- Upload icon for visual indication -->
-      <Upload class="size-12 text-slate-300" aria-hidden="true" />
-      <!-- Hidden file input for actual file selection -->
-      <input
-        ref="fileInput"
-        type="file"
-        id="file-uploader"
-        class="hidden"
-        @change="handleFileInput"
-        multiple
-        :accept="acceptString"
-        aria-label="Upload media files"
-      />
+      <div
+        class="w-12 h-12 rounded-full bg-muted/80 flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors duration-200"
+      >
+        <Upload
+          class="w-6 h-6 text-muted-foreground group-hover:text-primary/70 transition-colors duration-200"
+          aria-hidden="true"
+        />
+      </div>
       <!-- Main upload prompt text -->
-      <div class="font-semibold text-sm text-foreground mt-2 max-w-xs text-center">
+      <div class="font-medium text-sm text-foreground max-w-xs text-center">
         {{ t('upload.title', { type: mediaType }) }}
       </div>
       <!-- Secondary instruction text -->
@@ -158,9 +118,10 @@ function handleFileInput(event: Event) {
       <!-- Browse button for explicit file selection -->
       <div class="mt-4">
         <Button
-          @click="handleBrowse"
+          @click.stop="handleBrowse"
           variant="secondary"
-          class="group-hover:bg-secondary/80"
+          size="sm"
+          class="cursor-pointer"
           :disabled="!presetsReady"
           data-test="file-browse-button"
           :data-media-kind="mediaKind"
@@ -168,21 +129,21 @@ function handleFileInput(event: Event) {
           {{ t('upload.select') }}
         </Button>
       </div>
-    </label>
+    </div>
   </div>
 
   <!-- Compact drop zone displayed when jobs are active -->
-  <div v-else class="py-3">
-    <label
-      for="file-uploader-compact"
-      class="group bg-muted/10 rounded-lg flex items-center justify-center cursor-pointer border-2 border-dashed py-3 transition-all"
-      :class="{ 'border-primary': isDragOver }"
+  <div v-else class="py-1">
+    <div
+      class="group rounded-lg flex items-center justify-center cursor-pointer border border-dashed border-border/60 py-2.5 px-4 hover:border-primary/40 hover:bg-accent/30 transition-all duration-200"
+      :class="{ 'border-primary bg-primary/5': isDragOver }"
       role="button"
       aria-label="Upload more files"
       tabindex="0"
       data-test="file-dropzone"
       :data-media-kind="mediaKind"
       data-variant="compact"
+      @click="handleBrowse"
       @keydown.enter="handleBrowse"
       @dragover.prevent
       @dragenter.prevent
@@ -190,34 +151,23 @@ function handleFileInput(event: Event) {
     >
       <div class="flex items-center gap-3">
         <!-- Upload icon -->
-        <Upload class="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+        <Upload class="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         <!-- Compact upload prompt -->
-        <span class="text-sm text-muted-foreground"> Drop more files here or </span>
+        <span class="text-sm text-muted-foreground">Drop more files or</span>
         <!-- Browse button -->
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           :disabled="!presetsReady"
-          class="cursor-pointer"
+          class="cursor-pointer h-7 px-2 text-primary hover:text-primary"
           aria-label="Browse for more media files"
-          @click="handleBrowse"
+          @click.stop="handleBrowse"
           data-test="file-browse-button"
           :data-media-kind="mediaKind"
         >
           Browse
         </Button>
       </div>
-      <!-- Hidden file input for compact mode -->
-      <input
-        ref="fileInput"
-        type="file"
-        id="file-uploader-compact"
-        class="hidden"
-        @change="handleFileInput"
-        multiple
-        :accept="acceptString"
-        aria-label="Upload more media files"
-      />
-    </label>
+    </div>
   </div>
 </template>

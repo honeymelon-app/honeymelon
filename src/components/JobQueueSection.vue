@@ -91,7 +91,7 @@ function handleClearCompleted() {
           @start="handleStart"
         />
       </div>
-      <div class="h-14">&nbsp;</div>
+      <div>&nbsp;</div>
     </ScrollArea>
   </section>
 </template>

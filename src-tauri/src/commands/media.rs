@@ -1,9 +1,16 @@
+use std::path::Path;
 use tauri::{AppHandle, State};
 
 use crate::{
     error::AppError, ffmpeg_capabilities::CapabilitySnapshot, ffmpeg_probe::ProbeResponse,
     services::ServiceRegistry,
 };
+
+/// Checks if a file exists at the given path
+#[tauri::command]
+pub fn file_exists(path: String) -> bool {
+    Path::new(&path).exists()
+}
 
 #[tauri::command]
 pub async fn load_capabilities(

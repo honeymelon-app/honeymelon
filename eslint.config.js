@@ -26,6 +26,7 @@ export default [
       '**/*.test.js',
       '**/*.spec.ts',
       '**/*.spec.js',
+      '!e2e/tests/**/*.spec.ts',
     ],
   },
 

@@ -105,11 +105,11 @@ const allJobs = computed(() => [...props.activeJobs, ...props.completedJobs]);
   <!-- Empty state message when no jobs are present -->
   <div
     v-if="props.hasNoJobs"
-    class="flex items-center justify-center py-24"
+    class="flex items-center justify-center py-20"
     data-test="job-queue-empty"
   >
-    <div class="text-center text-muted-foreground">
-      <p class="text-sm">No files in queue</p>
+    <div class="text-center">
+      <p class="text-sm text-muted-foreground/70">No files in queue</p>
     </div>
   </div>
 </template>

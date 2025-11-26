@@ -8,6 +8,7 @@ pub fn build_app() -> Builder<AppRuntime> {
     Builder::new()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_store::Builder::default().build())
@@ -15,6 +16,7 @@ pub fn build_app() -> Builder<AppRuntime> {
         .invoke_handler(tauri::generate_handler![
             crate::commands::media::load_capabilities,
             crate::commands::media::probe_media,
+            crate::commands::media::file_exists,
             crate::commands::jobs::start_job,
             crate::commands::jobs::cancel_job,
             crate::commands::jobs::set_max_concurrency,

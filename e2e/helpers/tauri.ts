@@ -11,15 +11,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT = join(__dirname, '..', '..');
 const E2E_TAURI_CONFIG = join(PROJECT_ROOT, 'e2e', 'tauri.e2e.conf.json');
-const DEBUG_APP_PATH = join(
-  PROJECT_ROOT,
-  'src-tauri',
-  'target',
-  'debug',
-  'bundle',
-  'macos',
-  'Honeymelon.app',
-);
+const DEBUG_APP_CANDIDATES = [
+  process.env.TAURI_DEBUG_APP_PATH,
+  join(PROJECT_ROOT, 'src-tauri', 'target', 'debug', 'bundle', 'macos', 'Honeymelon.app'),
+  join(
+    PROJECT_ROOT,
+    'src-tauri',
+    'target',
+    'aarch64-apple-darwin',
+    'debug',
+    'bundle',
+    'macos',
+    'Honeymelon.app',
+  ),
+  join(
+    PROJECT_ROOT,
+    'src-tauri',
+    'target',
+    'x86_64-apple-darwin',
+    'debug',
+    'bundle',
+    'macos',
+    'Honeymelon.app',
+  ),
+];
 
 /**
  * Helper utilities for launching and controlling Tauri app during E2E tests
@@ -121,8 +136,7 @@ const APP_SETTINGS_FILE = 'settings.json';
 const APP_JOBS_FILE = 'jobs.json';
 const APP_LICENSE_FILE = 'license.json';
 
-let frontendBuildPromise: Promise<void> | null = null;
-let appBundlePromise: Promise<void> | null = null;
+let appBundlePromise: Promise<string> | null = null;
 
 /**
  * Launch the Tauri application for testing
@@ -139,7 +153,7 @@ let appBundlePromise: Promise<void> | null = null;
  * ```
  */
 export async function launchTauriApp(options: TauriAppOptions = {}): Promise<TauriApp> {
-  const { dev = true, debugPort = 9222, timeout = 30000, env = {} } = options;
+  const { dev = true, debugPort = 9222, timeout = 120000, env = {} } = options;
   await mkdir(TEST_HOME_DIR, { recursive: true });
   const devHost = '127.0.0.1';
 
@@ -150,16 +164,13 @@ export async function launchTauriApp(options: TauriAppOptions = {}): Promise<Tau
 
   const projectRoot = PROJECT_ROOT;
 
-  if (dev) {
-    await ensureFrontendBuild(projectRoot);
-  } else {
-    await ensureAppBundle(projectRoot);
+  let appBundlePath: string | null = null;
+  if (!dev) {
+    appBundlePath = await ensureAppBundle(projectRoot);
   }
-  const command = dev ? 'npm' : 'open';
+  const command = dev ? 'npm' : resolveDebugBinary(appBundlePath);
   const debugArgs = ['--remote-debugging-port', debugPort.toString()];
-  const args = dev
-    ? ['run', 'tauri', 'dev', '--', '--config', E2E_TAURI_CONFIG, '--', ...debugArgs]
-    : ['-a', DEBUG_APP_PATH, '--args', debugArgs.join(' ')];
+  const args = dev ? ['run', 'tauri', 'dev', '--', '--config', E2E_TAURI_CONFIG] : debugArgs;
 
   const tauriProcess = spawn(command, args, {
     cwd: projectRoot,
@@ -249,15 +260,21 @@ async function waitForTauriReady(debugPort: number, timeout: number): Promise<bo
     const abortTimeout = setTimeout(() => controller.abort(), 1000);
 
     try {
-      // Try to fetch the debug endpoint
-      const response = await fetch(`http://localhost:${debugPort}/json/version`, {
-        signal: controller.signal,
-      });
+      // Try common WebKit/CDP discovery endpoints
+      const endpoints = [
+        `http://localhost:${debugPort}/json/version`,
+        `http://127.0.0.1:${debugPort}/json/version`,
+        `http://localhost:${debugPort}/json`,
+        `http://127.0.0.1:${debugPort}/json`,
+      ];
 
-      if (response.ok) {
-        // Additional delay to ensure WebView is fully initialized
-        await sleep(1000);
-        return true;
+      for (const url of endpoints) {
+        const response = await fetch(url, { signal: controller.signal });
+        if (response.ok) {
+          // Additional delay to ensure WebView is fully initialized
+          await sleep(1000);
+          return true;
+        }
       }
     } catch {
       // Expected during startup, continue polling
@@ -481,7 +498,7 @@ export async function mockTauriCommands(
 
           window.__TAURI_INTERNALS__.invoke = (cmd, args) => {
             if (Object.prototype.hasOwnProperty.call(pendingMocks, cmd)) {
-              console.info(`[mockTauriCommands] intercepted ${cmd}`);
+              console.warn(`[mockTauriCommands] intercepted ${cmd}`);
               const mockValue = pendingMocks[cmd as keyof typeof pendingMocks];
               if (isMockError(mockValue)) {
                 const payload = mockValue;
@@ -553,30 +570,13 @@ function resolveMimeType(filePath: string): string {
   }
 }
 
-async function ensureFrontendBuild(projectRoot: string): Promise<void> {
-  if (!frontendBuildPromise) {
-    frontendBuildPromise = new Promise((resolve, reject) => {
-      const build = spawn('npm', ['run', 'build'], {
-        cwd: projectRoot,
-        stdio: 'inherit',
-      });
-      build.on('exit', (code) => {
-        if (code === 0) {
-          resolve();
-        } else {
-          reject(new Error(`Frontend build failed with code ${code ?? -1}`));
-        }
-      });
-      build.on('error', (error) => {
-        reject(error);
-      });
-    });
+async function ensureAppBundle(projectRoot: string): Promise<string> {
+  const existing = resolveDebugAppPath();
+  if (existing) {
+    return existing;
   }
-  return frontendBuildPromise;
-}
 
-async function ensureAppBundle(projectRoot: string): Promise<void> {
-  if (!appBundlePromise && !existsSync(DEBUG_APP_PATH)) {
+  if (!appBundlePromise) {
     appBundlePromise = new Promise((resolve, reject) => {
       const build = spawn(
         'npm',
@@ -584,11 +584,21 @@ async function ensureAppBundle(projectRoot: string): Promise<void> {
         {
           cwd: projectRoot,
           stdio: 'inherit',
+          env: {
+            ...process.env,
+            VITE_E2E_SIMULATION: 'true',
+            PLAYWRIGHT_E2E: 'true',
+          },
         },
       );
       build.on('exit', (code) => {
         if (code === 0) {
-          resolve();
+          const resolved = resolveDebugAppPath();
+          if (resolved) {
+            resolve(resolved);
+          } else {
+            reject(new Error('Tauri debug build succeeded but bundle was not found'));
+          }
         } else {
           reject(new Error(`Tauri debug build failed with code ${code ?? -1}`));
         }
@@ -598,5 +608,41 @@ async function ensureAppBundle(projectRoot: string): Promise<void> {
       });
     });
   }
-  return appBundlePromise ?? Promise.resolve();
+
+  const bundle = await appBundlePromise;
+  if (!bundle) {
+    throw new Error('Tauri debug bundle could not be located');
+  }
+  return bundle;
+}
+
+function resolveDebugAppPath(): string | null {
+  for (const candidate of DEBUG_APP_CANDIDATES) {
+    if (candidate && existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function resolveDebugBinary(appBundlePath: string | null): string {
+  const bundle = appBundlePath ?? resolveDebugAppPath();
+  if (!bundle) {
+    throw new Error(
+      'Honeymelon debug bundle not found; run `npm run tauri build -- --debug` first',
+    );
+  }
+
+  const binCandidates = [
+    join(bundle, 'Contents', 'MacOS', 'Honeymelon'),
+    join(bundle, 'Contents', 'MacOS', 'honeymelon'),
+  ];
+
+  for (const candidate of binCandidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  throw new Error(`Honeymelon binary not found under ${bundle}`);
 }

@@ -74,7 +74,6 @@ const {
   hasQueuedJobs,
   presetOptions,
   isAboutOpen,
-  handleFileInput,
   handleBrowse,
   handleCancelJob,
   handleUpdatePreset,
@@ -201,38 +200,6 @@ const hasNoImageJobs = computed(
 );
 
 /**
- * Media-kind-specific event handlers.
- *
- * These handlers ensure that when files are added through different tabs,
- * the appropriate tab becomes active and the file input is processed correctly.
- * This provides a seamless user experience when switching between media types.
- */
-
-/**
- * Handles file input for video files and switches to video tab.
- */
-const handleVideoFileInput = (event: Event) => {
-  activeTab.value = 'video';
-  handleFileInput(event);
-};
-
-/**
- * Handles file input for audio files and switches to audio tab.
- */
-const handleAudioFileInput = (event: Event) => {
-  activeTab.value = 'audio';
-  handleFileInput(event);
-};
-
-/**
- * Handles file input for image files and switches to image tab.
- */
-const handleImageFileInput = (event: Event) => {
-  activeTab.value = 'image';
-  handleFileInput(event);
-};
-
-/**
  * Media-kind-specific browse handlers.
  *
  * These functions trigger file browsing dialogs filtered by media type,
@@ -348,7 +315,6 @@ const handleImageBrowse = () => handleBrowse('image');
                   :is-drag-over="isDragOver"
                   :has-active-jobs="hasVideoActiveJobs || hasVideoCompletedJobs"
                   :media-kind="'video'"
-                  :on-file-input="handleVideoFileInput"
                   :on-browse="handleVideoBrowse"
                 />
                 <!-- Job queue displaying video conversion jobs -->
@@ -378,7 +344,6 @@ const handleImageBrowse = () => handleBrowse('image');
                   :is-drag-over="isDragOver"
                   :has-active-jobs="hasAudioActiveJobs || hasAudioCompletedJobs"
                   :media-kind="'audio'"
-                  :on-file-input="handleAudioFileInput"
                   :on-browse="handleAudioBrowse"
                 />
                 <!-- Job queue displaying audio conversion jobs -->
@@ -408,7 +373,6 @@ const handleImageBrowse = () => handleBrowse('image');
                   :is-drag-over="isDragOver"
                   :has-active-jobs="hasImageActiveJobs || hasImageCompletedJobs"
                   :media-kind="'image'"
-                  :on-file-input="handleImageFileInput"
                   :on-browse="handleImageBrowse"
                 />
                 <!-- Job queue displaying image conversion jobs -->

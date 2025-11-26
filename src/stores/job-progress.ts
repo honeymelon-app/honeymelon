@@ -24,11 +24,22 @@ export function useJobProgress(queue: JobQueueComposable): JobProgressComposable
 
       const processed = job.state.progress.processedSeconds ?? 0;
       const duration = job.summary?.durationSec ?? 0;
+      const speed = job.state.progress.speed ?? 0;
+
       if (duration <= 0) {
         continue;
       }
+
       const remaining = Math.max(duration - processed, 0);
-      total += remaining;
+
+      // Use FFmpeg's reported encoding speed for accurate ETA
+      // speed=2.0x means encoding at twice real-time, so remaining wall time = remaining / speed
+      if (speed > 0) {
+        total += remaining / speed;
+      } else {
+        // Fallback to real-time estimate if no speed data
+        total += remaining;
+      }
       haveEstimate = true;
     }
 
@@ -60,9 +71,11 @@ export function useJobProgress(queue: JobQueueComposable): JobProgressComposable
         };
 
         if (progress.speed === undefined && ratio > 0) {
-          const elapsed = performance.now() - job.state.startedAt;
+          // Use Date.now() since job.state.startedAt is also Date.now() timestamp
+          const elapsed = Date.now() - job.state.startedAt;
           if (elapsed > 0) {
             const processedSeconds = nextProgress.processedSeconds;
+            // Calculate encoding speed as: media seconds processed / wall seconds elapsed
             const speed = (processedSeconds ?? 0) / (elapsed / 1000);
             nextProgress = {
               ...nextProgress,
