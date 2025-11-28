@@ -374,8 +374,8 @@ describe('useJobOrchestrator', () => {
     expect(jobsStore.markRunning).not.toHaveBeenCalled();
   });
 
-  it('requeues job when another active job prevents start', async () => {
-    const { job, jobsStore, refs } = setupStores();
+  it('returns false when exclusive job is already running', async () => {
+    const { jobsStore, refs } = setupStores();
     vi.useFakeTimers();
 
     refs.activeJobsRef.value = [
@@ -385,8 +385,11 @@ describe('useJobOrchestrator', () => {
         presetId: 'preset-video-mp4',
         tier: 'balanced',
         state: { status: 'running' },
+        exclusive: true,
       } as MockJob,
     ];
+    // Set hasExclusiveActive to true to simulate an exclusive job blocking new starts
+    refs.hasExclusiveActiveRef.value = true;
 
     planJobMock.mockReturnValue({
       preset: buildPreset(),
@@ -402,8 +405,10 @@ describe('useJobOrchestrator', () => {
     await vi.advanceTimersByTimeAsync(200);
     const result = await resultPromise;
 
+    // When hasExclusiveActive is true, startNextAvailable returns false early
+    // without attempting to start or requeue any job
     expect(result).toBe(false);
-    expect(jobsStore.requeue).toHaveBeenCalledWith(job.id);
+    expect(jobsStore.startNext).not.toHaveBeenCalled();
     expect(jobsStore.markRunning).not.toHaveBeenCalled();
     expect(jobsStore.markFailed).not.toHaveBeenCalled();
   });
