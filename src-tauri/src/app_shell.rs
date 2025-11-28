@@ -38,9 +38,13 @@ pub fn build_app() -> Builder<AppRuntime> {
             crate::commands::licensing::activate_license,
             crate::commands::licensing::current_license,
             crate::commands::licensing::remove_license,
+        ]
+        // Only register testing commands in debug builds
+        #[cfg(debug_assertions)]
+        .extend(tauri::generate_handler![
             crate::commands::testing::enable_remote_ui,
             crate::commands::testing::disable_remote_ui
-        ])
+        ]))
         .setup(|app| {
             configure_menus(app)?;
             Ok(())
