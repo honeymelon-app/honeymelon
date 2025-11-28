@@ -101,6 +101,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          prefix-key: v1-rust
+          add-job-id-key: true
+          add-rust-environment-hash-key: true
 
       - name: Check Rust formatting
         run: cd src-tauri && cargo fmt --all -- --check
@@ -143,6 +146,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          prefix-key: v1-rust
+          add-job-id-key: true
+          add-rust-environment-hash-key: true
 
       - name: Install dependencies
         run: npm ci
@@ -290,6 +296,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          prefix-key: v1-rust
+          add-job-id-key: true
+          add-rust-environment-hash-key: true
 
       - name: Install dependencies
         run: npm ci
