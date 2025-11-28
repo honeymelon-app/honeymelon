@@ -44,7 +44,8 @@ test.describe('Conversion Flow', () => {
         if (!api.mockState.eventListeners.has('job:progress')) {
           api.mockState.eventListeners.set('job:progress', new Set());
         }
-        api.mockState.eventListeners.get('job:progress')!.add((payload: unknown) => {
+        const listeners = api.mockState.eventListeners.get('job:progress');
+        listeners?.add((payload: unknown) => {
           const p = payload as { percent?: number };
           if (p.percent !== undefined) {
             (window as TestWindow).__test_progress_events =

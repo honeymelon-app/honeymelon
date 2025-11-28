@@ -22,7 +22,11 @@ pub fn build_app() -> Builder<AppRuntime> {
         builder
     };
 
-    // Register core commands available in all builds
+    // Note: Command lists are duplicated between debug/release because Tauri's generate_handler!
+    // macro doesn't support conditional command inclusion. Testing commands are only registered
+    // in debug builds to prevent accidental exposure in production.
+
+    // Register core commands in release builds
     #[cfg(not(debug_assertions))]
     let builder =
         builder
@@ -62,6 +66,7 @@ pub fn build_app() -> Builder<AppRuntime> {
                 crate::commands::licensing::activate_license,
                 crate::commands::licensing::current_license,
                 crate::commands::licensing::remove_license,
+                // Testing commands - only available in debug builds
                 crate::commands::testing::enable_remote_ui,
                 crate::commands::testing::disable_remote_ui,
             ]);
