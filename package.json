@@ -118,7 +118,7 @@
     "happy-dom": "^20.0.10",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6",
-    "markdownlint-cli": "^0.34.0",
+    "markdownlint-cli": "^0.46.0",
     "playwright": "^1.56.1",
     "prettier": "^3.6.2",
     "semantic-release": "^24.0.0",
@@ -132,5 +132,8 @@
     "vitest": "^4.0.5",
     "vue-eslint-parser": "^9.4.3",
     "vue-tsc": "^2.1.10"
+  },
+  "overrides": {
+    "@conventional-changelog/git-client": "^2.5.1"
   }
 }

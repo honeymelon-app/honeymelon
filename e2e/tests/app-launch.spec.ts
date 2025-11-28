@@ -1,8 +1,9 @@
 import type { Page } from '@playwright/test';
 
 import { simulateFileDrop } from '../helpers/tauri';
-import { loadFixtureManifest } from './global-setup';
+
 import { expect, test } from './fixtures';
+import { loadFixtureManifest } from './global-setup';
 import { withLicense } from './support/app-state';
 
 type FixtureManifest = Record<string, Record<string, string>>;

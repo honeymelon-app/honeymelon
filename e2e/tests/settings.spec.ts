@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import { mockTauriCommands } from '../helpers/tauri';
+
 import { expect, test } from './fixtures';
 import { withLicense } from './support/app-state';
 
