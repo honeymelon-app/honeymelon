@@ -1,7 +1,8 @@
-import { expect, test } from './fixtures';
-import { withLicense } from './support/app-state';
 import { simulateFileDrop } from '../helpers/tauri';
+
+import { expect, test } from './fixtures';
 import { loadFixtureManifest } from './global-setup';
+import { withLicense } from './support/app-state';
 
 type FixtureManifest = Record<string, Record<string, string>>;
 let manifestCache: FixtureManifest | undefined;
