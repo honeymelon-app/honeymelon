@@ -5,13 +5,22 @@ use tauri::{App, Builder, Emitter, Manager, Wry};
 type AppRuntime = Wry;
 
 pub fn build_app() -> Builder<AppRuntime> {
-    Builder::new()
+    let builder = Builder::new()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_store::Builder::default().build());
+
+    // Initialize Remote UI plugin when E2E testing is enabled (via environment variable)
+    let builder = if std::env::var("PLAYWRIGHT_E2E").is_ok() {
+        builder.plugin(tauri_remote_ui::init())
+    } else {
+        builder
+    };
+
+    builder
         .manage(ServiceRegistry::default())
         .invoke_handler(tauri::generate_handler![
             crate::commands::media::load_capabilities,
@@ -26,7 +35,9 @@ pub fn build_app() -> Builder<AppRuntime> {
             crate::commands::licensing::verify_license_key,
             crate::commands::licensing::activate_license,
             crate::commands::licensing::current_license,
-            crate::commands::licensing::remove_license
+            crate::commands::licensing::remove_license,
+            crate::commands::testing::enable_remote_ui,
+            crate::commands::testing::disable_remote_ui
         ])
         .setup(|app| {
             configure_menus(app)?;

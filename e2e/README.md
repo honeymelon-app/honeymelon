@@ -16,31 +16,44 @@ The E2E tests verify the complete application workflow from the user's perspecti
 - Comprehensive error handling and recovery
 - Internationalization (i18n) and localization
 
+## Testing Approach
+
+The tests use the **Tauri Remote UI plugin** approach for macOS, which allows Playwright to control the Vue.js UI through a web browser while the Tauri backend continues running. This approach works around macOS's lack of WebDriver support for WKWebView.
+
+### Two Modes of Operation
+
+1. **Remote UI Mode (macOS)**: Tests connect to the actual Tauri app via the Remote UI plugin's WebSocket server. The app serves its UI on a local port (default: 9090), allowing Playwright to interact with it like a web application.
+
+2. **Browser Mode (CI/Linux)**: Tests run against the Vite dev server with mocked Tauri APIs. This enables testing the UI logic without requiring the Tauri backend, useful for CI pipelines or development on non-macOS systems.
+
 ## Structure
 
 ```
 e2e/
 ├── playwright.config.ts          # Playwright configuration
-├── helpers/                      # Test helper utilities
-│   ├── tauri.ts                 # Tauri app launch and control
-│   ├── media-fixtures.ts        # Test media file generation
-│   └── index.ts                 # Helper exports
-├── tests/                        # Test files
-│   ├── app-launch.spec.ts       # App initialization tests
-│   ├── preset-selection.spec.ts # Preset UI tests
-│   ├── conversion-flow.spec.ts  # End-to-end conversion tests
-│   ├── settings.spec.ts         # Settings and preferences tests
-│   ├── job-queue.spec.ts        # Job queue management tests
-│   ├── license.spec.ts          # License activation tests
-│   ├── error-handling.spec.ts   # Error handling and recovery tests
-│   ├── media-browse.spec.ts     # Picker-based enqueue + image flows
-│   └── i18n.spec.ts             # Internationalization tests
-└── README.md                     # This file
+├── tauri.e2e.conf.json           # Tauri-specific config for E2E
+├── helpers/                       # Test helper utilities
+│   ├── tauri.ts                  # Tauri mocking and control
+│   ├── media-fixtures.ts         # Test media file generation
+│   └── index.ts                  # Helper exports
+├── tests/                         # Test files
+│   ├── fixtures.ts               # Playwright test fixtures
+│   ├── global-setup.ts           # Global setup (fixture generation)
+│   ├── support/                  # Test support utilities
+│   │   └── app-state.ts          # App state helpers (license, etc.)
+│   ├── app-launch.spec.ts        # App initialization tests
+│   ├── preset-selection.spec.ts  # Preset UI tests
+│   ├── conversion-flow.spec.ts   # End-to-end conversion tests
+│   ├── settings.spec.ts          # Settings and preferences tests
+│   ├── job-queue.spec.ts         # Job queue management tests
+│   ├── license.spec.ts           # License activation tests
+│   ├── error-handling.spec.ts    # Error handling and recovery tests
+│   ├── media-browse.spec.ts      # Picker-based enqueue + image flows
+│   └── i18n.spec.ts              # Internationalization tests
+└── README.md                      # This file
 ```
 
 ## Running Tests
-
-> **Note:** The Playwright suite targets the macOS Tauri bundle. Run the tests on macOS hardware with Xcode command line tools installed.
 
 ### Prerequisites
 
@@ -56,13 +69,45 @@ e2e/
    npx playwright install
    ```
 
-3. Ensure Tauri dev dependencies are present. The suite spawns `npm run tauri dev` automatically—no manual build step is required.
+3. (Optional) Install FFmpeg for real media fixture generation:
 
-### Run All Tests
+   ```bash
+   # macOS
+   brew install ffmpeg
+
+   # Ubuntu/Debian
+   apt-get install ffmpeg
+   ```
+
+### Browser Mode (Default - works on any platform)
+
+Run tests against the Vite dev server with mocked Tauri APIs:
 
 ```bash
 npm run test:e2e
 ```
+
+### Remote UI Mode (macOS only)
+
+To run tests against the actual Tauri app:
+
+1. Build the app with Remote UI enabled:
+
+   ```bash
+   PLAYWRIGHT_E2E=true npm run tauri:build
+   ```
+
+2. Start the app with Remote UI server:
+
+   ```bash
+   PLAYWRIGHT_E2E=true ./path/to/Honeymelon.app/Contents/MacOS/Honeymelon
+   ```
+
+3. Run tests in Remote UI mode:
+
+   ```bash
+   TAURI_REMOTE_UI=true npm run test:e2e
+   ```
 
 ### Run Tests in UI Mode
 
@@ -73,8 +118,7 @@ npm run test:e2e:ui
 ### Run Specific Test File
 
 ```bash
-playwright test e2e/tests/app-launch.spec.ts
-playwright test e2e/tests/settings.spec.ts
+npx playwright test -c e2e/playwright.config.ts e2e/tests/app-launch.spec.ts
 ```
 
 ### Debug Tests
@@ -85,181 +129,23 @@ npm run test:e2e:debug
 
 ## Helper Utilities
 
-The fixtures and helpers under `e2e/helpers` provide a high-level API for orchestrating the desktop app:
+The fixtures and helpers under `e2e/helpers` provide a high-level API for testing:
 
-- `initialAppData` fixture option seeds `settings.json`, `jobs.json`, and `license.json` in the Tauri config directory prior to launch.
-- `setAppData`, `seedPreferences`, `seedJobs`, `seedLicense` can be used directly from tests for ad-hoc state shaping.
-- `mockTauriCommands(page, map)` overrides `window.__TAURI_INTERNALS__.invoke` for targeted commands. Pair with `mockCommandError(message, code)` to simulate rejection cases.
-- `simulateFileDrop(page, selector, [paths])` dispatches synthetic drag events with actual files generated by `global-setup`.
-- The helpers connect to the WebKit WebView via CDP using `--remote-debugging-port`. A dedicated Chromium instance is created per test to avoid stale sessions.
+### Test Fixtures ([tests/fixtures.ts](tests/fixtures.ts))
 
-During E2E runs the app bootstraps with `VITE_E2E_SIMULATION=true`, which enables the simulated runner/probe logic and exposes `window.__HONEYMELON_TEST_API__` for fine-grained job control.
-
-## Writing Tests
-
-### Test Structure
-
-Each test file follows this pattern:
-
-```typescript
-import { test, expect } from '@playwright/test';
-
-test.describe('Feature Name', () => {
-  test('should do something', async ({ page }) => {
-    // Test implementation
-  });
-});
-```
-
-### Best Practices
-
-1. **Use descriptive test names**: Test names should clearly describe what is being tested
-2. **One assertion per test**: Keep tests focused on a single behavior
-3. **Clean up resources**: Use `afterAll` hooks to clean up spawned processes
-4. **Handle timeouts**: Tauri app launch can be slow, adjust timeouts accordingly
-5. **Test isolation**: Each test should be independent and not rely on previous test state
-
-### Connecting to Tauri WebView
-
-The current test implementation uses placeholder tests. To connect to the actual Tauri WebView:
-
-1. Launch the Tauri app in development mode
-2. Enable remote debugging in the WebView
-3. Connect Playwright to the debug port
-4. Interact with the UI using Playwright selectors
-
-Example (to be implemented):
-
-```typescript
-test('should launch app', async ({ page }) => {
-  // Launch Tauri app
-  const tauriProcess = spawnTauriDev();
-
-  // Wait for WebView debug port
-  await waitForDebugPort(9222);
-
-  // Connect Playwright
-  await page.goto('http://localhost:9222');
-
-  // Test UI
-  await expect(page.locator('[data-testid="app-title"]')).toBeVisible();
-
-  // Cleanup
-  tauriProcess.kill();
-});
-```
-
-## Test Coverage
-
-The test suite includes comprehensive coverage of all major features:
-
-### App Launch and Initialization ([app-launch.spec.ts](tests/app-launch.spec.ts))
-
-- Bootstrap sanity, primary window visibility, and chrome controls
-- Drop-zone smoke test to ensure enqueued jobs render
-
-### Preset Selection ([preset-selection.spec.ts](tests/preset-selection.spec.ts))
-
-- Displays preset dropdowns for queued jobs
-- Updates preset labels when users pick different formats
-- Ensures audio jobs only list audio presets
-
-### Conversion Flow ([conversion-flow.spec.ts](tests/conversion-flow.spec.ts))
-
-- Happy-path conversion (queued → running → completed)
-- Cancellation during running state
-- Progress indicator visibility while running
-- Manual failure injection to verify error messaging
-- Batch queue validation
-
-### Settings Controls ([settings.spec.ts](tests/settings.spec.ts))
-
-- Destination chooser dialog interactions
-- Custom output folder selection via mocked backend command
-- Theme toggle behavior
-
-### Job Queue Operations ([job-queue.spec.ts](tests/job-queue.spec.ts))
-
-- Adds/removes jobs and clears completed entries
-- Tab-based filtering between video/audio queues
-- Start All execution path
-
-### License Management ([license.spec.ts](tests/license.spec.ts))
-
-- First-run activation dialog
-- Activation success/failure flows via mocked `activate_license`
-- Bypass when a stored license exists
-
-### Internationalization ([i18n.spec.ts](tests/i18n.spec.ts))
-
-- Language switcher updates tab labels
-- Locale preference persists after reload through localStorage
-
-### Error Handling ([error-handling.spec.ts](tests/error-handling.spec.ts))
-
-- General failure banners on jobs
-- Permission-specific guidance (Full Disk Access CTA)
-
-### Media Browsing & Images ([media-browse.spec.ts](tests/media-browse.spec.ts))
-
-- Audio picker integration scoped to the Audio tab
-- Image dropzone conversion flow (enqueue → run → complete)
-
-## Future Coverage Ideas
-
-- Simulate desktop-bridge file drop events from the Rust side to exercise drag-and-drop plumbing without relying on DOM events.
-- Add resilience specs that kill the Tauri process mid-conversion and verify queue recovery on relaunch.
-- Mirror Playwright flows with Vitest suites that hit the bridge composables (`useJobOrchestrator`, `useDesktopBridge`) to keep frontend-backend contracts tight.
-
-- License activation dialog
-- Valid/invalid license key handling
-- Network error handling during activation
-- Trial mode activation and countdown
-- Trial expiration warnings
-- License status display
-- License validation and revalidation
-- Multi-device activation management
-- Feature gating based on license status
-- License recovery and import/export
-
-### Error Handling ([error-handling.spec.ts](tests/error-handling.spec.ts))
-
-- Invalid file handling (non-media, corrupted, missing, permission errors)
-- FFmpeg errors (not found, crash, invalid arguments, missing encoders)
-- Disk space errors (insufficient space, disk full, unavailable directories)
-- Network errors (capability detection, license validation)
-- System resource errors (memory, permissions, CPU/GPU overload)
-- Conversion-specific errors (audio-only files, unusual durations/aspect ratios, multiple streams)
-- Error recovery and retry functionality
-- App stability and crash resilience
-
-### Internationalization ([i18n.spec.ts](tests/i18n.spec.ts))
-
-- Language selection and switching
-- Language persistence
-- System language detection
-- Translation coverage (UI elements, settings, job statuses, errors, presets, dialogs)
-- Supported languages (English, French, Spanish, German, Japanese, Chinese, Korean, Russian, Portuguese, etc.)
-- Right-to-left (RTL) support (Arabic, Hebrew)
-- Fallback and missing translation handling
-- Pluralization and interpolation
-- Layout adaptation for different text lengths
-- Font rendering for different scripts
-- Accessibility label translation
-
-## Helper Utilities
-
-The test suite includes helper utilities for common tasks:
+- `initialAppData` option seeds `settings.json`, `jobs.json`, and `license.json`
+- `appPage` fixture handles page setup with Tauri mocks injection
+- Automatically injects Tauri API mocks in browser mode
 
 ### Tauri Helpers ([helpers/tauri.ts](helpers/tauri.ts))
 
-- `launchTauriApp()` - Launch the Tauri app for testing
-- `connectToTauriWebView()` - Connect Playwright to the WebView
 - `clearAppData()` - Clear app data for clean test state
 - `setAppData()` - Pre-populate app data for testing
+- `injectTauriMocks()` - Inject browser-compatible Tauri API mocks
+- `mockTauriCommands()` - Override specific Tauri commands
+- `mockCommandError()` - Create mock error responses
+- `simulateFileDrop()` - Simulate file drag-and-drop events
 - `waitFor()` - Wait for conditions
-- `simulateFileDrop()` - Simulate file drag-and-drop
-- `mockTauriCommands()` - Mock Tauri backend commands
 
 ### Media Fixture Helpers ([helpers/media-fixtures.ts](helpers/media-fixtures.ts))
 
@@ -267,54 +153,159 @@ The test suite includes helper utilities for common tasks:
 - `createTestAudio()` - Generate test audio files
 - `createTestImage()` - Generate test images
 - `createCorruptedVideo()` - Create corrupted files for error testing
-- `createLargeVideo()` - Create large files for disk space testing
-- `createVideoWithCodec()` - Create files with specific codecs
-- `createMultiAudioVideo()` - Create videos with multiple audio tracks
-- `createVideoWithSubtitles()` - Create videos with subtitles
 - `createTestFixtureSet()` - Create a complete set of test fixtures
-- `cleanupFixtures()` - Clean up temporary test files
 
-## Current Implementation Status
+## Writing Tests
 
-The E2E tests are currently set up with:
+### Test Structure
 
-- ✅ Playwright configuration
-- ✅ Comprehensive test file structure (8 test files)
-- ✅ Test scaffolding with detailed placeholder tests (200+ test cases)
-- ✅ Helper utilities for Tauri app control
-- ✅ Media fixture generation with FFmpeg
-- ⏳ Tauri WebView connection (helper functions ready, needs Tauri config)
-- ⏳ Actual UI interaction tests (scaffolding complete, needs implementation)
+```typescript
+import { test, expect } from './fixtures';
+import { withLicense } from './support/app-state';
 
-The placeholder tests verify that the test infrastructure works correctly and provide a complete blueprint for implementation. To fully implement E2E testing:
+test.use({
+  initialAppData: withLicense(),
+});
 
-1. Configure Tauri to expose a debug port for the WebView
-2. Use the helper functions to connect Playwright to the Tauri WebView
-3. Replace placeholder test bodies with actual UI interactions using the provided test structure
-4. Generate test media files using the media fixture helpers
+test.describe('Feature Name', () => {
+  test('should do something', async ({ page }) => {
+    // Wait for app to be ready
+    await page.waitForSelector('[data-test="file-dropzone"]', {
+      state: 'visible',
+      timeout: 30000,
+    });
+
+    // Test implementation
+    await expect(page.locator('[data-test="app-main"]')).toBeVisible();
+  });
+});
+```
+
+### Best Practices
+
+1. **Use data-test attributes**: Use `[data-test="..."]` selectors for reliable element targeting
+2. **Set appropriate timeouts**: The app may take time to initialize, use generous timeouts
+3. **Clean test state**: Use `initialAppData` fixture to set up clean state for each test
+4. **Test UI feedback**: Focus on visible UI changes (progress bars, status messages) rather than file outputs
+5. **Handle async operations**: Use Playwright's built-in waiting mechanisms
+
+### Mocking Tauri Commands
+
+```typescript
+import { mockTauriCommands, mockCommandError } from '../helpers/tauri';
+
+test('handles API errors', async ({ page }) => {
+  await mockTauriCommands(page, {
+    some_command: mockCommandError('Error message', 'error_code'),
+  });
+
+  // Trigger the command and verify error handling
+  await page.click('[data-test="trigger-button"]');
+  await expect(page.locator('[data-test="error-message"]')).toContainText('Error message');
+});
+```
+
+## Test Coverage
+
+### App Launch ([app-launch.spec.ts](tests/app-launch.spec.ts))
+
+- Primary window visibility and chrome controls
+- Drop-zone renders and accepts files
+
+### Preset Selection ([preset-selection.spec.ts](tests/preset-selection.spec.ts))
+
+- Preset dropdowns for queued jobs
+- Preset label updates on selection
+- Media-type-specific preset filtering
+
+### Conversion Flow ([conversion-flow.spec.ts](tests/conversion-flow.spec.ts))
+
+- Happy-path conversion (queued → running → completed)
+- Cancellation during running state
+- Error message display on failure
+- Batch queue validation
+
+### Settings Controls ([settings.spec.ts](tests/settings.spec.ts))
+
+- Destination chooser dialog
+- Custom output folder selection
+- Theme toggle
+
+### Job Queue ([job-queue.spec.ts](tests/job-queue.spec.ts))
+
+- Add/remove jobs
+- Tab-based filtering
+- Start All / Cancel All
+
+### License Management ([license.spec.ts](tests/license.spec.ts))
+
+- First-run activation dialog
+- Activation success/failure flows
+- Licensed startup bypass
+
+### Internationalization ([i18n.spec.ts](tests/i18n.spec.ts))
+
+- Language switcher
+- Locale persistence
+
+### Error Handling ([error-handling.spec.ts](tests/error-handling.spec.ts))
+
+- Failure banners on jobs
+- Permission-specific guidance
+
+### Media Browsing ([media-browse.spec.ts](tests/media-browse.spec.ts))
+
+- Audio picker integration
+- Image conversion flow
+
+## CI Integration
+
+The tests are designed to run in CI without requiring macOS or the Tauri backend:
+
+```yaml
+# Example GitHub Actions workflow
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+```
+
+For macOS-specific tests that require the actual Tauri backend, use a macOS runner with `TAURI_REMOTE_UI=true`.
 
 ## Troubleshooting
 
-### Tests fail to launch the app
+### Tests timeout waiting for app
 
-- Ensure the app is built: `npm run tauri:build`
-- Check that FFmpeg is installed and accessible
-- Verify macOS security settings allow the app to run
+- Ensure the Vite dev server starts correctly
+- Check that port 1420 is available
+- Increase timeout in `playwright.config.ts` if needed
 
-### WebView connection fails
+### Tauri mocks not working
 
-- Check that the debug port is not already in use
-- Verify the Tauri app is configured to enable remote debugging
-- Ensure firewall settings allow localhost connections
+- Verify `injectTauriMocks` is called before interacting with the page
+- Check browser console for mock-related error messages
+
+### FFmpeg fixtures fail
+
+- Install FFmpeg on your system
+- Tests will use placeholder fixtures if FFmpeg is unavailable
 
 ### Tests are flaky
 
-- Increase timeout values in `playwright.config.ts`
 - Add explicit waits for elements to be visible
-- Ensure test isolation by cleaning up state between tests
+- Use data-test attributes for stable selectors
+- Increase assertion timeouts for slow operations
 
 ## Resources
 
 - [Playwright Documentation](https://playwright.dev/docs/intro)
-- [Tauri Testing Guide](https://tauri.app/v1/guides/testing/webdriver/introduction)
+- [Tauri Remote UI Plugin](https://docs.rs/tauri-remote-ui)
+- [Tauri Testing Guide](https://v2.tauri.app/develop/tests/)
 - [Project CLAUDE.md](../CLAUDE.md) for architecture details

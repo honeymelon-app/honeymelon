@@ -5,6 +5,7 @@ pub mod dialogs;
 pub mod jobs;
 pub mod licensing;
 pub mod media;
+pub mod testing;
 
 #[cfg(test)]
 mod tests;

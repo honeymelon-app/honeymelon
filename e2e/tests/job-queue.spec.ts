@@ -15,27 +15,31 @@ test.use({
 
 test.describe('Job Queue Management', () => {
   test('adds files to the queue', async ({ page }) => {
-    const job = await enqueue(page, getManifest().video.h264, 'video');
+    const manifest = getManifest();
+    const job = await enqueue(page, manifest.video.h264, 'video');
     await expect(job).toHaveAttribute('data-state', 'queued');
     await expect(job.locator('h3')).toContainText('video');
   });
 
   test('adds multiple files sequentially', async ({ page }) => {
-    await enqueue(page, getManifest().video.h264, 'video');
-    await enqueue(page, getManifest().video.hevc, 'video');
+    const manifest = getManifest();
+    await enqueue(page, manifest.video.h264, 'video');
+    await enqueue(page, manifest.video.hevc, 'video');
 
     await expect(page.locator('[data-test="job-card"]')).toHaveCount(2);
   });
 
   test('removes a queued job via cancel control', async ({ page }) => {
-    const job = await enqueue(page, getManifest().video.h264, 'video');
+    const manifest = getManifest();
+    const job = await enqueue(page, manifest.video.h264, 'video');
     await job.locator('[data-test="job-cancel-button"]').click();
     await expect(page.locator('[data-test="job-card"]')).toHaveCount(0);
     await expect(page.locator('[data-test="job-queue-empty"]')).toBeVisible();
   });
 
   test('clears completed jobs from the queue', async ({ page }) => {
-    const job = await enqueue(page, getManifest().video.h264, 'video');
+    const manifest = getManifest();
+    const job = await enqueue(page, manifest.video.h264, 'video');
     await startJob(job);
     await waitForJobState(job, 'completed');
 
@@ -44,8 +48,9 @@ test.describe('Job Queue Management', () => {
   });
 
   test('filters jobs by media type tabs', async ({ page }) => {
-    await enqueue(page, getManifest().video.h264, 'video');
-    await enqueue(page, getManifest().audio.aac, 'audio');
+    const manifest = getManifest();
+    await enqueue(page, manifest.video.h264, 'video');
+    await enqueue(page, manifest.audio.aac, 'audio');
 
     await page.locator('[data-test="media-tab"][data-media-kind="video"]').click();
     const visibleVideoJobs = page.locator('[data-test="job-card"]:visible');
@@ -59,8 +64,9 @@ test.describe('Job Queue Management', () => {
   });
 
   test('starts all queued jobs from the footer controls', async ({ page }) => {
-    const jobOne = await enqueue(page, getManifest().video.h264, 'video');
-    const jobTwo = await enqueue(page, getManifest().video.hevc, 'video');
+    const manifest = getManifest();
+    const jobOne = await enqueue(page, manifest.video.h264, 'video');
+    const jobTwo = await enqueue(page, manifest.video.hevc, 'video');
 
     await page.locator('[data-test="start-all-button"]').click();
 
@@ -70,8 +76,9 @@ test.describe('Job Queue Management', () => {
   });
 
   test('cancels running and queued jobs via the footer control', async ({ page }) => {
-    const runningJob = await enqueue(page, getManifest().video.h264, 'video');
-    await enqueue(page, getManifest().video.hevc, 'video');
+    const manifest = getManifest();
+    const runningJob = await enqueue(page, manifest.video.h264, 'video');
+    await enqueue(page, manifest.video.hevc, 'video');
 
     await startJob(runningJob);
     await waitForJobState(runningJob, 'running');
@@ -93,10 +100,11 @@ async function enqueue(
   await page.locator(`[data-test="media-tab"][data-media-kind="${media}"]`).click();
   await page.waitForSelector(`[data-test="file-dropzone"][data-media-kind="${media}"]`, {
     state: 'visible',
+    timeout: 30000,
   });
   await simulateFileDrop(page, `[data-test="file-dropzone"][data-media-kind="${media}"]`, [file]);
   const jobCard = page.locator('[data-test="job-card"]').last();
-  await expect(jobCard).toBeVisible();
+  await expect(jobCard).toBeVisible({ timeout: 10000 });
   return jobCard;
 }
 
@@ -105,7 +113,7 @@ async function startJob(jobCard: Locator): Promise<void> {
 }
 
 async function waitForJobState(jobCard: Locator, state: string): Promise<void> {
-  await expect(jobCard).toHaveAttribute('data-state', state, { timeout: 20000 });
+  await expect(jobCard).toHaveAttribute('data-state', state, { timeout: 30000 });
 }
 
 function getManifest(): FixtureManifest {

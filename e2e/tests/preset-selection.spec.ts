@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+
 import { simulateFileDrop } from '../helpers/tauri';
 
 import { expect, test } from './fixtures';
@@ -13,7 +15,8 @@ test.use({
 
 test.describe('Preset Selection', () => {
   test('lists available presets for a queued video job', async ({ page }) => {
-    await enqueue(page, getManifest().video.h264, 'video');
+    const manifest = getManifest();
+    await enqueue(page, manifest.video.h264, 'video');
     await page.locator('[data-test="preset-selector-trigger"]').click();
 
     const options = page.locator('[data-test="preset-option"]');
@@ -21,7 +24,8 @@ test.describe('Preset Selection', () => {
   });
 
   test('updates the preset label after selecting a different option', async ({ page }) => {
-    await enqueue(page, getManifest().video.h264, 'video');
+    const manifest = getManifest();
+    await enqueue(page, manifest.video.h264, 'video');
     await page.locator('[data-test="preset-selector-trigger"]').click();
 
     const secondOption = page.locator('[data-test="preset-option"]').nth(1);
@@ -34,7 +38,8 @@ test.describe('Preset Selection', () => {
   });
 
   test('only shows audio presets for audio jobs', async ({ page }) => {
-    await enqueue(page, getManifest().audio.aac, 'audio');
+    const manifest = getManifest();
+    await enqueue(page, manifest.audio.aac, 'audio');
     await page.locator('[data-test="preset-selector-trigger"]').click();
 
     const allOptions = await page.locator('[data-test="preset-option"]').allTextContents();
@@ -42,15 +47,16 @@ test.describe('Preset Selection', () => {
   });
 });
 
-async function enqueue(page, file: string, media: 'video' | 'audio'): Promise<void> {
+async function enqueue(page: Page, file: string, media: 'video' | 'audio'): Promise<void> {
   if (media !== 'video') {
     await page.locator(`[data-test="media-tab"][data-media-kind="${media}"]`).click();
   }
   await page.waitForSelector(`[data-test="file-dropzone"][data-media-kind="${media}"]`, {
     state: 'visible',
+    timeout: 30000,
   });
   await simulateFileDrop(page, `[data-test="file-dropzone"][data-media-kind="${media}"]`, [file]);
-  await expect(page.locator('[data-test="job-card"]').first()).toBeVisible();
+  await expect(page.locator('[data-test="job-card"]').first()).toBeVisible({ timeout: 10000 });
 }
 
 function getManifest(): FixtureManifest {

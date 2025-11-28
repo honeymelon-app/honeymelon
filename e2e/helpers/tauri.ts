@@ -1,83 +1,21 @@
-import { spawn, type ChildProcess } from 'child_process';
 import { existsSync } from 'fs';
 import { mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { platform, tmpdir } from 'os';
 import { basename, dirname, extname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-import { chromium, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const PROJECT_ROOT = join(__dirname, '..', '..');
-const E2E_TAURI_CONFIG = join(PROJECT_ROOT, 'e2e', 'tauri.e2e.conf.json');
-const DEBUG_APP_CANDIDATES = [
-  process.env.TAURI_DEBUG_APP_PATH,
-  join(PROJECT_ROOT, 'src-tauri', 'target', 'debug', 'bundle', 'macos', 'Honeymelon.app'),
-  join(
-    PROJECT_ROOT,
-    'src-tauri',
-    'target',
-    'aarch64-apple-darwin',
-    'debug',
-    'bundle',
-    'macos',
-    'Honeymelon.app',
-  ),
-  join(
-    PROJECT_ROOT,
-    'src-tauri',
-    'target',
-    'x86_64-apple-darwin',
-    'debug',
-    'bundle',
-    'macos',
-    'Honeymelon.app',
-  ),
-];
 
 /**
- * Helper utilities for launching and controlling Tauri app during E2E tests
+ * Helper utilities for E2E testing of Honeymelon Tauri application.
+ *
+ * This module provides two modes of operation:
+ * 1. Remote UI mode: Tests interact with the actual Tauri app via the Remote UI plugin
+ * 2. Browser mode: Tests run against the Vite dev server with mocked Tauri APIs
  */
-
-export interface TauriAppOptions {
-  /**
-   * Whether to run in development mode (default: true)
-   */
-  dev?: boolean;
-
-  /**
-   * Port for WebView debugging (default: 9222)
-   */
-  debugPort?: number;
-
-  /**
-   * Timeout for app to be ready in milliseconds (default: 30000)
-   */
-  timeout?: number;
-
-  /**
-   * Additional environment variables to pass to the app
-   */
-  env?: Record<string, string>;
-}
-
-export interface TauriApp {
-  /**
-   * The spawned Tauri process
-   */
-  process: ChildProcess;
-
-  /**
-   * Stop the Tauri app and clean up
-   */
-  stop: () => Promise<void>;
-
-  /**
-   * Get the debug URL for connecting Playwright
-   */
-  getDebugUrl: () => string;
-}
 
 export interface PreferencesSnapshot {
   preferredConcurrency?: number;
@@ -135,200 +73,6 @@ const APP_DATA_DIR =
 const APP_SETTINGS_FILE = 'settings.json';
 const APP_JOBS_FILE = 'jobs.json';
 const APP_LICENSE_FILE = 'license.json';
-
-let appBundlePromise: Promise<string> | null = null;
-
-/**
- * Launch the Tauri application for testing
- *
- * @param options Configuration options for launching the app
- * @returns Promise that resolves with app control interface
- *
- * @example
- * ```typescript
- * const app = await launchTauriApp({ dev: true });
- * await page.goto(app.getDebugUrl());
- * // ... run tests ...
- * await app.stop();
- * ```
- */
-export async function launchTauriApp(options: TauriAppOptions = {}): Promise<TauriApp> {
-  const { dev = true, debugPort = 9222, timeout = 120000, env = {} } = options;
-  await mkdir(TEST_HOME_DIR, { recursive: true });
-  const devHost = '127.0.0.1';
-
-  // Only run on macOS
-  if (platform() !== 'darwin') {
-    throw new Error('Tauri app can only be tested on macOS');
-  }
-
-  const projectRoot = PROJECT_ROOT;
-
-  let appBundlePath: string | null = null;
-  if (!dev) {
-    appBundlePath = await ensureAppBundle(projectRoot);
-  }
-  const command = dev ? 'npm' : resolveDebugBinary(appBundlePath);
-  const debugArgs = ['--remote-debugging-port', debugPort.toString()];
-  const args = dev ? ['run', 'tauri', 'dev', '--', '--config', E2E_TAURI_CONFIG] : debugArgs;
-
-  const tauriProcess = spawn(command, args, {
-    cwd: projectRoot,
-    detached: false,
-    stdio: 'pipe',
-    env: {
-      ...process.env,
-      WEBKIT_INSPECTOR_SERVER: `127.0.0.1:${debugPort}`,
-      PLAYWRIGHT_E2E: 'true',
-      VITE_E2E_SIMULATION: 'true',
-      HOME: TEST_HOME_DIR,
-      XDG_CONFIG_HOME: join(TEST_HOME_DIR, '.config'),
-      HOST: devHost,
-      VITE_DEV_SERVER_HOST: devHost,
-      TAURI_DEV_HOST: devHost,
-      ...env,
-    },
-  });
-
-  // Capture stdout/stderr for debugging
-  let output = '';
-  tauriProcess.stdout?.on('data', (data) => {
-    output += data.toString();
-    if (process.env.DEBUG) {
-      console.warn('[Tauri stdout]:', data.toString());
-    }
-  });
-
-  tauriProcess.stderr?.on('data', (data) => {
-    output += data.toString();
-    if (process.env.DEBUG) {
-      console.error('[Tauri stderr]:', data.toString());
-    }
-  });
-
-  tauriProcess.on('error', (error) => {
-    console.error('[Tauri process error]:', error);
-  });
-
-  // Wait for app to be ready
-  const ready = await waitForTauriReady(debugPort, timeout);
-  if (!ready) {
-    tauriProcess.kill();
-    throw new Error(
-      `Tauri app failed to start within ${timeout}ms. Output:\n${output.slice(-1000)}`,
-    );
-  }
-
-  return {
-    process: tauriProcess,
-    stop: async () => {
-      return new Promise((resolve) => {
-        if (tauriProcess.killed) {
-          resolve();
-          return;
-        }
-
-        tauriProcess.on('exit', () => resolve());
-        tauriProcess.kill('SIGTERM');
-
-        // Force kill if not stopped within 5 seconds
-        setTimeout(() => {
-          if (!tauriProcess.killed) {
-            tauriProcess.kill('SIGKILL');
-            resolve();
-          }
-        }, 5000);
-      });
-    },
-    getDebugUrl: () => `http://localhost:${debugPort}`,
-  };
-}
-
-/**
- * Wait for Tauri app to be ready by polling the debug port
- *
- * @param debugPort Port to check for readiness
- * @param timeout Maximum time to wait in milliseconds
- * @returns Promise that resolves to true if ready, false if timeout
- */
-async function waitForTauriReady(debugPort: number, timeout: number): Promise<boolean> {
-  const startTime = Date.now();
-  const checkInterval = 500; // Check every 500ms
-
-  while (Date.now() - startTime < timeout) {
-    const controller = new globalThis.AbortController();
-    const abortTimeout = setTimeout(() => controller.abort(), 1000);
-
-    try {
-      // Try common WebKit/CDP discovery endpoints
-      const endpoints = [
-        `http://localhost:${debugPort}/json/version`,
-        `http://127.0.0.1:${debugPort}/json/version`,
-        `http://localhost:${debugPort}/json`,
-        `http://127.0.0.1:${debugPort}/json`,
-      ];
-
-      for (const url of endpoints) {
-        const response = await fetch(url, { signal: controller.signal });
-        if (response.ok) {
-          // Additional delay to ensure WebView is fully initialized
-          await sleep(1000);
-          return true;
-        }
-      }
-    } catch {
-      // Expected during startup, continue polling
-    } finally {
-      clearTimeout(abortTimeout);
-    }
-
-    await sleep(checkInterval);
-  }
-
-  return false;
-}
-
-/**
- * Connect Playwright page to Tauri WebView
- *
- * @param page Playwright page instance
- * @param app Tauri app instance from launchTauriApp
- *
- * @example
- * ```typescript
- * const app = await launchTauriApp();
- * await connectToTauriWebView(page, app);
- * await expect(page.locator('h1')).toContainText('Honeymelon');
- * ```
- */
-export async function connectToTauriWebView(app: TauriApp): Promise<{
-  page: Page;
-  close: () => Promise<void>;
-}> {
-  const browser = await chromium.connectOverCDP(app.getDebugUrl());
-  const [context] = browser.contexts();
-  if (!context) {
-    await browser.close();
-    throw new Error('Unable to create CDP context for Tauri WebView');
-  }
-
-  const page = context.pages()[0] ?? (await context.newPage());
-  await page.bringToFront();
-
-  return {
-    page,
-    close: async () => {
-      await browser.close();
-    },
-  };
-}
-
-/**
- * Helper to sleep for a given duration
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 /**
  * Clear app data (settings, jobs, licenses) for clean test state
@@ -388,6 +132,13 @@ async function writeJson(fileName: string, payload: unknown): Promise<void> {
 }
 
 /**
+ * Helper to sleep for a given duration
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
  * Wait for a specific condition to be true
  *
  * @param condition Function that returns true when condition is met
@@ -413,9 +164,10 @@ export async function waitFor(
 }
 
 /**
- * Simulate file drop event in the Tauri WebView
+ * Simulate file drop event in the app
  *
  * @param page Playwright page instance
+ * @param selector CSS selector for the drop target
  * @param filePaths Array of file paths to drop
  */
 export async function simulateFileDrop(
@@ -534,6 +286,182 @@ export async function mockTauriCommands(
   );
 }
 
+/**
+ * Inject Tauri API mocks for browser-only E2E testing.
+ *
+ * This function creates a mock implementation of the Tauri API that allows
+ * the Vue app to run in a regular browser without the actual Tauri backend.
+ * Used when running tests in browser mode (not Remote UI mode).
+ *
+ * @param page Playwright page instance
+ * @param initialAppData Initial app data for seeding mocked responses
+ */
+export async function injectTauriMocks(
+  page: Page,
+  initialAppData?: AppDataSnapshot,
+): Promise<void> {
+  const license = initialAppData?.license ?? null;
+  const preferences = initialAppData?.preferences ?? null;
+  const jobs = initialAppData?.jobs ?? [];
+
+  await page.evaluate(
+    ({ license, preferences, jobs }) => {
+      // Store for mock state
+      const mockState = {
+        license,
+        preferences,
+        jobs: [...jobs],
+        eventListeners: new Map<string, Set<(payload: unknown) => void>>(),
+        jobIdCounter: jobs.length,
+      };
+
+      // Mock Tauri internals
+      (window as unknown as { __TAURI_INTERNALS__: unknown }).__TAURI_INTERNALS__ = {
+        invoke: async (cmd: string, args?: Record<string, unknown>) => {
+          console.log(`[TauriMock] invoke: ${cmd}`, args);
+
+          switch (cmd) {
+            case 'current_license':
+              return mockState.license;
+
+            case 'verify_license_key':
+            case 'activate_license':
+              // Return the provided license data for testing
+              if (mockState.license) {
+                return mockState.license;
+              }
+              throw { code: 'license_invalid', message: 'Invalid license key' };
+
+            case 'load_capabilities':
+              return {
+                videoCodecs: ['h264', 'hevc', 'av1'],
+                audioCodecs: ['aac', 'mp3', 'flac'],
+                imageFormats: ['png', 'jpeg', 'webp'],
+                hardwareAcceleration: ['videotoolbox'],
+              };
+
+            case 'probe_media':
+              return {
+                format: { duration: 10, size: 1024000 },
+                video: { codec: 'h264', width: 1920, height: 1080 },
+                audio: { codec: 'aac', channels: 2, sampleRate: 48000 },
+              };
+
+            case 'file_exists':
+              return true;
+
+            case 'expand_media_paths':
+              // Return the paths as-is for simulation
+              return args?.paths ?? [];
+
+            case 'pick_media_files':
+              // Return empty array by default (tests should mock this specifically)
+              return [];
+
+            case 'choose_output_directory':
+              return '/tmp/honeymelon-output';
+
+            case 'start_job': {
+              const jobId = args?.jobId as string;
+              const job = mockState.jobs.find((j) => j.id === jobId);
+              if (job) {
+                job.state = { running: { startedAt: Date.now() } };
+                // Emit progress events
+                setTimeout(() => {
+                  const emit = (payload: unknown) => {
+                    const listeners = mockState.eventListeners.get('job:progress');
+                    listeners?.forEach((cb) => cb(payload));
+                  };
+                  emit({ jobId, percent: 25, eta: 10 });
+                  setTimeout(() => emit({ jobId, percent: 50, eta: 5 }), 100);
+                  setTimeout(() => emit({ jobId, percent: 75, eta: 2 }), 200);
+                  setTimeout(() => {
+                    emit({ jobId, percent: 100, eta: 0 });
+                    job.state = { completed: { finishedAt: Date.now() } };
+                    const completionListeners = mockState.eventListeners.get('job:completed');
+                    completionListeners?.forEach((cb) =>
+                      cb({ jobId, outputPath: '/tmp/output.mp4' }),
+                    );
+                  }, 300);
+                }, 100);
+              }
+              return;
+            }
+
+            case 'cancel_job': {
+              const jobId = args?.jobId as string;
+              const job = mockState.jobs.find((j) => j.id === jobId);
+              if (job) {
+                job.state = { cancelled: { cancelledAt: Date.now() } };
+                const listeners = mockState.eventListeners.get('job:cancelled');
+                listeners?.forEach((cb) => cb({ jobId }));
+              }
+              return;
+            }
+
+            case 'set_max_concurrency':
+              return;
+
+            default:
+              console.warn(`[TauriMock] Unhandled command: ${cmd}`);
+              return null;
+          }
+        },
+        metadata: {
+          currentWindow: { label: 'main' },
+          currentWebview: { windowLabel: 'main', label: 'main' },
+        },
+        convertFileSrc: (path: string) => `asset://${path}`,
+      };
+
+      // Mock event listener
+      (window as unknown as { __TAURI__: unknown }).__TAURI__ = {
+        event: {
+          listen: (event: string, callback: (payload: unknown) => void) => {
+            if (!mockState.eventListeners.has(event)) {
+              mockState.eventListeners.set(event, new Set());
+            }
+            mockState.eventListeners.get(event)!.add(callback);
+            return Promise.resolve(() => {
+              mockState.eventListeners.get(event)?.delete(callback);
+            });
+          },
+          emit: (event: string, payload: unknown) => {
+            const listeners = mockState.eventListeners.get(event);
+            listeners?.forEach((cb) => cb(payload));
+            return Promise.resolve();
+          },
+        },
+      };
+
+      // Expose test API for test manipulation
+      (
+        window as unknown as {
+          __HONEYMELON_TEST_API__: {
+            mockState: typeof mockState;
+            jobsStore?: {
+              markFailed: (jobId: string, message: string, code?: string) => void;
+            };
+          };
+        }
+      ).__HONEYMELON_TEST_API__ = {
+        mockState,
+        jobsStore: {
+          markFailed: (jobId: string, message: string, code?: string) => {
+            const job = mockState.jobs.find((j) => j.id === jobId);
+            if (job) {
+              job.state = { failed: { error: message, code, failedAt: Date.now() } };
+              const listeners = mockState.eventListeners.get('job:failed');
+              listeners?.forEach((cb) => cb({ jobId, error: message, code }));
+            }
+          },
+        },
+      };
+    },
+    { license, preferences, jobs },
+  );
+}
+
 function isMockError(value: CommandMockValue): value is MockedCommandError {
   return Boolean(value && typeof value === 'object' && '__mockError' in value);
 }
@@ -568,81 +496,4 @@ function resolveMimeType(filePath: string): string {
     default:
       return 'application/octet-stream';
   }
-}
-
-async function ensureAppBundle(projectRoot: string): Promise<string> {
-  const existing = resolveDebugAppPath();
-  if (existing) {
-    return existing;
-  }
-
-  if (!appBundlePromise) {
-    appBundlePromise = new Promise((resolve, reject) => {
-      const build = spawn(
-        'npm',
-        ['run', 'tauri', 'build', '--', '--debug', '--config', E2E_TAURI_CONFIG],
-        {
-          cwd: projectRoot,
-          stdio: 'inherit',
-          env: {
-            ...process.env,
-            VITE_E2E_SIMULATION: 'true',
-            PLAYWRIGHT_E2E: 'true',
-          },
-        },
-      );
-      build.on('exit', (code) => {
-        if (code === 0) {
-          const resolved = resolveDebugAppPath();
-          if (resolved) {
-            resolve(resolved);
-          } else {
-            reject(new Error('Tauri debug build succeeded but bundle was not found'));
-          }
-        } else {
-          reject(new Error(`Tauri debug build failed with code ${code ?? -1}`));
-        }
-      });
-      build.on('error', (error) => {
-        reject(error);
-      });
-    });
-  }
-
-  const bundle = await appBundlePromise;
-  if (!bundle) {
-    throw new Error('Tauri debug bundle could not be located');
-  }
-  return bundle;
-}
-
-function resolveDebugAppPath(): string | null {
-  for (const candidate of DEBUG_APP_CANDIDATES) {
-    if (candidate && existsSync(candidate)) {
-      return candidate;
-    }
-  }
-  return null;
-}
-
-function resolveDebugBinary(appBundlePath: string | null): string {
-  const bundle = appBundlePath ?? resolveDebugAppPath();
-  if (!bundle) {
-    throw new Error(
-      'Honeymelon debug bundle not found; run `npm run tauri build -- --debug` first',
-    );
-  }
-
-  const binCandidates = [
-    join(bundle, 'Contents', 'MacOS', 'Honeymelon'),
-    join(bundle, 'Contents', 'MacOS', 'honeymelon'),
-  ];
-
-  for (const candidate of binCandidates) {
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  throw new Error(`Honeymelon binary not found under ${bundle}`);
 }

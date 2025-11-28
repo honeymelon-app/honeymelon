@@ -1,4 +1,4 @@
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { mockTauriCommands, simulateFileDrop } from '../helpers/tauri';
 
@@ -17,15 +17,18 @@ test.describe('Media Browsing & Images', () => {
   test('enqueues audio via the browse picker and keeps it scoped to the audio tab', async ({
     page,
   }) => {
+    await waitForAppReady(page);
     await page.locator('[data-test="media-tab"][data-media-kind="audio"]').click();
+
+    const manifest = getManifest();
     await mockTauriCommands(page, {
-      pick_media_files: [getManifest().audio.mp3],
+      pick_media_files: [manifest.audio.mp3],
     });
 
     await page.locator('[data-test="file-browse-button"][data-media-kind="audio"]').click();
 
     const jobCard = page.locator('[data-test="job-card"]').first();
-    await expect(jobCard).toBeVisible();
+    await expect(jobCard).toBeVisible({ timeout: 10000 });
     await expect(jobCard).toHaveAttribute('data-state', 'queued');
 
     // Ensure the audio job does not leak into other tabs
@@ -39,13 +42,16 @@ test.describe('Media Browsing & Images', () => {
   });
 
   test('runs an image conversion end-to-end', async ({ page }) => {
+    await waitForAppReady(page);
     await page.locator('[data-test="media-tab"][data-media-kind="image"]').click();
+
+    const manifest = getManifest();
     await simulateFileDrop(page, '[data-test="file-dropzone"][data-media-kind="image"]', [
-      getManifest().image.png,
+      manifest.image.png,
     ]);
 
     const jobCard = page.locator('[data-test="job-card"]').last();
-    await expect(jobCard).toBeVisible();
+    await expect(jobCard).toBeVisible({ timeout: 10000 });
     await expect(jobCard).toHaveAttribute('data-state', 'queued');
 
     await jobCard.locator('[data-test="job-start-button"]').click();
@@ -57,8 +63,15 @@ test.describe('Media Browsing & Images', () => {
   });
 });
 
+async function waitForAppReady(page: Page): Promise<void> {
+  await page.waitForSelector('[data-test="file-dropzone"][data-media-kind="video"]', {
+    state: 'visible',
+    timeout: 30000,
+  });
+}
+
 async function waitForJobState(jobCard: Locator, state: string): Promise<void> {
-  await expect(jobCard).toHaveAttribute('data-state', state, { timeout: 20000 });
+  await expect(jobCard).toHaveAttribute('data-state', state, { timeout: 30000 });
 }
 
 function getManifest(): FixtureManifest {

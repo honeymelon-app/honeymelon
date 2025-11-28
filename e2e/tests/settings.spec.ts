@@ -45,5 +45,6 @@ test.describe('Settings Controls', () => {
 async function waitForAppReady(page: Page): Promise<void> {
   await page.waitForSelector('[data-test="file-dropzone"][data-media-kind="video"]', {
     state: 'visible',
+    timeout: 30000,
   });
 }

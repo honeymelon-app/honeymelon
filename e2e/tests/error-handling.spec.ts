@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+
 import { simulateFileDrop } from '../helpers/tauri';
 
 import { expect, test } from './fixtures';
@@ -25,7 +27,7 @@ test.describe('Job Failure Handling', () => {
       jobsStore?.markFailed(id as string, 'Mock conversion error', 'job_invalid_args');
     }, jobId);
 
-    await expect(job).toHaveAttribute('data-state', 'failed');
+    await expect(job).toHaveAttribute('data-state', 'failed', { timeout: 10000 });
     await expect(job.locator('text=Mock conversion error')).toBeVisible();
   });
 
@@ -42,20 +44,22 @@ test.describe('Job Failure Handling', () => {
       jobsStore?.markFailed(id as string, 'Permission denied', 'job_output_permission');
     }, jobId);
 
-    await expect(job.locator('text=Permission denied')).toBeVisible();
+    await expect(job.locator('text=Permission denied')).toBeVisible({ timeout: 10000 });
     await expect(job.locator('text=Open Settings')).toBeVisible();
   });
 });
 
-async function enqueue(page) {
+async function enqueue(page: Page) {
+  const manifest = getManifest();
   await page.waitForSelector('[data-test="file-dropzone"][data-media-kind="video"]', {
     state: 'visible',
+    timeout: 30000,
   });
   await simulateFileDrop(page, '[data-test="file-dropzone"][data-media-kind="video"]', [
-    getManifest().video.h264,
+    manifest.video.h264,
   ]);
   const jobCard = page.locator('[data-test="job-card"]').last();
-  await expect(jobCard).toBeVisible();
+  await expect(jobCard).toBeVisible({ timeout: 10000 });
   return jobCard;
 }
 

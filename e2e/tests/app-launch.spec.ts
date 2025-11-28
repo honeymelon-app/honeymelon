@@ -33,12 +33,14 @@ test.describe('App Launch', () => {
 test.describe('File Handling', () => {
   test('accepts dropped files and shows them in the queue', async ({ page }) => {
     await waitForAppReady(page);
+    const manifest = getManifest();
+
     await simulateFileDrop(page, '[data-test="file-dropzone"][data-media-kind="video"]', [
-      getManifest().video.h264,
+      manifest.video.h264,
     ]);
 
     const jobCard = page.locator('[data-test="job-card"]').first();
-    await expect(jobCard).toBeVisible();
+    await expect(jobCard).toBeVisible({ timeout: 10000 });
     await expect(jobCard).toHaveAttribute('data-state', 'queued');
   });
 });
@@ -46,6 +48,7 @@ test.describe('File Handling', () => {
 async function waitForAppReady(page: Page): Promise<void> {
   await page.waitForSelector('[data-test="file-dropzone"][data-media-kind="video"]', {
     state: 'visible',
+    timeout: 30000,
   });
 }
 
