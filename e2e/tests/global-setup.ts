@@ -97,7 +97,11 @@ async function checkFfmpegAvailable(): Promise<boolean> {
     const timeout = setTimeout(() => {
       if (!settled) {
         settled = true;
-        proc.kill();
+        try {
+          proc.kill();
+        } catch {
+          // Process may already be dead, ignore error
+        }
         resolve(false);
       }
     }, 5000);

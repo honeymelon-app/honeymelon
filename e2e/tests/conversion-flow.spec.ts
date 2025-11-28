@@ -33,11 +33,45 @@ test.describe('Conversion Flow', () => {
 
   test('shows progress while conversion runs', async ({ page }) => {
     const jobCard = await enqueueVideo(page);
-    await startJob(jobCard);
 
+    // Set up listener for progress events before starting the job
+    await page.evaluate(() => {
+      const api = (
+        window as typeof window & {
+          __HONEYMELON_TEST_API__?: {
+            mockState?: { eventListeners: Map<string, Set<(payload: unknown) => void>> };
+          };
+        }
+      ).__HONEYMELON_TEST_API__;
+      if (api?.mockState?.eventListeners) {
+        api.mockState.eventListeners.get('job:progress')?.add((payload: unknown) => {
+          const p = payload as { percent?: number };
+          if (p.percent !== undefined) {
+            (
+              window as typeof window & { __test_progress_events?: number[] }
+            ).__test_progress_events =
+              (window as typeof window & { __test_progress_events?: number[] })
+                .__test_progress_events || [];
+            (
+              window as typeof window & { __test_progress_events?: number[] }
+            ).__test_progress_events!.push(p.percent);
+          }
+        });
+      }
+    });
+
+    await startJob(jobCard);
     await waitForJobState(jobCard, 'running');
-    // In mock mode, progress updates quickly - just verify we reach completion
     await waitForJobState(jobCard, 'completed');
+
+    // Verify at least one progress event was emitted during mock conversion
+    const capturedProgress = await page.evaluate(() => {
+      return (
+        (window as typeof window & { __test_progress_events?: number[] }).__test_progress_events ||
+        []
+      );
+    });
+    expect(capturedProgress.length).toBeGreaterThan(0);
   });
 
   test('surface conversion errors gracefully', async ({ page }) => {

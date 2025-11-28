@@ -286,28 +286,6 @@ export async function mockTauriCommands(
   );
 }
 
-/**
- * Inject Tauri API mocks for browser-only E2E testing.
- *
- * This function creates a mock implementation of the Tauri API that allows
- * the Vue app to run in a regular browser without the actual Tauri backend.
- * Used when running tests in browser mode (not Remote UI mode).
- *
- * @param page Playwright page instance
- * @param initialAppData Initial app data for seeding mocked responses
- */
-export async function injectTauriMocks(
-  page: Page,
-  initialAppData?: AppDataSnapshot,
-): Promise<void> {
-  const { createMockConfig, getTauriMockImplementation } = await import('./tauri-mocks');
-
-  const mockConfig = createMockConfig(initialAppData);
-  const mockImpl = getTauriMockImplementation();
-
-  await page.evaluate(`(${mockImpl})(${JSON.stringify(mockConfig)})`);
-}
-
 function isMockError(value: CommandMockValue): value is MockedCommandError {
   return Boolean(value && typeof value === 'object' && '__mockError' in value);
 }

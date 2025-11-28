@@ -14,6 +14,8 @@ pub fn build_app() -> Builder<AppRuntime> {
         .plugin(tauri_plugin_store::Builder::default().build());
 
     // Initialize Remote UI plugin when E2E testing is enabled (via environment variable)
+    // Only available in debug builds as an additional safeguard against accidental exposure
+    #[cfg(debug_assertions)]
     let builder = if std::env::var("PLAYWRIGHT_E2E").is_ok() {
         builder.plugin(tauri_remote_ui::init())
     } else {
