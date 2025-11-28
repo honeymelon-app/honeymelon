@@ -134,7 +134,7 @@ The fixtures and helpers under `e2e/helpers` provide a high-level API for testin
 ### Test Fixtures ([tests/fixtures.ts](tests/fixtures.ts))
 
 - `initialAppData` option seeds `settings.json`, `jobs.json`, and `license.json`
-- `appPage` fixture handles page setup with Tauri mocks injection
+- `page` fixture handles page setup with Tauri mocks injection
 - Automatically injects Tauri API mocks in browser mode
 
 ### Tauri Helpers ([helpers/tauri.ts](helpers/tauri.ts))
