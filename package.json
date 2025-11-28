@@ -134,6 +134,7 @@
     "vue-tsc": "^2.1.10"
   },
   "overrides": {
-    "@conventional-changelog/git-client": "^2.5.1"
+    "@conventional-changelog/git-client": "^2.5.1",
+    "@semantic-release/npm": "^13.1.2"
   }
 }
