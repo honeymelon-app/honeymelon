@@ -289,7 +289,7 @@ For macOS-specific tests that require the actual Tauri backend, use a macOS runn
 
 ### Tauri mocks not working
 
-- Verify `injectTauriMocks` is called before interacting with the page
+- Tauri mocks are automatically injected by the Playwright `page` fixture; no manual function call is needed
 - Check browser console for mock-related error messages
 
 ### FFmpeg fixtures fail
