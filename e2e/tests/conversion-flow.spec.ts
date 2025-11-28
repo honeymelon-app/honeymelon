@@ -7,6 +7,18 @@ import { loadFixtureManifest } from './global-setup';
 import { withLicense } from './support/app-state';
 
 type FixtureManifest = Record<string, Record<string, string>>;
+
+// Type extension for test window with progress events
+type TestWindow = typeof window & { __test_progress_events?: number[] };
+
+// Type extension for window with Honeymelon test API
+type HoneymelonTestWindow = typeof window & {
+  __HONEYMELON_TEST_API__?: {
+    mockState?: { eventListeners: Map<string, Set<(payload: unknown) => void>> };
+    jobsStore?: { markFailed: (jobId: string, message: string, code?: string) => void };
+  };
+};
+
 let manifestCache: FixtureManifest | undefined;
 
 test.use({
@@ -36,25 +48,14 @@ test.describe('Conversion Flow', () => {
 
     // Set up listener for progress events before starting the job
     await page.evaluate(() => {
-      const api = (
-        window as typeof window & {
-          __HONEYMELON_TEST_API__?: {
-            mockState?: { eventListeners: Map<string, Set<(payload: unknown) => void>> };
-          };
-        }
-      ).__HONEYMELON_TEST_API__;
+      const api = (window as HoneymelonTestWindow).__HONEYMELON_TEST_API__;
       if (api?.mockState?.eventListeners) {
         api.mockState.eventListeners.get('job:progress')?.add((payload: unknown) => {
           const p = payload as { percent?: number };
           if (p.percent !== undefined) {
-            (
-              window as typeof window & { __test_progress_events?: number[] }
-            ).__test_progress_events =
-              (window as typeof window & { __test_progress_events?: number[] })
-                .__test_progress_events || [];
-            (
-              window as typeof window & { __test_progress_events?: number[] }
-            ).__test_progress_events!.push(p.percent);
+            (window as TestWindow).__test_progress_events =
+              (window as TestWindow).__test_progress_events || [];
+            (window as TestWindow).__test_progress_events!.push(p.percent);
           }
         });
       }
@@ -66,10 +67,7 @@ test.describe('Conversion Flow', () => {
 
     // Verify at least one progress event was emitted during mock conversion
     const capturedProgress = await page.evaluate(() => {
-      return (
-        (window as typeof window & { __test_progress_events?: number[] }).__test_progress_events ||
-        []
-      );
+      return (window as TestWindow).__test_progress_events || [];
     });
     expect(capturedProgress.length).toBeGreaterThan(0);
   });
@@ -81,14 +79,8 @@ test.describe('Conversion Flow', () => {
     expect(jobId).toBeTruthy();
 
     await page.evaluate((id) => {
-      const api = (window as typeof window & { __HONEYMELON_TEST_API__?: Record<string, unknown> })
-        .__HONEYMELON_TEST_API__;
-      const jobsStore = api?.jobsStore as
-        | {
-            markFailed: (jobId: string, message: string, code?: string) => void;
-          }
-        | undefined;
-      jobsStore?.markFailed(id as string, 'Simulated ffmpeg failure', 'job_invalid_args');
+      const api = (window as HoneymelonTestWindow).__HONEYMELON_TEST_API__;
+      api?.jobsStore?.markFailed(id as string, 'Simulated ffmpeg failure', 'job_invalid_args');
     }, jobId);
 
     await waitForJobState(jobCard, 'failed');
