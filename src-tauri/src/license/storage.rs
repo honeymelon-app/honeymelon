@@ -117,7 +117,7 @@ mod tests {
         let signing_key = SigningKey::from_bytes(&secret_key);
         let verifying_key = signing_key.verifying_key();
         std::env::set_var(
-            "LICENSE_PUBLIC_KEY",
+            "LICENSE_SIGNING_PUBLIC_KEY",
             BASE64.encode(verifying_key.to_bytes()),
         );
 

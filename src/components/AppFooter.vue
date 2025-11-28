@@ -70,7 +70,7 @@ function handleStartAll() {
                 data-test="start-all-button"
               >
                 <Play class="mr-1.5 h-4 w-4" />
-                Start All
+                Convert
               </Button>
             </TooltipTrigger>
             <TooltipContent>

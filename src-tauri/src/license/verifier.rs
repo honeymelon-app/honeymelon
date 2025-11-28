@@ -45,7 +45,7 @@ pub fn activate_timestamp() -> u64 {
 }
 
 fn load_verifying_key() -> Result<VerifyingKey, LicenseError> {
-    if let Ok(value) = std::env::var("LICENSE_PUBLIC_KEY") {
+    if let Ok(value) = std::env::var("LICENSE_SIGNING_PUBLIC_KEY") {
         return parse_public_key(&value);
     }
     if let Ok(value) = std::env::var("LICENSE_SIGNING_PUBLIC_KEY") {
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn verify_round_trip_with_valid_signature() {
         let (key, verifying_b64) = signed_license_blob();
-        std::env::set_var("LICENSE_PUBLIC_KEY", &verifying_b64);
+        std::env::set_var("LICENSE_SIGNING_PUBLIC_KEY", &verifying_b64);
 
         let info = verify(&key).expect("valid license");
         assert_eq!(info.key.replace('-', "").len(), key.replace('-', "").len());
@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn verify_rejects_invalid_signature() {
         let (key, verifying_b64) = signed_license_blob();
-        std::env::set_var("LICENSE_PUBLIC_KEY", &verifying_b64);
+        std::env::set_var("LICENSE_SIGNING_PUBLIC_KEY", &verifying_b64);
 
         let mut blob = decoder::decode_key(&key).expect("decode original");
         let last = blob.last_mut().expect("non-empty");

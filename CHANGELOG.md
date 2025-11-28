@@ -35,7 +35,7 @@ This is the initial public release. See [Unreleased] section for complete featur
 
 ### Changed
 
-- Rust backend now loads `.env` at build time and forwards `LICENSE_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
+- Rust backend now loads `.env` at build time and forwards `LICENSE_SIGNING_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
 - Added `dotenvy` to Rust build dependencies.
 - Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification.
 - Replaced all dynamic imports of Tauri API modules with static imports in frontend files to resolve Vite warnings:

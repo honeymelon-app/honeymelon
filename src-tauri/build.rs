@@ -43,9 +43,9 @@ fn main() {
     // Load .env (kept from your original)
     let _ = dotenvy::dotenv();
 
-    // Forward LICENSE_PUBLIC_KEY to code
+    // Forward LICENSE_SIGNING_PUBLIC_KEY to code
     if let Ok(key) =
-        std::env::var("LICENSE_PUBLIC_KEY").or_else(|_| std::env::var("LICENSE_SIGNING_PUBLIC_KEY"))
+        std::env::var("LICENSE_SIGNING_PUBLIC_KEY").or_else(|_| std::env::var("LICENSE_SIGNING_PUBLIC_KEY"))
     {
         println!("cargo:rustc-env=LICENSE_SIGNING_PUBLIC_KEY={}", key);
     }

@@ -68,7 +68,7 @@ impl LicenseError {
             LicenseError::InvalidLength => "license_length",
             LicenseError::UnsupportedVersion(_) => "license_version",
             LicenseError::MissingPublicKey | LicenseError::InvalidPublicKey(_) => {
-                "license_public_key"
+                "LICENSE_SIGNING_PUBLIC_KEY"
             },
             LicenseError::InvalidSignature => "license_signature",
             LicenseError::StoragePath | LicenseError::Io(_) => "license_storage",

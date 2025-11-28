@@ -224,7 +224,7 @@ async function handleShowInFinder() {
                         v-if="canCancel"
                         variant="ghost"
                         size="icon"
-                        class="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
+                        class="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         aria-label="Cancel job"
                         @click="handleCancel"
                         data-test="job-cancel-button"
@@ -233,7 +233,7 @@ async function handleShowInFinder() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Cancel this job</p>
+                      <p>Remove from queue</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

@@ -76,7 +76,7 @@ function handleClearCompleted() {
       </Button>
     </div>
     <ScrollArea class="h-[490px] w-full">
-      <div class="divide-y divide-muted space-y-3 h-full">
+      <div class="space-y-3 h-full">
         <JobQueueItem
           v-for="job in jobs"
           :key="job.id"
@@ -91,7 +91,6 @@ function handleClearCompleted() {
           @start="handleStart"
         />
       </div>
-      <div>&nbsp;</div>
     </ScrollArea>
   </section>
 </template>

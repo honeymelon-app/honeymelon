@@ -38,7 +38,7 @@ Initial public release of Honeymelon.
 
 ### Changed
 
-- Rust backend now loads `.env` at build time and forwards `LICENSE_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
+- Rust backend now loads `.env` at build time and forwards `LICENSE_SIGNING_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
 - Added `dotenvy` to Rust build dependencies.
 - Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification.
 - Replaced dynamic imports of Tauri API modules with static imports to resolve Vite warnings (`license.ts`, `use-file-handler.ts`, `use-job-orchestrator.ts`, `file-discovery.ts`, `DestinationChooser.vue`).

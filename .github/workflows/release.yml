@@ -156,7 +156,7 @@ jobs:
       - name: Build application
         run: |
           set -euo pipefail
-          : "${LICENSE_PUBLIC_KEY:?"Missing LICENSE_PUBLIC_KEY"}"
+          : "${LICENSE_SIGNING_PUBLIC_KEY:?"Missing LICENSE_SIGNING_PUBLIC_KEY"}"
 
           if [ -n "${{ secrets.APPLE_ID }}" ] && [ -n "${{ secrets.APPLE_PASSWORD }}" ] && \
              [ -n "${{ secrets.APPLE_TEAM_ID }}" ] && [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ] && \
@@ -173,7 +173,7 @@ jobs:
 
           npm run tauri:build
         env:
-          LICENSE_PUBLIC_KEY: ${{ secrets.LICENSE_PUBLIC_KEY }}
+          LICENSE_SIGNING_PUBLIC_KEY: ${{ secrets.LICENSE_SIGNING_PUBLIC_KEY }}
 
       - name: Stage release artifacts
         id: prepare_artifacts
