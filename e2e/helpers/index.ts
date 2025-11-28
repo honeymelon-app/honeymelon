@@ -8,5 +8,8 @@
 // Re-export all Tauri helpers
 export * from './tauri';
 
+// Re-export Tauri mock utilities
+export * from './tauri-mocks';
+
 // Re-export all media fixture helpers
 export * from './media-fixtures';
