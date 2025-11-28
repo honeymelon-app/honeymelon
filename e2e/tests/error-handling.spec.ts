@@ -5,6 +5,7 @@ import { simulateFileDrop } from '../helpers/tauri';
 import { expect, test } from './fixtures';
 import { loadFixtureManifest } from './global-setup';
 import { withLicense } from './support/app-state';
+import type { HoneymelonTestWindow } from './support/test-types';
 
 type FixtureManifest = Record<string, Record<string, string>>;
 let manifestCache: FixtureManifest | undefined;
@@ -19,12 +20,8 @@ test.describe('Job Failure Handling', () => {
     const jobId = await job.getAttribute('data-job-id');
 
     await page.evaluate((id) => {
-      const api = (window as typeof window & { __HONEYMELON_TEST_API__?: Record<string, unknown> })
-        .__HONEYMELON_TEST_API__;
-      const jobsStore = api?.jobsStore as {
-        markFailed: (jobId: string, error: string, code?: string) => void;
-      };
-      jobsStore?.markFailed(id as string, 'Mock conversion error', 'job_invalid_args');
+      const api = (window as HoneymelonTestWindow).__HONEYMELON_TEST_API__;
+      api?.jobsStore?.markFailed(id as string, 'Mock conversion error', 'job_invalid_args');
     }, jobId);
 
     await expect(job).toHaveAttribute('data-state', 'failed', { timeout: 10000 });
@@ -36,12 +33,8 @@ test.describe('Job Failure Handling', () => {
     const jobId = await job.getAttribute('data-job-id');
 
     await page.evaluate((id) => {
-      const api = (window as typeof window & { __HONEYMELON_TEST_API__?: Record<string, unknown> })
-        .__HONEYMELON_TEST_API__;
-      const jobsStore = api?.jobsStore as {
-        markFailed: (jobId: string, error: string, code?: string) => void;
-      };
-      jobsStore?.markFailed(id as string, 'Permission denied', 'job_output_permission');
+      const api = (window as HoneymelonTestWindow).__HONEYMELON_TEST_API__;
+      api?.jobsStore?.markFailed(id as string, 'Permission denied', 'job_output_permission');
     }, jobId);
 
     await expect(job.locator('text=Permission denied')).toBeVisible({ timeout: 10000 });

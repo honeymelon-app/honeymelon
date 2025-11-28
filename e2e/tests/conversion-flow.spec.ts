@@ -5,19 +5,9 @@ import { simulateFileDrop } from '../helpers/tauri';
 import { expect, test } from './fixtures';
 import { loadFixtureManifest } from './global-setup';
 import { withLicense } from './support/app-state';
+import type { HoneymelonTestWindow, TestWindow } from './support/test-types';
 
 type FixtureManifest = Record<string, Record<string, string>>;
-
-// Type extension for test window with progress events
-type TestWindow = typeof window & { __test_progress_events?: number[] };
-
-// Type extension for window with Honeymelon test API
-type HoneymelonTestWindow = typeof window & {
-  __HONEYMELON_TEST_API__?: {
-    mockState?: { eventListeners: Map<string, Set<(payload: unknown) => void>> };
-    jobsStore?: { markFailed: (jobId: string, message: string, code?: string) => void };
-  };
-};
 
 let manifestCache: FixtureManifest | undefined;
 
@@ -50,7 +40,11 @@ test.describe('Conversion Flow', () => {
     await page.evaluate(() => {
       const api = (window as HoneymelonTestWindow).__HONEYMELON_TEST_API__;
       if (api?.mockState?.eventListeners) {
-        api.mockState.eventListeners.get('job:progress')?.add((payload: unknown) => {
+        // Ensure the Set exists before adding to it
+        if (!api.mockState.eventListeners.has('job:progress')) {
+          api.mockState.eventListeners.set('job:progress', new Set());
+        }
+        api.mockState.eventListeners.get('job:progress')!.add((payload: unknown) => {
           const p = payload as { percent?: number };
           if (p.percent !== undefined) {
             (window as TestWindow).__test_progress_events =

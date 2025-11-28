@@ -134,14 +134,13 @@ The fixtures and helpers under `e2e/helpers` provide a high-level API for testin
 ### Test Fixtures ([tests/fixtures.ts](tests/fixtures.ts))
 
 - `initialAppData` option seeds `settings.json`, `jobs.json`, and `license.json`
-- `page` fixture handles page setup with Tauri mocks injection
+- Extended `page` fixture handles page setup with Tauri mocks injection
 - Automatically injects Tauri API mocks in browser mode
 
 ### Tauri Helpers ([helpers/tauri.ts](helpers/tauri.ts))
 
 - `clearAppData()` - Clear app data for clean test state
 - `setAppData()` - Pre-populate app data for testing
-- `injectTauriMocks()` - Inject browser-compatible Tauri API mocks
 - `mockTauriCommands()` - Override specific Tauri commands
 - `mockCommandError()` - Create mock error responses
 - `simulateFileDrop()` - Simulate file drag-and-drop events

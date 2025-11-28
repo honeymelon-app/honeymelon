@@ -22,33 +22,54 @@ pub fn build_app() -> Builder<AppRuntime> {
         builder
     };
 
-    builder
-        .manage(ServiceRegistry::default())
-        .invoke_handler(tauri::generate_handler![
-            crate::commands::media::load_capabilities,
-            crate::commands::media::probe_media,
-            crate::commands::media::file_exists,
-            crate::commands::jobs::start_job,
-            crate::commands::jobs::cancel_job,
-            crate::commands::jobs::set_max_concurrency,
-            crate::commands::media::expand_media_paths,
-            crate::commands::dialogs::pick_media_files,
-            crate::commands::dialogs::choose_output_directory,
-            crate::commands::licensing::verify_license_key,
-            crate::commands::licensing::activate_license,
-            crate::commands::licensing::current_license,
-            crate::commands::licensing::remove_license,
-        ]
-        // Only register testing commands in debug builds
-        #[cfg(debug_assertions)]
-        .extend(tauri::generate_handler![
-            crate::commands::testing::enable_remote_ui,
-            crate::commands::testing::disable_remote_ui
-        ]))
-        .setup(|app| {
-            configure_menus(app)?;
-            Ok(())
-        })
+    // Register core commands available in all builds
+    #[cfg(not(debug_assertions))]
+    let builder =
+        builder
+            .manage(ServiceRegistry::default())
+            .invoke_handler(tauri::generate_handler![
+                crate::commands::media::load_capabilities,
+                crate::commands::media::probe_media,
+                crate::commands::media::file_exists,
+                crate::commands::jobs::start_job,
+                crate::commands::jobs::cancel_job,
+                crate::commands::jobs::set_max_concurrency,
+                crate::commands::media::expand_media_paths,
+                crate::commands::dialogs::pick_media_files,
+                crate::commands::dialogs::choose_output_directory,
+                crate::commands::licensing::verify_license_key,
+                crate::commands::licensing::activate_license,
+                crate::commands::licensing::current_license,
+                crate::commands::licensing::remove_license,
+            ]);
+
+    // Register core commands plus testing commands in debug builds
+    #[cfg(debug_assertions)]
+    let builder =
+        builder
+            .manage(ServiceRegistry::default())
+            .invoke_handler(tauri::generate_handler![
+                crate::commands::media::load_capabilities,
+                crate::commands::media::probe_media,
+                crate::commands::media::file_exists,
+                crate::commands::jobs::start_job,
+                crate::commands::jobs::cancel_job,
+                crate::commands::jobs::set_max_concurrency,
+                crate::commands::media::expand_media_paths,
+                crate::commands::dialogs::pick_media_files,
+                crate::commands::dialogs::choose_output_directory,
+                crate::commands::licensing::verify_license_key,
+                crate::commands::licensing::activate_license,
+                crate::commands::licensing::current_license,
+                crate::commands::licensing::remove_license,
+                crate::commands::testing::enable_remote_ui,
+                crate::commands::testing::disable_remote_ui,
+            ]);
+
+    builder.setup(|app| {
+        configure_menus(app)?;
+        Ok(())
+    })
 }
 
 #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
