@@ -92,9 +92,29 @@ export function loadFixtureManifest(): Record<string, Record<string, string>> | 
 async function checkFfmpegAvailable(): Promise<boolean> {
   const { spawn } = await import('child_process');
   return new Promise((resolve) => {
-    const process = spawn('ffmpeg', ['-version']);
-    process.on('error', () => resolve(false));
-    process.on('close', (code) => resolve(code === 0));
+    const proc = spawn('ffmpeg', ['-version']);
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        proc.kill();
+        resolve(false);
+      }
+    }, 5000);
+    proc.on('error', () => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timeout);
+        resolve(false);
+      }
+    });
+    proc.on('close', (code) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timeout);
+        resolve(code === 0);
+      }
+    });
   });
 }
 
