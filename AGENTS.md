@@ -18,7 +18,7 @@ Use TypeScript with Vue `<script setup>`. Keep 2-space indentation and group imp
 
 ## Testing Guidelines
 
-Automated JS tests are not configured yet; when adding deterministic logic in `src/lib`, introduce Vitest specs under `src/lib/__tests__` (run via `npx vitest` once added) or document manual checks. For now, smoke-test changes with `npm run tauri dev`, capturing logs or screenshots for conversions touched. Rust additions should include inline `#[cfg(test)]` blocks and be exercised with `cargo test` from `src-tauri`.
+Use Vitest for unit tests on deterministic logic in `src/lib`. Add specs under `src/lib/__tests__` and run via `npm run test:unit`. For UI validation, smoke-test changes with `npm run tauri dev`, capturing logs or screenshots for conversions touched. Rust additions should include inline `#[cfg(test)]` blocks and be exercised with `cargo test` from `src-tauri`.
 
 ## Commit & Pull Request Guidelines
 

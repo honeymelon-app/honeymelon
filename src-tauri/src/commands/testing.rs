@@ -3,6 +3,7 @@
 //! These commands are only active when the `PLAYWRIGHT_E2E` environment variable is set.
 
 use tauri::AppHandle;
+use tauri_remote_ui::RemoteUiExt;
 
 /// Start the Remote UI server for Playwright E2E testing.
 ///
@@ -25,7 +26,7 @@ pub async fn enable_remote_ui(app: AppHandle, port: Option<u16>) -> Result<Strin
     let port = port.unwrap_or(9090);
     let config = tauri_remote_ui::RemoteUiConfig::default().set_port(Some(port));
 
-    tauri_remote_ui::start_remote_ui(&app, config)
+    app.start_remote_ui(config)
         .await
         .map_err(|e| format!("Failed to start Remote UI server: {}", e))?;
 
@@ -39,7 +40,7 @@ pub async fn disable_remote_ui(app: AppHandle) -> Result<(), String> {
         return Err("Remote UI is only available in E2E test mode".to_string());
     }
 
-    tauri_remote_ui::stop_remote_ui(&app)
+    app.stop_remote_ui()
         .await
         .map_err(|e| format!("Failed to stop Remote UI server: {}", e))
 }

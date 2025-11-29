@@ -1,3 +1,6 @@
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -9,6 +12,9 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * See https://playwright.dev/docs/test-configuration
  */
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Remote UI port for Tauri app connection
 const REMOTE_UI_PORT = process.env.REMOTE_UI_PORT ?? '9090';
@@ -49,6 +55,7 @@ export default defineConfig({
     : {
         webServer: {
           command: 'npm run dev -- --host 127.0.0.1 --port 1420 --strictPort',
+          cwd: resolve(__dirname, '..'),
           url: 'http://localhost:1420',
           reuseExistingServer: !process.env.CI,
           timeout: 120 * 1000,

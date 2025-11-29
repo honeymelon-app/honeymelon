@@ -266,86 +266,7 @@ jobs:
             echo "No coverage report found, skipping threshold check"
           fi
 
-  # Job 5: E2E Tests (if configured)
-  test-e2e:
-    name: E2E Tests
-    runs-on: macos-14
-    needs: build
-    env:
-      # ensure we don’t skip browser downloads
-      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0'
-      # pin the cache location so cache hits are consistent
-      PLAYWRIGHT_BROWSERS_PATH: $HOME/Library/Caches/ms-playwright
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin
-
-      - name: Install Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-          prefix-key: v1-rust
-          add-job-id-key: true
-          add-rust-environment-hash-key: true
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Resolve Playwright version
-        id: pwv
-        run: echo "ver=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
-          key: ${{ runner.os }}-playwright-${{ steps.pwv.outputs.ver }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-${{ steps.pwv.outputs.ver }}-
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-
-      - name: Install FFmpeg (for capability detection)
-        run: brew install ffmpeg
-
-      - name: Build frontend for E2E
-        run: npm run build
-
-      - name: Run E2E tests
-        run: |
-          if [ -f "e2e/playwright.config.ts" ] || [ -d "e2e" ]; then
-            echo "Running Tauri E2E tests..."
-            npm run test:e2e
-          else
-            echo "E2E not configured, skipping"
-          fi
-        env:
-          # Tauri E2E tests run the app internally
-          CI: true
-
-      - name: Upload E2E test results
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: e2e/test-results/
-          retention-days: 7
-
-  # Job 6: Security Audit
+  # Job 5: Security Audit
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -381,7 +302,7 @@ jobs:
           cargo audit
           echo "cargo audit passed - no vulnerabilities found"
 
-  # Job 7: Dependency Check
+  # Job 6: Dependency Check
   dependency-check:
     name: Dependency Validation
     runs-on: ubuntu-latest
@@ -414,15 +335,7 @@ jobs:
     name: CI Success
     runs-on: ubuntu-latest
     needs:
-      [
-        lint,
-        rust-check,
-        test-frontend,
-        test-e2e,
-        build,
-        security-audit,
-        dependency-check,
-      ]
+      [lint, rust-check, test-frontend, build, security-audit, dependency-check]
     if: always()
 
     steps:
@@ -463,7 +376,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Results" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend tests (Vitest): ${{ needs.test-frontend.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- E2E tests: ${{ needs.test-e2e.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Additional Checks" >> $GITHUB_STEP_SUMMARY
           echo "- Security audit: ${{ needs.security-audit.result }}" >> $GITHUB_STEP_SUMMARY

@@ -1,11 +1,11 @@
 ---
 title: Testing Strategy
-description: Learn how Honeymelon approaches unit, integration, and end-to-end testing across the stack.
+description: Learn how Honeymelon approaches unit and integration testing across the stack.
 ---
 
 # Testing
 
-Honeymelon has comprehensive test coverage across frontend, backend, and end-to-end scenarios. This guide explains our testing strategy and how to write effective tests.
+Honeymelon maintains test coverage across frontend and backend through unit and integration tests. This guide explains our testing strategy and how to write effective tests.
 
 ## Test Structure
 
@@ -13,11 +13,8 @@ Honeymelon has comprehensive test coverage across frontend, backend, and end-to-
 honeymelon/
 ├── src/
 │   └── **/__tests__/          # Frontend unit tests
-├── src-tauri/src/
-│   └── **/*.rs               # Rust tests (inline)
-└── e2e/
-    └── tests/                # E2E tests
-
+└── src-tauri/src/
+    └── **/*.rs               # Rust tests (inline)
 ```
 
 ## Frontend Testing
@@ -42,7 +39,6 @@ npm run test:unit:ui
 
 # Coverage
 npm run test:unit:coverage
-
 ```
 
 ### Writing Unit Tests
@@ -167,21 +163,18 @@ describe('Jobs Store', () => {
 ```bash
 cd src-tauri
 cargo test
-
 ```
 
 **With output**:
 
 ```bash
 cargo test -- --nocapture
-
 ```
 
 **Specific test**:
 
 ```bash
 cargo test test_name
-
 ```
 
 ### Writing Rust Tests
@@ -214,7 +207,6 @@ mod tests {
         parse_ffprobe_output("not json").unwrap();
     }
 }
-
 ```
 
 **Async Tests**:
@@ -239,7 +231,6 @@ mod tests {
         assert!(result.is_err());
     }
 }
-
 ```
 
 **Integration Tests**:
@@ -261,7 +252,6 @@ async fn test_full_conversion() {
     // Cleanup
     std::fs::remove_file(output).ok();
 }
-
 ```
 
 ### Test Coverage
@@ -271,106 +261,16 @@ async fn test_full_conversion() {
 ```bash
 cargo install cargo-tarpaulin
 cargo tarpaulin --out Html
-
 ```
 
-## End-to-End Testing
+## Manual UI Testing
 
-### Technology
+For UI validation, smoke-test changes with `npm run tauri dev`:
 
-- **Playwright**: Cross-browser testing
-- **TypeScript**: Type-safe test scripts
-
-### Running E2E Tests
-
-```bash
-# Run all E2E tests
-npm run test:e2e
-
-# UI mode (interactive)
-npm run test:e2e:ui
-
-# Debug mode
-npm run test:e2e:debug
-
-# Specific test
-npx playwright test -c e2e/playwright.config.ts conversion.spec.ts
-
-```
-
-### Writing E2E Tests
-
-**Test file naming**: `feature-name.spec.ts` in `e2e/tests/`
-
-**Example**:
-
-```typescript
-// e2e/tests/conversion.spec.ts
-import { test, expect } from '@playwright/test';
-import { _electron as electron } from 'playwright';
-
-test.describe('File Conversion', () => {
-  test('converts a video file', async () => {
-    const app = await electron.launch({
-      args: ['.'],
-    });
-
-    const window = await app.firstWindow();
-
-    // Add a file
-    await window.click('[data-testid="add-file"]');
-    // File picker interaction...
-
-    // Select preset
-    await window.selectOption('[data-testid="preset-select"]', 'video-to-mp4');
-
-    // Start conversion
-    await window.click('[data-testid="start-button"]');
-
-    // Wait for completion
-    await window.waitForSelector('[data-testid="job-completed"]', {
-      timeout: 60000,
-    });
-
-    // Verify output
-    const statusText = await window.textContent('[data-testid="job-status"]');
-    expect(statusText).toBe('Completed');
-
-    await app.close();
-  });
-
-  test('handles conversion error', async () => {
-    const app = await electron.launch({ args: ['.'] });
-    const window = await app.firstWindow();
-
-    // Add an invalid file
-    // ... trigger error
-
-    // Verify error message
-    await window.waitForSelector('[data-testid="job-failed"]');
-    const errorText = await window.textContent('[data-testid="error-message"]');
-    expect(errorText).toContain('Error');
-
-    await app.close();
-  });
-});
-```
-
-### Test Utilities
-
-```typescript
-// e2e/utils/helpers.ts
-export async function addFile(window: Page, filePath: string) {
-  await window.click('[data-testid="add-file"]');
-  // Handle file picker
-}
-
-export async function waitForJobCompletion(window: Page, jobId: string) {
-  await window.waitForSelector(`[data-job-id="${jobId}"][data-status="completed"]`, {
-    timeout: 120000,
-  });
-}
-```
+- Test file drag-and-drop functionality
+- Verify preset selection and conversion flows
+- Capture logs or screenshots for conversions touched
+- Test across different media types (video, audio, image)
 
 ## Test Data
 
@@ -379,12 +279,10 @@ export async function waitForJobCompletion(window: Page, jobId: string) {
 Store test media files in `test_files/`:
 
 ```
-
 test_files/
 ├── small.mp4         # 1 second, 640x480
 ├── sample.mkv        # 5 seconds, 1920x1080
 └── audio.m4a         # Audio-only file
-
 ```
 
 ### Generating Test Files
@@ -394,7 +292,6 @@ test_files/
 ffmpeg -f lavfi -i testsrc=duration=1:size=640x480:rate=30 \
   -f lavfi -i sine=frequency=1000:duration=1 \
   -pix_fmt yuv420p test_files/small.mp4
-
 ```
 
 ## Mocking
@@ -524,7 +421,7 @@ it('handles empty file path', () => {
 it('handles very long file names', () => {
   const longName = 'a'.repeat(1000) + '.mp4';
   expect(validateFilePath(longName)).toBe(true);
-});
+};
 ```
 
 ### 5. Keep Tests Isolated
@@ -547,7 +444,6 @@ afterEach(() => {
 
 ```bash
 npm run test:unit:ui
-
 ```
 
 Opens interactive UI for debugging tests.
@@ -576,8 +472,7 @@ RUST_BACKTRACE=1 cargo test
 ## Coverage Goals
 
 - **Frontend**: 80%+ coverage
-- **Backend**: 85%+ coverage (currently 108 tests)
-- **E2E**: Critical user workflows
+- **Backend**: 85%+ coverage
 
 ## Next Steps
 
