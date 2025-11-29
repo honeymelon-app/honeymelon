@@ -13,21 +13,6 @@ pub fn build_app() -> Builder<AppRuntime> {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_store::Builder::default().build());
 
-    // Initialize Remote UI plugin when E2E testing is enabled (via environment variable)
-    // Only available in debug builds as an additional safeguard against accidental exposure
-    #[cfg(debug_assertions)]
-    let builder = if std::env::var("PLAYWRIGHT_E2E").is_ok() {
-        builder.plugin(tauri_remote_ui::init())
-    } else {
-        builder
-    };
-
-    // Note: Command lists are duplicated between debug/release because Tauri's generate_handler!
-    // macro doesn't support conditional command inclusion. Testing commands are only registered
-    // in debug builds to prevent accidental exposure in production.
-
-    // Register core commands in release builds
-    #[cfg(not(debug_assertions))]
     let builder =
         builder
             .manage(ServiceRegistry::default())
@@ -45,30 +30,6 @@ pub fn build_app() -> Builder<AppRuntime> {
                 crate::commands::licensing::activate_license,
                 crate::commands::licensing::current_license,
                 crate::commands::licensing::remove_license,
-            ]);
-
-    // Register core commands plus testing commands in debug builds
-    #[cfg(debug_assertions)]
-    let builder =
-        builder
-            .manage(ServiceRegistry::default())
-            .invoke_handler(tauri::generate_handler![
-                crate::commands::media::load_capabilities,
-                crate::commands::media::probe_media,
-                crate::commands::media::file_exists,
-                crate::commands::jobs::start_job,
-                crate::commands::jobs::cancel_job,
-                crate::commands::jobs::set_max_concurrency,
-                crate::commands::media::expand_media_paths,
-                crate::commands::dialogs::pick_media_files,
-                crate::commands::dialogs::choose_output_directory,
-                crate::commands::licensing::verify_license_key,
-                crate::commands::licensing::activate_license,
-                crate::commands::licensing::current_license,
-                crate::commands::licensing::remove_license,
-                // Testing commands - only available in debug builds
-                crate::commands::testing::enable_remote_ui,
-                crate::commands::testing::disable_remote_ui,
             ]);
 
     builder.setup(|app| {

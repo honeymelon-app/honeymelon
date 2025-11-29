@@ -37,7 +37,6 @@ base64 = "0.22"
 uuid = { version = "1", features = ["v4"] }
 thiserror = "1"
 dotenvy = "0.15"
-tauri-remote-ui = "0.14.0"
 
 [dev-dependencies]
 tempfile = "3"
