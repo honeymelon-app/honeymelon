@@ -30,6 +30,7 @@ pub fn build_app() -> Builder<AppRuntime> {
                 crate::commands::licensing::activate_license,
                 crate::commands::licensing::current_license,
                 crate::commands::licensing::remove_license,
+                crate::commands::licensing::is_license_activated,
             ]);
 
     builder.setup(|app| {

@@ -3,7 +3,6 @@ use super::types::{LicenseError, LicenseInfo, PAYLOAD_LENGTH, SIGNATURE_LENGTH};
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn verify(key: &str) -> Result<LicenseInfo, LicenseError> {
     let blob = decode_key(key)?;
@@ -35,13 +34,6 @@ pub fn verify(key: &str) -> Result<LicenseInfo, LicenseError> {
         signature: BASE64.encode(signature_bytes),
         activated_at: None,
     })
-}
-
-pub fn activate_timestamp() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
 }
 
 fn load_verifying_key() -> Result<VerifyingKey, LicenseError> {
@@ -151,10 +143,5 @@ mod tests {
 
         let result = verify(&corrupt);
         assert!(matches!(result, Err(LicenseError::InvalidSignature)));
-    }
-
-    #[test]
-    fn activate_timestamp_returns_nonzero() {
-        assert!(activate_timestamp() > 0);
     }
 }

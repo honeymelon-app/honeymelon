@@ -28,6 +28,30 @@ pub struct LicenseInfo {
     pub activated_at: Option<u64>,
 }
 
+/// Response from the activation API.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivationResponse {
+    pub success: bool,
+    pub license: Option<ActivationLicenseData>,
+    pub error: Option<String>,
+    pub error_code: Option<String>,
+}
+
+/// License data returned from the activation API.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivationLicenseData {
+    pub id: String,
+    pub key: String,
+    pub order_id: String,
+    pub status: String,
+    pub activated_at: u64,
+    pub max_major_version: u8,
+    pub product: String,
+    pub app_version: String,
+    pub payload: Option<String>,
+    pub signature: Option<String>,
+}
+
 /** Comprehensive error types for license validation and management. */
 #[derive(Debug, Error)]
 pub enum LicenseError {
@@ -49,6 +73,18 @@ pub enum LicenseError {
     InvalidSignature,
     #[error("unable to determine license storage path")]
     StoragePath,
+    #[error("license not found")]
+    NotFound,
+    #[error("license has been refunded and cannot be activated")]
+    Refunded,
+    #[error("license has been revoked")]
+    Revoked,
+    #[error("license has already been activated")]
+    AlreadyActivated,
+    #[error("activation server error: {0}")]
+    ActivationServerError(String),
+    #[error("network error: {0}")]
+    NetworkError(String),
     #[error(transparent)]
     Uuid(#[from] uuid::Error),
     #[error(transparent)]
@@ -74,6 +110,12 @@ impl LicenseError {
             LicenseError::StoragePath | LicenseError::Io(_) => "license_storage",
             LicenseError::Serialization(_) => "license_serialization",
             LicenseError::Uuid(_) => "license_uuid",
+            LicenseError::NotFound => "license_not_found",
+            LicenseError::Refunded => "license_refunded",
+            LicenseError::Revoked => "license_revoked",
+            LicenseError::AlreadyActivated => "license_already_activated",
+            LicenseError::ActivationServerError(_) => "activation_server_error",
+            LicenseError::NetworkError(_) => "network_error",
         }
     }
 }
@@ -96,6 +138,12 @@ mod tests {
             "license_invalid_char"
         );
         assert_eq!(LicenseError::InvalidSignature.code(), "license_signature");
+        assert_eq!(LicenseError::NotFound.code(), "license_not_found");
+        assert_eq!(LicenseError::Refunded.code(), "license_refunded");
+        assert_eq!(
+            LicenseError::AlreadyActivated.code(),
+            "license_already_activated"
+        );
     }
 
     #[test]

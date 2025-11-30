@@ -14,6 +14,42 @@ interface LicenseInfo {
   activatedAt: number | null;
 }
 
+/**
+ * Activation error codes returned from the backend.
+ */
+export const ActivationErrorCodes = {
+  LICENSE_NOT_FOUND: 'license_not_found',
+  LICENSE_REFUNDED: 'license_refunded',
+  LICENSE_REVOKED: 'license_revoked',
+  LICENSE_ALREADY_ACTIVATED: 'license_already_activated',
+  NETWORK_ERROR: 'network_error',
+  ACTIVATION_SERVER_ERROR: 'activation_server_error',
+} as const;
+
+export type ActivationErrorCode = (typeof ActivationErrorCodes)[keyof typeof ActivationErrorCodes];
+
+/**
+ * Get a user-friendly error message for an activation error.
+ */
+export function getActivationErrorMessage(error: string): string {
+  if (error.includes('license_not_found') || error.includes('not found')) {
+    return 'License key not found. Please check your key and try again.';
+  }
+  if (error.includes('license_refunded') || error.includes('refunded')) {
+    return 'This license has been refunded and cannot be activated.';
+  }
+  if (error.includes('license_revoked') || error.includes('revoked')) {
+    return 'This license has been revoked.';
+  }
+  if (error.includes('license_already_activated') || error.includes('already been activated')) {
+    return 'This license has already been activated on another device.';
+  }
+  if (error.includes('network_error') || error.includes('Network')) {
+    return 'Unable to connect to the activation server. Please check your internet connection.';
+  }
+  return error;
+}
+
 export const useLicenseStore = defineStore('license', () => {
   const isDev = import.meta.env.DEV;
   const isE2E = import.meta.env.VITE_E2E_SIMULATION === 'true';
@@ -35,6 +71,7 @@ export const useLicenseStore = defineStore('license', () => {
   const isVerifying = ref(false);
   const isActivating = ref(false);
   const lastError = ref<string | null>(null);
+  const lastErrorCode = ref<string | null>(null);
   const initialized = ref(false);
   const promptOnInit = ref(false);
   const forcedDialogOpen = ref(false);
@@ -100,6 +137,7 @@ export const useLicenseStore = defineStore('license', () => {
     try {
       isVerifying.value = true;
       lastError.value = null;
+      lastErrorCode.value = null;
       if (isDev || isE2E) {
         preview.value = devLicense;
         return preview.value;
@@ -116,6 +154,11 @@ export const useLicenseStore = defineStore('license', () => {
     }
   }
 
+  /**
+   * Activate a license via the platform API.
+   * This performs a one-time online activation and stores the result locally.
+   * After successful activation, the app runs fully offline.
+   */
   async function activate(key: string) {
     if (!key.trim().length) {
       lastError.value = 'License key cannot be empty';
@@ -125,6 +168,8 @@ export const useLicenseStore = defineStore('license', () => {
     try {
       isActivating.value = true;
       lastError.value = null;
+      lastErrorCode.value = null;
+
       if (isDev || isE2E) {
         current.value = devLicense;
         preview.value = null;
@@ -139,7 +184,17 @@ export const useLicenseStore = defineStore('license', () => {
       return license;
     } catch (error) {
       console.error('[licenseStore] Activation failed', error);
-      lastError.value = (error as Error).message;
+      const errorMessage = (error as Error).message;
+      lastError.value = getActivationErrorMessage(errorMessage);
+
+      // Extract error code if present
+      for (const code of Object.values(ActivationErrorCodes)) {
+        if (errorMessage.includes(code)) {
+          lastErrorCode.value = code;
+          break;
+        }
+      }
+
       return null;
     } finally {
       isActivating.value = false;
@@ -152,6 +207,7 @@ export const useLicenseStore = defineStore('license', () => {
         current.value = devLicense;
         preview.value = null;
         lastError.value = null;
+        lastErrorCode.value = null;
         promptOnInit.value = false;
         return;
       }
@@ -160,6 +216,7 @@ export const useLicenseStore = defineStore('license', () => {
       current.value = null;
       preview.value = null;
       lastError.value = null;
+      lastErrorCode.value = null;
       promptOnInit.value = true;
     } catch (error) {
       console.error('[licenseStore] Remove failed', error);
@@ -169,6 +226,7 @@ export const useLicenseStore = defineStore('license', () => {
 
   function clearError() {
     lastError.value = null;
+    lastErrorCode.value = null;
   }
 
   function clearPrompt() {
@@ -186,6 +244,15 @@ export const useLicenseStore = defineStore('license', () => {
   const needsActivation = computed(() => initialized.value && !current.value);
   const shouldPrompt = computed(() => promptOnInit.value && needsActivation.value);
 
+  /**
+   * Check if the activation error is recoverable (user can retry with a different key).
+   */
+  const isRecoverableError = computed(() => {
+    if (!lastErrorCode.value) return true;
+    return lastErrorCode.value === ActivationErrorCodes.LICENSE_NOT_FOUND ||
+           lastErrorCode.value === ActivationErrorCodes.NETWORK_ERROR;
+  });
+
   return {
     current,
     preview,
@@ -193,10 +260,12 @@ export const useLicenseStore = defineStore('license', () => {
     isVerifying,
     isActivating,
     lastError,
+    lastErrorCode,
     initialized,
     needsActivation,
     shouldPrompt,
     forcedDialogOpen,
+    isRecoverableError,
     init,
     refresh,
     verify,

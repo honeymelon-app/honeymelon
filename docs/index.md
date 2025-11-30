@@ -106,7 +106,7 @@ AAC, MP3, Opus, Vorbis, FLAC, PCM, and more
 Honeymelon is designed with privacy as a core principle:
 
 - **Fully Local Processing**: All conversions happen on your Mac
-- **No Internet Required**: The app works completely offline
+- **Offline After Activation**: One-time online activation, then the app works fully offline
 - **No Data Collection**: Your media and usage data never leave your device
 - **Process Isolation**: FFmpeg runs in separate processes for security and stability
 

@@ -2,6 +2,9 @@ use tauri::{AppHandle, State};
 
 use crate::{error::AppError, license::LicenseInfo, services::ServiceRegistry};
 
+/// Application version for activation requests.
+const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[tauri::command]
 pub async fn verify_license_key(
     services: State<'_, ServiceRegistry>,
@@ -11,6 +14,9 @@ pub async fn verify_license_key(
     licensing.verify(&key)
 }
 
+/// Activate a license via the platform API.
+/// This performs a one-time online activation and stores the result locally.
+/// After this, the app runs fully offline.
 #[tauri::command]
 pub async fn activate_license(
     app: AppHandle,
@@ -18,7 +24,7 @@ pub async fn activate_license(
     key: String,
 ) -> Result<LicenseInfo, AppError> {
     let licensing = services.inner().licensing.clone();
-    licensing.activate(&app, &key)
+    licensing.activate_online(&app, &key, APP_VERSION)
 }
 
 #[tauri::command]
@@ -37,4 +43,15 @@ pub async fn remove_license(
 ) -> Result<(), AppError> {
     let licensing = services.inner().licensing.clone();
     licensing.remove(&app)
+}
+
+/// Check if the app has already been activated.
+/// This is a purely local check - no network calls.
+#[tauri::command]
+pub async fn is_license_activated(
+    app: AppHandle,
+    services: State<'_, ServiceRegistry>,
+) -> Result<bool, AppError> {
+    let licensing = services.inner().licensing.clone();
+    licensing.is_activated(&app)
 }

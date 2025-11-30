@@ -50,6 +50,11 @@ fn main() {
         println!("cargo:rustc-env=LICENSE_SIGNING_PUBLIC_KEY={}", key);
     }
 
+    // Forward PLATFORM_API_URL for online activation
+    let platform_url =
+        std::env::var("PLATFORM_API_URL").unwrap_or_else(|_| "https://honeymelon.app".to_string());
+    println!("cargo:rustc-env=PLATFORM_API_URL={}", platform_url);
+
     // New: enforce the *new* paths
     require_sidecar("bin/ffmpeg");
     require_sidecar("bin/ffprobe");

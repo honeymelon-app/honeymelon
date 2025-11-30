@@ -117,7 +117,7 @@ Want to contribute? See our [Contributing Guide](/development/contributing) to g
 
 - **All processing is local** – Your files never leave your computer
 - **No telemetry** – We don't collect usage data
-- **No network access** – Core functionality works offline
+- **Offline after activation** – One-time online activation, then core functionality works offline
 
 See our [Privacy Policy](/guide/privacy) for details.
 
