@@ -20,9 +20,11 @@ This page provides a brief overview of Honeymelon's EULA. Please review the comp
 
 Honeymelon grants you a **limited, non-exclusive, non-transferable, revocable license** to:
 
-- Install and use the Software on macOS devices that you own or control
+- Install and use the Software on **one (1) macOS device** that you own or control
 - Use the Software for personal or internal business purposes
 - Make one copy of the Software solely for backup or archival purposes
+
+**Important**: Each license key can only be activated **once**. This activation cannot be reset, transferred, or moved to a different device.
 
 This license is granted for the Software in **executable form only**. No rights are granted to the source code except as explicitly stated in this EULA.
 
@@ -177,9 +179,11 @@ This End-User License Agreement ("EULA") is a legal agreement between you (eithe
 
 Subject to the terms and conditions of this EULA, Licensor grants You a limited, non-exclusive, non-transferable, revocable license to:
 
-1. Install and use the Software on macOS devices that You own or control;
+1. Install and use the Software on one (1) macOS device that You own or control following successful one-time activation;
 2. Use the Software for personal or internal business purposes;
 3. Make one copy of the Software solely for backup or archival purposes.
+
+**Important**: Each license key can only be activated once. This activation cannot be reset, transferred, or moved to a different device.
 
 #### 1.2 Scope of License
 
