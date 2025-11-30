@@ -24,7 +24,7 @@ pub async fn activate_license(
     key: String,
 ) -> Result<LicenseInfo, AppError> {
     let licensing = services.inner().licensing.clone();
-    licensing.activate_online(&app, &key, APP_VERSION)
+    licensing.activate_online(&app, &key, APP_VERSION).await
 }
 
 #[tauri::command]

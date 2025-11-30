@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { getVersion } from '@tauri-apps/api/app';
-import { AlertTriangle, ExternalLink, Info, Key, Trash2 } from 'lucide-vue-next';
+import { AlertTriangle, ExternalLink, Key, Trash2 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 
+import appIcon from '@/assets/app-icon.png';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +19,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useLicenseStore } from '@/stores/license';
+
+const emit = defineEmits<{
+  close: [];
+}>();
 
 const licenseStore = useLicenseStore();
 
@@ -76,6 +81,8 @@ async function deactivateLicense() {
   try {
     await licenseStore.remove();
     showDeactivateDialog.value = false;
+    // Close the parent About dialog after license removal
+    emit('close');
   } catch (error) {
     console.error('[AboutDialog] Failed to deactivate license', error);
   } finally {
@@ -87,11 +94,7 @@ async function deactivateLicense() {
 <template>
   <div class="space-y-6 text-left">
     <div class="flex items-start gap-3">
-      <div
-        class="flex h-12 w-12 items-center justify-center rounded-md border border-border bg-muted"
-      >
-        <Info class="h-5 w-5 text-primary" aria-hidden="true" />
-      </div>
+      <img :src="appIcon" alt="Honeymelon" class="size-12 rounded-xl" />
       <div class="space-y-1">
         <h2 id="about-dialog-title" class="text-xl font-semibold">Honeymelon</h2>
         <p class="text-sm text-muted-foreground">Media converter for macOS</p>
@@ -154,11 +157,7 @@ async function deactivateLicense() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel :disabled="isDeactivating">Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                :disabled="isDeactivating"
-                class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                @click.prevent="deactivateLicense"
-              >
+              <AlertDialogAction :disabled="isDeactivating" @click.prevent="deactivateLicense">
                 {{ isDeactivating ? 'Removing...' : 'Remove License' }}
               </AlertDialogAction>
             </AlertDialogFooter>

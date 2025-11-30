@@ -1,3 +1,6 @@
+use std::future::Future;
+use std::pin::Pin;
+
 use tauri::{AppHandle, Emitter};
 
 use crate::{error::AppError, license};
@@ -9,7 +12,7 @@ pub trait LicenseServiceApi: Send + Sync {
         app: &AppHandle,
         key: &str,
         app_version: &str,
-    ) -> Result<license::LicenseInfo, AppError>;
+    ) -> Pin<Box<dyn Future<Output = Result<license::LicenseInfo, AppError>> + Send + '_>>;
     fn current(&self, app: &AppHandle) -> Result<Option<license::LicenseInfo>, AppError>;
     fn remove(&self, app: &AppHandle) -> Result<(), AppError>;
     fn is_activated(&self, app: &AppHandle) -> Result<bool, AppError>;
@@ -31,23 +34,24 @@ impl LicenseServiceApi for LicenseService {
         app: &AppHandle,
         key: &str,
         app_version: &str,
-    ) -> Result<license::LicenseInfo, AppError> {
-        // Generate or retrieve device ID
-        let device_id = license::generate_device_id();
+    ) -> Pin<Box<dyn Future<Output = Result<license::LicenseInfo, AppError>> + Send + '_>> {
+        let app = app.clone();
+        let key = key.to_string();
+        let app_version = app_version.to_string();
 
-        // Use tokio runtime to call the async activation function
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| AppError::new("runtime_error", e.to_string()))?;
+        Box::pin(async move {
+            // Generate device ID
+            let device_id = license::generate_device_id();
 
-        let info = rt.block_on(async {
-            license::activate_online(key, app_version, Some(&device_id)).await
-        })?;
+            // Call the async activation function directly
+            let info = license::activate_online(&key, &app_version, Some(&device_id)).await?;
 
-        // Store the activation locally
-        license::persist(app, &info)?;
-        app.emit("license://activated", &info).ok();
+            // Store the activation locally
+            license::persist(&app, &info)?;
+            app.emit("license://activated", &info).ok();
 
-        Ok(info)
+            Ok(info)
+        })
     }
 
     fn current(&self, app: &AppHandle) -> Result<Option<license::LicenseInfo>, AppError> {

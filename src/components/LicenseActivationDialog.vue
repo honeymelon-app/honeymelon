@@ -218,7 +218,7 @@ async function handleDeactivate() {
               @click="handleVerify"
               data-test="license-verify-button"
             >
-              <Loader2 v-if="isVerifying" class="h-4 w-4 animate-spin" aria-hidden="true" />
+              <Loader2 v-if="isVerifying" class="size-4 animate-spin" aria-hidden="true" />
               <span v-else>Check</span>
             </Button>
           </div>
@@ -230,7 +230,7 @@ async function handleDeactivate() {
           class="flex items-center gap-2 text-sm text-destructive"
           data-test="license-error"
         >
-          <CircleAlert class="h-4 w-4" aria-hidden="true" />
+          <CircleAlert class="size-4" aria-hidden="true" />
           <span>{{ lastError }}</span>
         </p>
 
@@ -265,7 +265,7 @@ async function handleDeactivate() {
 
       <DialogFooter class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-2 text-xs text-muted-foreground">
-          <ShieldCheck class="h-4 w-4 text-primary" aria-hidden="true" />
+          <ShieldCheck class="size-4 text-primary" aria-hidden="true" />
           <span>Signatures verified with Ed25519. Keys never leave this device.</span>
         </div>
 
@@ -279,7 +279,7 @@ async function handleDeactivate() {
             @click="handleDeactivate"
             data-test="license-deactivate-button"
           >
-            <Trash2 class="mr-1 h-4 w-4" aria-hidden="true" />
+            <Trash2 class="mr-1 size-4" aria-hidden="true" />
             Deactivate
           </Button>
           <Button
@@ -289,8 +289,8 @@ async function handleDeactivate() {
             @click="handleActivate"
             data-test="license-activate-button"
           >
-            <Loader2 v-if="isActivating" class="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-            <span v-else>{{ current ? 'Replace License' : 'Activate License' }}</span>
+            <Loader2 v-if="isActivating" class="size-4 animate-spin" aria-hidden="true" />
+            <span class="ml-2" v-else>{{ current ? 'Replace License' : 'Activate License' }}</span>
           </Button>
         </div>
       </DialogFooter>

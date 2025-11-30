@@ -46,8 +46,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import Window from '@/components/Window.vue';
 import { useAppOrchestration } from '@/composables/use-app-orchestration';
 import { PRESETS } from '@/lib/presets';
@@ -398,8 +399,14 @@ const handleImageBrowse = () => handleBrowse('image');
 
   <!-- About Dialog - Modal overlay for application information -->
   <Dialog v-model:open="isAboutOpen" modal>
-    <DialogContent class="sm:max-w-md" aria-labelledby="about-dialog-title">
-      <AboutDialog />
+    <DialogContent class="sm:max-w-md">
+      <VisuallyHidden>
+        <DialogTitle>About Honeymelon</DialogTitle>
+        <DialogDescription>
+          Application information, version details, and license status.
+        </DialogDescription>
+      </VisuallyHidden>
+      <AboutDialog @close="isAboutOpen = false" />
     </DialogContent>
   </Dialog>
 </template>

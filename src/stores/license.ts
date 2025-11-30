@@ -51,7 +51,7 @@ export function getActivationErrorMessage(error: string): string {
 }
 
 export const useLicenseStore = defineStore('license', () => {
-  const isDev = import.meta.env.DEV;
+  const bypassLicensing = import.meta.env.VITE_BYPASS_LICENSING === 'true';
   const isE2E = import.meta.env.VITE_E2E_SIMULATION === 'true';
 
   const devLicense: LicenseInfo = {
@@ -106,7 +106,7 @@ export const useLicenseStore = defineStore('license', () => {
 
     try {
       isLoading.value = true;
-      if (isDev || isE2E) {
+      if (bypassLicensing || isE2E) {
         current.value = devLicense;
         promptOnInit.value = false;
         return;
@@ -138,7 +138,7 @@ export const useLicenseStore = defineStore('license', () => {
       isVerifying.value = true;
       lastError.value = null;
       lastErrorCode.value = null;
-      if (isDev || isE2E) {
+      if (bypassLicensing || isE2E) {
         preview.value = devLicense;
         return preview.value;
       }
@@ -170,7 +170,7 @@ export const useLicenseStore = defineStore('license', () => {
       lastError.value = null;
       lastErrorCode.value = null;
 
-      if (isDev || isE2E) {
+      if (bypassLicensing || isE2E) {
         current.value = devLicense;
         preview.value = null;
         promptOnInit.value = false;
@@ -203,7 +203,7 @@ export const useLicenseStore = defineStore('license', () => {
 
   async function remove() {
     try {
-      if (isDev || isE2E) {
+      if (bypassLicensing || isE2E) {
         current.value = devLicense;
         preview.value = null;
         lastError.value = null;
