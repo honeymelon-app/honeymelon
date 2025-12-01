@@ -400,7 +400,7 @@ You've built something valuable. Don't give it away for free.
 - Year 2: Part-time (~$180k-540k revenue)
 - Year 3: Full-time (~$450k-1.2M revenue)
 
-**If you hit 20,000+ paid users at $29.99, that's $600k/year** — more than enough to support full-time development.
+**If you hit 20,000+ paid users at $29.99, that's ~$600k/year** (precisely $599,800) — more than enough to support full-time development.
 
 ---
 

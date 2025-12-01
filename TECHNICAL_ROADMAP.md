@@ -288,7 +288,9 @@ function buildFilterString(filters: VideoFilters): string {
   const filterParts: string[] = [];
 
   if (filters.rotate) {
-    filterParts.push(`rotate=${(filters.rotate * Math.PI) / 180}`);
+    // Use transpose for 90/270 degree rotations: 1 (90°), 2 (180°), 3 (270°)
+    const transposeMap = { 90: '1', 180: '2', 270: '3' };
+    filterParts.push(`transpose=${transposeMap[filters.rotate]}`);
   }
   if (filters.flip === 'horizontal') {
     filterParts.push('hflip');
@@ -530,8 +532,8 @@ impl VideoUpscaler {
 ```typescript
 // Use FFmpeg scene detection filter
 async function detectScenes(inputPath: string): Promise<number[]> {
-  // ffmpeg -i input.mp4 -filter:v "select='gt(scene,0.3)',showinfo" -f null -
-  // Parse timestamps from output
+  // ffmpeg -i input.mp4 -filter:v "select='gt(scene,0.3)',metadata=print:file=-" -f null -
+  // Parse timestamps from metadata output
   // Return array of scene change timestamps
 }
 
@@ -582,7 +584,7 @@ interface WatermarkOptions {
 
 function buildWatermarkFilter(options: WatermarkOptions): string {
   if (options.type === 'image') {
-    // overlay=x=W-w-10:y=H-h-10:alpha=0.5
+    // overlay=x=W-w-10:y=H-h-10 (watermark image loaded as separate input)
     const positions = {
       'top-left': '10:10',
       'top-right': 'W-w-10:10',
@@ -590,7 +592,7 @@ function buildWatermarkFilter(options: WatermarkOptions): string {
       'bottom-right': 'W-w-10:H-h-10',
       center: '(W-w)/2:(H-h)/2',
     };
-    return `[0:v][1:v]overlay=${positions[options.position]}:alpha=${options.opacity / 100}[out]`;
+    return `overlay=${positions[options.position]}:format=auto:alpha=${options.opacity / 100}`;
   } else {
     // drawtext filter
     return `drawtext=text='${options.text}':x=10:y=10:fontsize=${options.fontSize}:fontcolor=${options.color}`;
