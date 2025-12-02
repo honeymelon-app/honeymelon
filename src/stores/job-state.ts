@@ -3,7 +3,7 @@ import { now, readEnqueuedAt, type JobId } from './job-types';
 
 import type { PlannerDecision } from '@/lib/ffmpeg-plan';
 import { jobLifecycle } from '@/lib/job-lifecycle';
-import type { ProbeSummary, JobState } from '@/lib/types';
+import type { ErrorCategory, ProbeSummary, JobState } from '@/lib/types';
 import { globalJobObserver } from '@/observers/job-observer';
 
 export interface JobStateComposable {
@@ -13,7 +13,7 @@ export interface JobStateComposable {
   setExclusive: (id: JobId, exclusive: boolean) => void;
   setOutputPath: (id: JobId, outputPath: string) => void;
   markCompleted: (id: JobId, outputPath: string) => void;
-  markFailed: (id: JobId, error: string, code?: string) => void;
+  markFailed: (id: JobId, error: string, code?: string, errorCategory?: ErrorCategory) => void;
   cancelJob: (id: JobId) => void;
   requeue: (id: JobId) => void;
   updateJobPreset: (id: JobId, presetId: string) => void;
@@ -137,7 +137,7 @@ export function useJobState(queue: JobQueueComposable): JobStateComposable {
     pruneTerminalJobs();
   }
 
-  function markFailed(id: JobId, error: string, code?: string) {
+  function markFailed(id: JobId, error: string, code?: string, errorCategory?: ErrorCategory) {
     updateJob(id, (job) => {
       const enqueuedAt = readEnqueuedAt(job.state);
       const startedAt = 'startedAt' in job.state ? job.state.startedAt : now();
@@ -148,6 +148,7 @@ export function useJobState(queue: JobQueueComposable): JobStateComposable {
         finishedAt: now(),
         error,
         code,
+        errorCategory,
       };
 
       if (!jobLifecycle.ensureTransition(job.state, newState, 'markFailed')) {

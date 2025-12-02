@@ -9,6 +9,7 @@ mod binary_resolver;
 mod commands;
 mod error;
 mod ffmpeg_capabilities;
+pub mod ffmpeg_errors;
 mod ffmpeg_probe;
 mod fs_utils;
 pub mod job_lifecycle;

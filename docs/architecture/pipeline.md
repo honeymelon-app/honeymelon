@@ -446,3 +446,4 @@ Typical performance by operation:
 - Understand [FFmpeg Integration](/architecture/ffmpeg) details
 - Explore [State Management](/architecture/state) for job tracking
 - Review [Tech Stack](/architecture/tech-stack) choices
+- See [Pipeline Internals](/architecture/pipeline-internals) for implementation details and error classification

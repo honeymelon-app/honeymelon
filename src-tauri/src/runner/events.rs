@@ -64,17 +64,40 @@ pub struct ProgressPayload {
 }
 
 /// Payload for job completion events.
+///
+/// Includes both the raw technical information and user-friendly error
+/// classification for failed jobs.
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CompletionPayload {
+    /// Unique job identifier
     pub job_id: String,
+    /// Whether the job completed successfully
     pub success: bool,
+    /// Whether the job was cancelled by the user
     pub cancelled: bool,
+    /// Whether the job was terminated due to timeout
+    #[serde(default)]
+    pub timed_out: bool,
+    /// FFmpeg process exit code (if available)
     pub exit_code: Option<i32>,
+    /// Unix signal that terminated the process (if applicable)
     pub signal: Option<i32>,
+    /// Internal status code for programmatic handling
     pub code: String,
+    /// Technical error message (for logging/debugging)
     pub message: Option<String>,
+    /// Recent FFmpeg stderr lines (for "show details" UI)
     pub logs: Vec<String>,
+    /// Error category code (e.g., "input_problem", "resource_issue")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_category: Option<String>,
+    /// User-friendly error message for display in UI
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_message: Option<String>,
+    /// Technical details for advanced users (ffmpeg stderr excerpts)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub technical_details: Option<String>,
 }
 
 /// Shared alias for trait objects.

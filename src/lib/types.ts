@@ -351,6 +351,8 @@ export type JobState =
       error: string;
       /** Optional error code for categorization */
       code?: string;
+      /** Classified error category for UI display */
+      errorCategory?: ErrorCategory;
     }
   | {
       /** Job was cancelled by user */
@@ -362,3 +364,15 @@ export type JobState =
       /** Timestamp when job finished */
       finishedAt: number;
     };
+
+/**
+ * Error categories from the Rust FFmpeg error classifier.
+ * Used to provide appropriate UI feedback and recovery suggestions.
+ */
+export type ErrorCategory =
+  | 'INPUT_PROBLEM'
+  | 'UNSUPPORTED_COMBINATION'
+  | 'RESOURCE_ISSUE'
+  | 'INTERNAL_PIPELINE_ERROR'
+  | 'TIMEOUT'
+  | 'CANCELLED';

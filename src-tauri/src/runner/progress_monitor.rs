@@ -1,16 +1,20 @@
 use crate::error::AppError;
+use crate::ffmpeg_errors::{classify_error, ClassifiedError, ErrorCategory};
 use std::collections::VecDeque;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ExitStatus};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use super::{
     events::{CompletionPayload, ProgressMetrics, ProgressPayload, SharedEmitter},
     job_registry::JobRegistry,
     output_manager::OutputManager,
+    output_validator::{validate_output, validation_to_classified_error, ExpectedOutput},
 };
+use tauri::AppHandle;
 
 /// Wrapper around an active FFmpeg child process with management metadata
 pub struct RunningProcess {
@@ -18,18 +22,45 @@ pub struct RunningProcess {
     pub child: Mutex<Option<Child>>,
     /// Atomic flag indicating if the process has been cancelled
     pub cancelled: AtomicBool,
+    /// Atomic flag indicating if the process timed out
+    pub timed_out: AtomicBool,
     /// Whether this job requires exclusive execution while running
     exclusive: AtomicBool,
     /// Circular buffer of recent log lines
     pub logs: Mutex<VecDeque<String>>,
+    /// When the process started (for timeout tracking)
+    pub started_at: Instant,
+    /// Whether output should have video
+    pub expects_video: AtomicBool,
+    /// Whether output should have audio
+    pub expects_audio: AtomicBool,
 }
 impl RunningProcess {
     pub fn new(child: Child, exclusive: bool) -> Self {
         Self {
             child: Mutex::new(Some(child)),
             cancelled: AtomicBool::new(false),
+            timed_out: AtomicBool::new(false),
             exclusive: AtomicBool::new(exclusive),
             logs: Mutex::new(VecDeque::with_capacity(256)),
+            started_at: Instant::now(),
+            expects_video: AtomicBool::new(true),
+            expects_audio: AtomicBool::new(true),
+        }
+    }
+
+    /// Sets expected output streams for validation
+    pub fn set_expected_streams(&self, video: bool, audio: bool) {
+        self.expects_video.store(video, Ordering::SeqCst);
+        self.expects_audio.store(audio, Ordering::SeqCst);
+    }
+
+    /// Gets expected output configuration
+    pub fn get_expected_output(&self) -> ExpectedOutput {
+        ExpectedOutput {
+            has_video: self.expects_video.load(Ordering::SeqCst),
+            has_audio: self.expects_audio.load(Ordering::SeqCst),
+            min_size_bytes: 0,
         }
     }
 
@@ -51,6 +82,19 @@ impl RunningProcess {
         self.cancelled.load(Ordering::SeqCst)
     }
 
+    pub fn mark_timed_out(&self) {
+        self.timed_out.store(true, Ordering::SeqCst);
+    }
+
+    pub fn is_timed_out(&self) -> bool {
+        self.timed_out.load(Ordering::SeqCst)
+    }
+
+    /// Returns elapsed time since process started
+    pub fn elapsed_seconds(&self) -> f64 {
+        self.started_at.elapsed().as_secs_f64()
+    }
+
     pub fn push_log(&self, line: &str) {
         if let Ok(mut logs) = self.logs.lock() {
             if logs.len() >= 500 {
@@ -68,28 +112,57 @@ impl RunningProcess {
     }
 }
 
+/// Default timeout: 2 hours in seconds
+pub const DEFAULT_TIMEOUT_SECONDS: f64 = 7200.0;
+
+/// Calculates timeout based on media duration.
+///
+/// Uses a formula: timeout = duration * multiplier + buffer
+/// - multiplier: 10x for safety (slow encodes like AV1)
+/// - buffer: 5 minutes minimum for setup/finalization
+pub fn calculate_timeout(duration_seconds: Option<f64>) -> f64 {
+    const MULTIPLIER: f64 = 10.0;
+    const BUFFER_SECONDS: f64 = 300.0; // 5 minutes
+    const MIN_TIMEOUT: f64 = 600.0; // 10 minutes minimum
+
+    match duration_seconds {
+        Some(duration) if duration > 0.0 => {
+            let calculated = duration * MULTIPLIER + BUFFER_SECONDS;
+            calculated.max(MIN_TIMEOUT).min(DEFAULT_TIMEOUT_SECONDS)
+        },
+        _ => DEFAULT_TIMEOUT_SECONDS,
+    }
+}
+
 /// Monitors FFmpeg process progress and completion
 pub struct ProgressMonitor;
 
 impl ProgressMonitor {
     /// Starts monitoring an FFmpeg process
     pub fn start(
+        app: AppHandle,
         emitter: SharedEmitter,
         registry: Arc<JobRegistry>,
         job_id: String,
         process: Arc<RunningProcess>,
         final_path: PathBuf,
         temp_path: PathBuf,
+        timeout_seconds: Option<f64>,
     ) {
         tauri::async_runtime::spawn_blocking(move || {
-            Self::monitor_process(emitter.clone(), &job_id, &process);
-            Self::handle_completion(emitter, &job_id, &process, &final_path, &temp_path);
+            Self::monitor_process(emitter.clone(), &job_id, &process, timeout_seconds);
+            Self::handle_completion(app, emitter, &job_id, &process, &final_path, &temp_path);
             registry.remove(&job_id);
         });
     }
 
-    /// Monitors FFmpeg stderr for progress
-    fn monitor_process(emitter: SharedEmitter, job_id: &str, process: &Arc<RunningProcess>) {
+    /// Monitors FFmpeg stderr for progress with optional timeout
+    fn monitor_process(
+        emitter: SharedEmitter,
+        job_id: &str,
+        process: &Arc<RunningProcess>,
+        timeout_seconds: Option<f64>,
+    ) {
         let mut child_guard = process.child.lock().expect("child mutex poisoned");
         let Some(child) = child_guard.as_mut() else {
             return;
@@ -102,8 +175,23 @@ impl ProgressMonitor {
 
         drop(child_guard);
 
+        let timeout = timeout_seconds.unwrap_or(DEFAULT_TIMEOUT_SECONDS);
         let reader = BufReader::new(stderr);
+
         for line_result in reader.lines() {
+            // Check timeout
+            if process.elapsed_seconds() > timeout {
+                eprintln!("[ffmpeg][{}] Timeout exceeded ({:.1}s)", job_id, timeout);
+                process.mark_timed_out();
+                // Kill the process
+                if let Ok(mut guard) = process.child.lock() {
+                    if let Some(ref mut child) = *guard {
+                        let _ = child.kill();
+                    }
+                }
+                break;
+            }
+
             let line = match line_result {
                 Ok(value) => value,
                 Err(_) => break,
@@ -129,8 +217,9 @@ impl ProgressMonitor {
         }
     }
 
-    /// Handles process completion and file finalization
+    /// Handles process completion and file finalization with error classification
     fn handle_completion(
+        app: AppHandle,
         emitter: SharedEmitter,
         job_id: &str,
         process: &Arc<RunningProcess>,
@@ -139,63 +228,112 @@ impl ProgressMonitor {
     ) {
         let exit_status = Self::wait_for_exit(job_id, process);
         let cancelled = process.is_cancelled();
-        let mut code_override: Option<&'static str> = None;
-        let mut message_override: Option<String> = None;
+        let timed_out = process.is_timed_out();
 
-        let (mut success, exit_code, signal) = match exit_status {
+        // Collect logs for error classification
+        let logs_snapshot: Vec<String> = process
+            .logs
+            .lock()
+            .map(|guard| guard.iter().cloned().collect())
+            .unwrap_or_default();
+        let stderr_text = logs_snapshot.join("\n");
+
+        let (exit_success, exit_code, signal) = match exit_status {
             Ok(status) => (
-                status.success() && !cancelled,
+                status.success(),
                 status.code(),
                 Self::extract_signal(&status),
             ),
             Err(err) => {
-                code_override = Some(err.code);
-                let detail = format!("ffmpeg wait error: {}", err.message);
-                process.push_log(&detail);
-                emitter.emit_progress(&ProgressPayload {
-                    job_id: job_id.to_string(),
-                    progress: None,
-                    raw: detail.clone(),
-                });
-                message_override = Some(detail);
+                process.push_log(&format!("ffmpeg wait error: {}", err.message));
                 (false, None, None)
             },
         };
 
-        let mut message = message_override;
-        let mut code = if let Some(code) = code_override {
-            code
-        } else if cancelled {
-            "job_cancelled"
-        } else if success {
-            "job_complete"
+        // Classify the error using our error classification system
+        let classified = if cancelled {
+            ClassifiedError::cancelled()
+        } else if timed_out {
+            ClassifiedError::timeout(process.elapsed_seconds(), DEFAULT_TIMEOUT_SECONDS)
+        } else if !exit_success {
+            classify_error(exit_code, &stderr_text, false, false)
         } else {
-            "job_failed"
+            // FFmpeg reported success - but we need to validate output
+            ClassifiedError::new(ErrorCategory::Unknown, None, exit_code)
         };
 
-        // Finalize output file
-        if success && !cancelled {
-            if let Err(err) = OutputManager::finalize(temp_path, final_path) {
-                success = false;
-                code = err.code;
-                message = Some(err.message.clone());
-                process.push_log(&err.message);
+        let mut success = exit_success && !cancelled && !timed_out;
+        let mut code = classified.category.code();
+        let mut message = if success {
+            None
+        } else {
+            Some(classified.user_message.clone())
+        };
+        let mut category = Some(classified.category);
+
+        // Finalize or validate output file
+        if success {
+            // First, validate the output
+            let expected = process.get_expected_output();
+            match validate_output(&app, final_path.parent().unwrap_or(final_path), &expected) {
+                Ok(validation) if !validation.valid => {
+                    // Validation failed - treat as error
+                    success = false;
+                    let validation_error = validation_to_classified_error(&validation);
+                    code = validation_error.category.code();
+                    message = Some(validation_error.user_message);
+                    category = Some(validation_error.category);
+                    if let Some(detail) = validation.error {
+                        process.push_log(&format!("Output validation failed: {}", detail));
+                    }
+                    OutputManager::cleanup_temp(temp_path);
+                },
+                Ok(_) => {
+                    // Validation passed - finalize the file
+                    if let Err(err) = OutputManager::finalize(temp_path, final_path) {
+                        success = false;
+                        code = err.code;
+                        message = Some(err.message.clone());
+                        category = Some(ErrorCategory::ResourceIssue);
+                        process.push_log(&err.message);
+                    } else {
+                        code = "job_complete";
+                        category = None; // Success has no error category
+                    }
+                },
+                Err(err) => {
+                    // Validation itself failed - log but don't fail the job
+                    process.push_log(&format!(
+                        "Warning: Could not validate output: {}",
+                        err.message
+                    ));
+                    // Still try to finalize
+                    if let Err(err) = OutputManager::finalize(temp_path, final_path) {
+                        success = false;
+                        code = err.code;
+                        message = Some(err.message.clone());
+                        category = Some(ErrorCategory::ResourceIssue);
+                        process.push_log(&err.message);
+                    } else {
+                        code = "job_complete";
+                        category = None;
+                    }
+                },
             }
         } else {
             OutputManager::cleanup_temp(temp_path);
         }
 
-        // Generate error message if needed
-        if !success && !cancelled && message.is_none() {
-            if let Some(exit) = exit_code {
-                let detail = if let Some(explanation) = Self::explain_ffmpeg_exit_code(exit) {
-                    format!("ffmpeg exited with status {exit}: {explanation}")
-                } else {
-                    format!("ffmpeg exited with status {exit}")
-                };
-                message = Some(detail.clone());
-                process.push_log(&detail);
-            }
+        // Set appropriate status codes
+        if cancelled {
+            code = "job_cancelled";
+        } else if timed_out {
+            code = "job_timeout";
+        }
+
+        // Include technical details in message if available
+        if !success && message.is_none() {
+            message = classified.technical_details.clone();
         }
 
         let logs = process.drain_logs();
@@ -204,11 +342,19 @@ impl ProgressMonitor {
             job_id: job_id.to_string(),
             success,
             cancelled,
+            timed_out,
             exit_code,
             signal,
             code: code.to_string(),
             message,
             logs,
+            error_category: category.map(|c| c.code().to_string()),
+            user_message: if success {
+                None
+            } else {
+                Some(classified.user_message)
+            },
+            technical_details: classified.technical_details,
         };
 
         process.set_exclusive(false);
