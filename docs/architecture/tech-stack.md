@@ -326,7 +326,7 @@ let json = serde_json::to_string(&probe_result)?;
 **Backend**:
 
 - **Cargo Test**: Built-in Rust testing
-- **108 unit tests**: Comprehensive coverage
+- **106 unit tests**: Comprehensive coverage
 
 **E2E**:
 

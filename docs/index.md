@@ -61,19 +61,23 @@ Only when necessary (incompatible codecs, quality requirements, or user preferen
 
 ### Video Containers
 
-MP4, MOV, MKV, WebM, GIF
+MP4, MOV, MKV, WebM, GIF, AVI, FLV, M4V, TS, OGV, MPEG
 
 ### Audio Containers
 
-M4A, MP3, FLAC, WAV
+M4A, MP3, FLAC, WAV, OGG, AAC, AIFF, Opus
+
+### Image Containers
+
+PNG, JPEG, WebP, BMP, TIFF
 
 ### Video Codecs
 
-H.264, HEVC (H.265), VP9, AV1, ProRes, and more
+H.264, HEVC (H.265), VP8, VP9, AV1, ProRes, Theora, MPEG-4, FLV1, MPEG-2, and more
 
 ### Audio Codecs
 
-AAC, MP3, Opus, Vorbis, FLAC, PCM, and more
+AAC, MP3, Opus, Vorbis, FLAC, PCM, MP2, AC3, and more
 
 ## Use Cases
 

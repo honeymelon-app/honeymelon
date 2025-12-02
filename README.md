@@ -88,7 +88,7 @@ Honeymelon is a native macOS desktop application that provides an intelligent in
 
 - **Remux-first strategy**: Automatically detects codec compatibility and uses lossless stream copying when possible
 - **Smart planning**: Three-phase pipeline (Probe → Plan → Execute) ensures optimal conversion strategy
-- **Container-aware**: Validates codec compatibility with target containers (MP4, MKV, WebM, MOV)
+- **Container-aware**: Validates codec compatibility with target containers (MP4, MKV, WebM, MOV, AVI, FLV, TS, OGV, MPEG)
 - **Quality tiers**: Fast (remux-priority), Balanced (quality/size), High (maximum quality)
 
 ### Professional Media Handling
@@ -96,7 +96,7 @@ Honeymelon is a native macOS desktop application that provides an intelligent in
 - **Color metadata preservation**: Copies color primaries, transfer characteristics, and colorspace during transcoding
 - **Subtitle support**: Text subtitle conversion (mov_text for MP4), image subtitle detection
 - **Hardware acceleration**: Leverages Apple VideoToolbox for H.264, HEVC, and ProRes encoding
-- **Multi-format support**: Video (MP4, MKV, MOV, WebM, GIF), Audio (M4A, MP3, FLAC, WAV), Image (PNG, JPEG, WebP)
+- **Multi-format support**: Video (MP4, MKV, MOV, WebM, GIF, AVI, FLV, M4V, TS, OGV, MPEG), Audio (M4A, MP3, FLAC, WAV, OGG, AAC, AIFF, Opus), Image (PNG, JPEG, WebP, BMP, TIFF)
 
 ### Production-Ready Workflow
 
@@ -174,7 +174,7 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 - **Parsing**: Normalizes codec names, handles multiple frame rate formats, categorizes subtitle types
 - **Output**: `ProbeSummary` with duration, dimensions, codecs, color metadata (bt709, bt2020, etc.), subtitle flags
 
-**Implementation**: [ffmpeg-probe.ts](src/lib/ffmpeg-probe.ts) (frontend) + [ffmpeg_probe.rs](src-tauri/src/ffmpeg_probe.rs) (backend, 957 lines)
+**Implementation**: [ffmpeg-probe.ts](src/lib/ffmpeg-probe.ts) (frontend) + [ffmpeg_probe.rs](src-tauri/src/ffmpeg_probe.rs) (backend, 933 lines)
 
 **Binary Resolution** (4-tier fallback):
 
@@ -192,7 +192,7 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 - **Quality Tiers**: Fast (remux-priority), Balanced (moderate bitrate), High (low CRF/high bitrate)
 - **Special Handling**: GIF palette generation, color metadata copying, subtitle format conversion
 
-**Implementation**: [ffmpeg-plan.ts](src/lib/ffmpeg-plan.ts) (684 lines) + [container-rules.ts](src/lib/container-rules.ts) + [presets.ts](src/lib/presets.ts)
+**Implementation**: [ffmpeg-plan.ts](src/lib/ffmpeg-plan.ts) + [container-rules.ts](src/lib/container-rules.ts) + [presets.ts](src/lib/presets.ts) (420 lines)
 
 **Decision Matrix**:
 
@@ -247,10 +247,11 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 ```text
 src/
 ├── lib/                    # Core business logic
-│   ├── ffmpeg-plan.ts      # Planning engine (684 lines, main logic)
+│   ├── ffmpeg-plan.ts      # Planning engine
 │   ├── ffmpeg-probe.ts     # Probe wrapper
-│   ├── container-rules.ts  # Codec compatibility
-│   ├── presets.ts          # Dynamic preset generation
+│   ├── container-rules.ts  # Codec compatibility rules
+│   ├── presets.ts          # Dynamic preset generation (420 lines)
+│   ├── media-formats.ts    # Video/audio/image container definitions
 │   ├── job-lifecycle.ts    # Shared lifecycle chart + DEV assertions
 │   └── types.ts            # TypeScript definitions
 ├── stores/                 # Pinia state

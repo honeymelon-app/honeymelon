@@ -405,7 +405,7 @@ Rust types are serialized to JSON and deserialized in TypeScript, maintaining ty
 
 ### Backend Tests (Cargo Test)
 
-- 108 Rust unit tests
+- 106 Rust unit tests
 - Integration tests for FFmpeg interaction
 - Error handling tests
 
