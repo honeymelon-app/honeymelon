@@ -274,9 +274,9 @@ impl ProgressMonitor {
 
         // Finalize or validate output file
         if success {
-            // First, validate the output
+            // First, validate the output (temp file where FFmpeg wrote)
             let expected = process.get_expected_output();
-            match validate_output(&app, final_path.parent().unwrap_or(final_path), &expected) {
+            match validate_output(&app, temp_path, &expected) {
                 Ok(validation) if !validation.valid => {
                     // Validation failed - treat as error
                     success = false;
