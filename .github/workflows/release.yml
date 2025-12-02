@@ -67,7 +67,12 @@ jobs:
           ls -lh src-tauri/bin/ || { echo "::error::FFmpeg bin directory not found"; exit 1; }
           src-tauri/bin/ffmpeg -version | head -n 1 || { echo "::error::ffmpeg binary not working"; exit 1; }
           src-tauri/bin/ffprobe -version | head -n 1 || { echo "::error::ffprobe binary not working"; exit 1; }
-          echo "✓ FFmpeg binaries verified"
+          echo "[OK] FFmpeg binaries verified"
+      - name: Generate test media files
+        run: |
+          echo "Generating test media files for pipeline tests..."
+          npm run generate-test-media
+          echo "[OK] Test media generated"
       - name: Lint JavaScript/TypeScript
         run: npm run lint:js
       - name: Lint Markdown docs
@@ -118,7 +123,7 @@ jobs:
         run: |
           echo "Running FFmpeg pipeline regression tests before release..."
           cd src-tauri && cargo test --test ffmpeg_pipeline -- --nocapture
-          echo "✓ Pipeline regression tests passed"
+          echo "[OK] Pipeline regression tests passed"
 
   build-and-upload:
     name: Build and Upload Artifacts
@@ -148,7 +153,7 @@ jobs:
           file src-tauri/bin/ffmpeg src-tauri/bin/ffprobe
           src-tauri/bin/ffmpeg -version | head -1 || { echo "::error::ffmpeg not working"; exit 1; }
           src-tauri/bin/ffprobe -version | head -1 || { echo "::error::ffprobe not working"; exit 1; }
-          echo "✓ FFmpeg binaries ready for build"
+          echo "[OK] FFmpeg binaries ready for build"
 
       - name: Sign FFmpeg binaries (ad-hoc)
         if: env.HAS_DEV_ID == 'false'
