@@ -27,6 +27,7 @@
     "remove:emojis:src": "node scripts/remove-emojis.js --include \"^/src/\"",
     "version:update": "node scripts/update-version.js",
     "download-ffmpeg": "node scripts/download-ffmpeg.js",
+    "generate-test-media": "bash scripts/generate-test-media.sh",
     "postinstall": "node scripts/download-ffmpeg.js || echo 'FFmpeg download skipped (optional)'",
     "lint": "npm run lint:js && npm run lint:md && npm run lint:rust",
     "lint:md": "markdownlint --config .markdownlint.json '**/*.md' 'docs/**/*.md'",

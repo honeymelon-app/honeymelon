@@ -126,7 +126,16 @@ jobs:
           ls -lh src-tauri/bin/ || { echo "::error::FFmpeg bin directory not found"; exit 1; }
           src-tauri/bin/ffmpeg -version | head -n 1 || { echo "::error::ffmpeg binary not working"; exit 1; }
           src-tauri/bin/ffprobe -version | head -n 1 || { echo "::error::ffprobe binary not working"; exit 1; }
-          echo "✓ FFmpeg binaries verified"
+          echo "[OK] FFmpeg binaries verified"
+
+      - name: Generate test media files
+        run: |
+          echo "Generating test media files for pipeline tests..."
+          npm run generate-test-media
+          echo "[OK] Test media generated"
+          ls -la test-media/normal/
+          ls -la test-media/edge-cases/
+          ls -la test-media/known-bad/
 
       - name: Run Clippy (Rust linter)
         run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
@@ -141,7 +150,7 @@ jobs:
         run: |
           echo "Running FFmpeg pipeline regression tests..."
           cd src-tauri && cargo test --test ffmpeg_pipeline -- --nocapture
-          echo "✓ Pipeline regression tests passed"
+          echo "[OK] Pipeline regression tests passed"
 
   # Job 3: Build Application
   build:

@@ -31,6 +31,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Check if we're running in CI environment
+fn is_ci() -> bool {
+    env::var("CI").is_ok() || env::var("GITHUB_ACTIONS").is_ok()
+}
+
 /// Get the path to the test-media directory
 fn test_media_dir() -> PathBuf {
     // Navigate from src-tauri/tests to repo root
@@ -53,14 +58,32 @@ fn ffmpeg_path() -> PathBuf {
 /// Check if test media files are available
 fn check_test_media_available() -> bool {
     let media_dir = test_media_dir();
-    media_dir.exists() && media_dir.join("normal").exists()
+    let available = media_dir.exists() && media_dir.join("normal").exists();
+    if !available && is_ci() {
+        panic!(
+            "Test media not available in CI! Run 'npm run generate-test-media' first.\n\
+             Expected directory: {}",
+            media_dir.display()
+        );
+    }
+    available
 }
 
 /// Check if FFmpeg binaries are available
 fn check_ffmpeg_available() -> bool {
     let ffmpeg = ffmpeg_path();
     let ffprobe = ffprobe_path();
-    ffmpeg.exists() && ffprobe.exists()
+    let available = ffmpeg.exists() && ffprobe.exists();
+    if !available && is_ci() {
+        panic!(
+            "FFmpeg binaries not available in CI! Run 'npm run download-ffmpeg' first.\n\
+             Expected ffmpeg:  {}\n\
+             Expected ffprobe: {}",
+            ffmpeg.display(),
+            ffprobe.display()
+        );
+    }
+    available
 }
 
 /// Result of probing a media file
@@ -408,11 +431,11 @@ struct ValidationResult {
 #[test]
 fn normal_video_files_probe_successfully() {
     if !check_ffmpeg_available() {
-        eprintln!("⚠ Skipping test: FFmpeg binaries not available");
+        eprintln!("[WARN] Skipping test: FFmpeg binaries not available");
         return;
     }
     if !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Test media not available");
+        eprintln!("[WARN] Skipping test: Test media not available");
         return;
     }
 
@@ -430,7 +453,7 @@ fn normal_video_files_probe_successfully() {
         println!("\n Testing: {}", file);
 
         if !path.exists() {
-            eprintln!("  ⚠ File not found, skipping");
+            eprintln!("  [WARN] File not found, skipping");
             continue;
         }
 
@@ -468,7 +491,7 @@ fn normal_video_files_probe_successfully() {
 #[test]
 fn normal_audio_files_probe_successfully() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -485,7 +508,7 @@ fn normal_audio_files_probe_successfully() {
         println!("\n Testing: {}", file);
 
         if !path.exists() {
-            eprintln!("  ⚠ File not found, skipping");
+            eprintln!("  [WARN] File not found, skipping");
             continue;
         }
 
@@ -512,7 +535,7 @@ fn normal_audio_files_probe_successfully() {
 #[test]
 fn normal_image_files_probe_successfully() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -526,10 +549,10 @@ fn normal_image_files_probe_successfully() {
 
     for file in test_files {
         let path = media_dir.join(file);
-        println!("\n🖼 Testing: {}", file);
+        println!("\n[IMG] Testing: {}", file);
 
         if !path.exists() {
-            eprintln!("  ⚠ File not found, skipping");
+            eprintln!("  [WARN] File not found, skipping");
             continue;
         }
 
@@ -560,7 +583,7 @@ fn normal_image_files_probe_successfully() {
 #[test]
 fn normal_video_files_convert_successfully() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -581,7 +604,7 @@ fn normal_video_files_convert_successfully() {
         println!("\n Converting: {}", file);
 
         if !input_path.exists() {
-            eprintln!("  ⚠ File not found, skipping");
+            eprintln!("  [WARN] File not found, skipping");
             continue;
         }
 
@@ -615,7 +638,7 @@ fn normal_video_files_convert_successfully() {
 #[test]
 fn normal_video_files_transcode_successfully() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -628,7 +651,7 @@ fn normal_video_files_transcode_successfully() {
     println!("\n Transcoding: normal/h264_aac_1080p.mp4");
 
     if !input_path.exists() {
-        eprintln!("  ⚠ File not found, skipping");
+        eprintln!("  [WARN] File not found, skipping");
         return;
     }
 
@@ -654,7 +677,7 @@ fn normal_video_files_transcode_successfully() {
 #[test]
 fn edge_case_video_no_audio_probes_correctly() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -662,7 +685,7 @@ fn edge_case_video_no_audio_probes_correctly() {
     println!("\n Testing: edge-cases/video_no_audio.mp4");
 
     if !path.exists() {
-        eprintln!("  ⚠ File not found, skipping");
+        eprintln!("  [WARN] File not found, skipping");
         return;
     }
 
@@ -683,7 +706,7 @@ fn edge_case_video_no_audio_probes_correctly() {
 #[test]
 fn edge_case_vertical_video_probes_correctly() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -691,7 +714,7 @@ fn edge_case_vertical_video_probes_correctly() {
     println!("\n Testing: edge-cases/vertical_video.mp4");
 
     if !path.exists() {
-        eprintln!("  ⚠ File not found, skipping");
+        eprintln!("  [WARN] File not found, skipping");
         return;
     }
 
@@ -717,7 +740,7 @@ fn edge_case_vertical_video_probes_correctly() {
 #[test]
 fn edge_case_square_video_probes_correctly() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -725,7 +748,7 @@ fn edge_case_square_video_probes_correctly() {
     println!("\n Testing: edge-cases/square_video.mp4");
 
     if !path.exists() {
-        eprintln!("  ⚠ File not found, skipping");
+        eprintln!("  [WARN] File not found, skipping");
         return;
     }
 
@@ -745,7 +768,7 @@ fn edge_case_square_video_probes_correctly() {
 #[test]
 fn edge_case_audio_only_probes_correctly() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -753,7 +776,7 @@ fn edge_case_audio_only_probes_correctly() {
     println!("\n Testing: edge-cases/audio_only.m4a");
 
     if !path.exists() {
-        eprintln!("  ⚠ File not found, skipping");
+        eprintln!("  [WARN] File not found, skipping");
         return;
     }
 
@@ -778,7 +801,7 @@ fn edge_case_audio_only_probes_correctly() {
 #[test]
 fn known_bad_zero_bytes_fails_gracefully() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -786,7 +809,7 @@ fn known_bad_zero_bytes_fails_gracefully() {
     println!("\n Testing: known-bad/zero_bytes.mp4");
 
     if !path.exists() {
-        eprintln!("  ⚠ File not found, skipping");
+        eprintln!("  [WARN] File not found, skipping");
         return;
     }
 
@@ -806,7 +829,7 @@ fn known_bad_zero_bytes_fails_gracefully() {
 #[test]
 fn known_bad_random_data_fails_gracefully() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -814,7 +837,7 @@ fn known_bad_random_data_fails_gracefully() {
     println!("\n Testing: known-bad/random_data.mp4");
 
     if !path.exists() {
-        eprintln!("  ⚠ File not found, skipping");
+        eprintln!("  [WARN] File not found, skipping");
         return;
     }
 
@@ -830,7 +853,7 @@ fn known_bad_random_data_fails_gracefully() {
 #[test]
 fn known_bad_truncated_file_fails_gracefully() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -838,7 +861,7 @@ fn known_bad_truncated_file_fails_gracefully() {
     println!("\n Testing: known-bad/truncated.mp4");
 
     if !path.exists() {
-        eprintln!("  ⚠ File not found, skipping");
+        eprintln!("  [WARN] File not found, skipping");
         return;
     }
 
@@ -847,7 +870,7 @@ fn known_bad_truncated_file_fails_gracefully() {
     // Truncated file may or may not probe successfully depending on where truncation occurred
     // But it should never panic
     if result.success {
-        println!("  ⚠ Truncated file probed (partially valid header)");
+        println!("  [WARN] Truncated file probed (partially valid header)");
     } else {
         println!("  [OK] Failed gracefully as expected");
     }
@@ -875,7 +898,7 @@ fn known_bad_truncated_file_fails_gracefully() {
         if !validation.valid {
             println!("  [OK] Conversion produced invalid output (caught by validation)");
         } else {
-            println!("  ⚠ Truncated file converted (partial data preserved)");
+            println!("  [WARN] Truncated file converted (partial data preserved)");
         }
     }
 }
@@ -884,7 +907,7 @@ fn known_bad_truncated_file_fails_gracefully() {
 #[test]
 fn known_bad_text_as_mp4_fails_gracefully() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -892,7 +915,7 @@ fn known_bad_text_as_mp4_fails_gracefully() {
     println!("\n Testing: known-bad/text_as_mp4.mp4");
 
     if !path.exists() {
-        eprintln!("  ⚠ File not found, skipping");
+        eprintln!("  [WARN] File not found, skipping");
         return;
     }
 
@@ -911,7 +934,7 @@ fn known_bad_text_as_mp4_fails_gracefully() {
 #[test]
 fn known_bad_conversions_produce_correct_error_categories() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -929,7 +952,7 @@ fn known_bad_conversions_produce_correct_error_categories() {
         println!("\n Converting: {}", file);
 
         if !input_path.exists() {
-            eprintln!("  ⚠ File not found, skipping");
+            eprintln!("  [WARN] File not found, skipping");
             continue;
         }
 
@@ -959,7 +982,7 @@ fn known_bad_conversions_produce_correct_error_categories() {
 #[test]
 fn full_pipeline_probe_convert_validate() {
     if !check_ffmpeg_available() || !check_test_media_available() {
-        eprintln!("⚠ Skipping test: Dependencies not available");
+        eprintln!("[WARN] Skipping test: Dependencies not available");
         return;
     }
 
@@ -968,7 +991,7 @@ fn full_pipeline_probe_convert_validate() {
     let input_path = test_media_dir().join("normal/h264_aac_1080p.mp4");
 
     if !input_path.exists() {
-        eprintln!("  ⚠ Test file not found, skipping");
+        eprintln!("  [WARN] Test file not found, skipping");
         return;
     }
 
@@ -1044,7 +1067,7 @@ fn ffmpeg_binaries_are_available_and_working() {
     println!("   ffprobe: {}", ffprobe.display());
 
     if !ffmpeg.exists() || !ffprobe.exists() {
-        eprintln!("   ⚠ Binaries not found - run `npm run download-ffmpeg` first");
+        eprintln!("   [WARN] Binaries not found - run `npm run download-ffmpeg` first");
         eprintln!("   Skipping remaining binary checks");
         return;
     }
