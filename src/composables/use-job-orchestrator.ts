@@ -5,6 +5,7 @@ import { getCurrentInstance, onUnmounted, ref, watch } from 'vue';
 import {
   createRunnerEventSubscriber,
   type CompletionEventPayload,
+  type ErrorCategory,
   type ProgressEventPayload,
 } from '@/composables/orchestrator/event-subscriber';
 import { createPlannerClient } from '@/composables/orchestrator/planner-client';
@@ -195,7 +196,8 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
         void notifyJobResult(payload);
       } else {
         const errorMessage = ErrorHandler.formatCompletionError(payload);
-        jobs.markFailed(payload.jobId, errorMessage, payload.code ?? undefined);
+        const errorCategory = (payload.errorCategory ?? undefined) as ErrorCategory | undefined;
+        jobs.markFailed(payload.jobId, errorMessage, payload.code ?? undefined, errorCategory);
         void notifyJobResult(payload);
       }
 
@@ -373,6 +375,7 @@ export function useJobOrchestrator(options: OrchestratorOptions = {}) {
     }
 
     const reason =
+      payload.userMessage ??
       payload.message ??
       (payload.exitCode !== null && payload.exitCode !== undefined
         ? `FFmpeg exited with code ${payload.exitCode}`

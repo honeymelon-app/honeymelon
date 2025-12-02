@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { X, Play, Copy, FolderOpen } from 'lucide-vue-next';
+import {
+  X,
+  Play,
+  Copy,
+  FolderOpen,
+  AlertTriangle,
+  Clock,
+  FileX,
+  Settings,
+  HardDrive,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 
 import JobProgressBar from '@/components/JobProgressBar.vue';
@@ -16,7 +26,7 @@ import {
 } from '@/components/ui/context-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
-import type { JobState, Preset } from '@/lib/types';
+import type { ErrorCategory, JobState, Preset } from '@/lib/types';
 import { formatFileSize, formatDuration, pathBasename, getFileExtension } from '@/lib/utils';
 
 interface JobQueueItemProps {
@@ -115,6 +125,55 @@ const isPermissionError = computed(() => {
     'code' in props.state &&
     props.state.code === 'job_output_permission'
   );
+});
+
+const errorCategory = computed((): ErrorCategory | undefined => {
+  if (props.state.status === 'failed' && 'errorCategory' in props.state) {
+    return props.state.errorCategory;
+  }
+  return undefined;
+});
+
+/**
+ * Returns contextual help text based on error category.
+ */
+const errorCategoryHelp = computed((): string | undefined => {
+  const category = errorCategory.value;
+  if (!category) return undefined;
+
+  switch (category) {
+    case 'INPUT_PROBLEM':
+      return 'The source file may be corrupted or inaccessible. Try a different file.';
+    case 'UNSUPPORTED_COMBINATION':
+      return "This format combination isn't supported. Try a different preset.";
+    case 'RESOURCE_ISSUE':
+      return 'Check available disk space and close other applications.';
+    case 'TIMEOUT':
+      return 'The conversion took too long. Try a faster preset or shorter file.';
+    case 'INTERNAL_PIPELINE_ERROR':
+      return 'An unexpected error occurred. Please try again or report this issue.';
+    default:
+      return undefined;
+  }
+});
+
+/**
+ * Returns an icon component based on error category.
+ */
+const errorIcon = computed(() => {
+  const category = errorCategory.value;
+  switch (category) {
+    case 'INPUT_PROBLEM':
+      return FileX;
+    case 'UNSUPPORTED_COMBINATION':
+      return Settings;
+    case 'RESOURCE_ISSUE':
+      return HardDrive;
+    case 'TIMEOUT':
+      return Clock;
+    default:
+      return AlertTriangle;
+  }
 });
 
 const permissionHelpText =
@@ -269,12 +328,21 @@ async function handleShowInFinder() {
               <TooltipProvider v-if="state.status === 'failed' && 'error' in state">
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <span class="text-destructive truncate max-w-[200px] cursor-help" role="alert">
+                    <span
+                      class="text-destructive truncate max-w-[200px] cursor-help inline-flex items-center gap-1"
+                      role="alert"
+                    >
+                      <component :is="errorIcon" class="h-3 w-3 shrink-0" aria-hidden="true" />
                       {{ state.error }}
                     </span>
                   </TooltipTrigger>
                   <TooltipContent class="max-w-xs">
-                    <p>{{ state.error }}</p>
+                    <div class="space-y-1">
+                      <p>{{ state.error }}</p>
+                      <p v-if="errorCategoryHelp" class="text-muted-foreground text-xs">
+                        {{ errorCategoryHelp }}
+                      </p>
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -289,6 +357,12 @@ async function handleShowInFinder() {
               </Button>
               <span v-if="isPermissionError" class="text-muted-foreground text-[11px]">
                 {{ permissionHelpText }}
+              </span>
+              <span
+                v-else-if="errorCategoryHelp && !isPermissionError && state.status === 'failed'"
+                class="text-muted-foreground text-[11px]"
+              >
+                {{ errorCategoryHelp }}
               </span>
             </div>
           </div>

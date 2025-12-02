@@ -77,10 +77,11 @@ Potential areas for expansion:
 */
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{ffi::OsString, process::Command};
+use std::{ffi::OsString, fs, path::Path, process::Command};
 use tauri::AppHandle;
 
 use crate::error::AppError;
+use crate::ffmpeg_errors::{classify_probe_error, ClassifiedError, ErrorCategory};
 
 /** Color space metadata extracted from video streams.
 
@@ -241,6 +242,105 @@ struct FfprobeOutput {
     format: FfprobeFormat,
 }
 
+/// Result of input validation before probing.
+#[derive(Debug)]
+pub struct InputValidation {
+    /// File size in bytes
+    pub file_size: u64,
+    /// Whether the file exists and is readable
+    pub is_readable: bool,
+}
+
+/// Validates a file path before attempting to probe it.
+///
+/// Performs early rejection of files that are clearly unusable:
+/// - File doesn't exist
+/// - File is not readable
+/// - File is zero bytes
+///
+/// # Arguments
+/// * `path` - File system path to validate
+///
+/// # Returns
+/// `Ok(InputValidation)` if the file passes basic validation,
+/// or `Err(AppError)` with a user-friendly message if it fails.
+pub fn validate_input(path: &str) -> Result<InputValidation, AppError> {
+    let file_path = Path::new(path);
+
+    // Check if file exists
+    if !file_path.exists() {
+        return Err(AppError::new(
+            "probe_file_not_found",
+            "File not found. It may have been moved, renamed, or deleted.",
+        ));
+    }
+
+    // Check if it's a file (not a directory)
+    if !file_path.is_file() {
+        return Err(AppError::new(
+            "probe_not_a_file",
+            "The selected item is not a file. Please select a media file.",
+        ));
+    }
+
+    // Get file metadata
+    let metadata = fs::metadata(file_path).map_err(|err| {
+        AppError::new(
+            "probe_file_access",
+            format!("Unable to read file information: {}", err),
+        )
+    })?;
+
+    let file_size = metadata.len();
+
+    // Check for zero-byte files
+    if file_size == 0 {
+        return Err(AppError::new(
+            "probe_empty_file",
+            "This file is empty (0 bytes). It may be corrupted or incomplete.",
+        ));
+    }
+
+    // Check read permissions by attempting to open the file
+    let is_readable = fs::File::open(file_path).is_ok();
+    if !is_readable {
+        return Err(AppError::new(
+            "probe_permission_denied",
+            "Unable to read this file. Check that Honeymelon has permission to access it.",
+        ));
+    }
+
+    Ok(InputValidation {
+        file_size,
+        is_readable,
+    })
+}
+
+/// Validates the probe result to ensure the file has usable media streams.
+///
+/// Rejects files that ffprobe can parse but contain no usable content:
+/// - No video and no audio streams
+/// - Streams with missing codec information
+///
+/// # Arguments
+/// * `summary` - The probe summary to validate
+///
+/// # Returns
+/// `Ok(())` if the file has usable streams, or `Err(AppError)` with details.
+pub fn validate_probe_result(summary: &ProbeSummary) -> Result<(), AppError> {
+    let has_video = summary.vcodec.is_some();
+    let has_audio = summary.acodec.is_some();
+
+    if !has_video && !has_audio {
+        return Err(AppError::new(
+            "probe_no_streams",
+            "This file doesn't contain any video or audio streams. It may be corrupted or not a supported media format.",
+        ));
+    }
+
+    Ok(())
+}
+
 /** Probes a media file and returns comprehensive metadata.
 
 This is the main entry point for media analysis in Honeymelon. It orchestrates
@@ -248,20 +348,28 @@ the complete probing pipeline: locating `ffprobe`, executing the analysis,
 parsing the results, and generating both raw and summarized outputs.
 
 # Process Flow
-1. Locate available `ffprobe` binary using candidate path resolution
-2. Execute `ffprobe` with optimized arguments for JSON output
-3. Parse JSON response into strongly-typed structures
-4. Generate curated summary for application use
-5. Return both raw and processed results
+1. Validate input file (exists, readable, non-empty)
+2. Locate available `ffprobe` binary using candidate path resolution
+3. Execute `ffprobe` with optimized arguments for JSON output
+4. Parse JSON response into strongly-typed structures
+5. Validate that file contains usable media streams
+6. Generate curated summary for application use
+7. Return both raw and processed results
 
 # Error Handling
 Returns `AppError` with context about which step failed:
+- `"probe_file_not_found"`: File doesn't exist
+- `"probe_not_a_file"`: Path is a directory, not a file
+- `"probe_empty_file"`: File is zero bytes
+- `"probe_permission_denied"`: Can't read the file
 - `"probe_ffprobe_exec"`: Unable to execute `ffprobe` with any candidate path
 - `"probe_parse_json"`: Invalid JSON output from `ffprobe`
 - `"probe_parse_struct"`: JSON structure doesn't match expected format
+- `"probe_no_streams"`: File has no video or audio streams
 
 # Performance
 The function is optimized for quick analysis:
+- Early rejects invalid files before spawning ffprobe
 - Uses minimal `ffprobe` arguments to reduce execution time
 - Performs lightweight parsing without unnecessary allocations
 - Extracts only essential metadata fields
@@ -274,21 +382,159 @@ The function is optimized for quick analysis:
 `ProbeResponse` containing both raw JSON and curated summary, or `AppError` on failure
 */
 pub fn probe_media(app: &AppHandle, path: &str) -> Result<ProbeResponse, AppError> {
-    // Execute ffprobe and capture JSON output
+    // Step 1: Validate input file before attempting probe
+    let _validation = validate_input(path)?;
+
+    // Step 2: Execute ffprobe and capture JSON output
     let output = run_ffprobe(app, path)?;
 
-    // Parse raw JSON for preservation and debugging
+    // Step 3: Parse raw JSON for preservation and debugging
     let raw: Value = serde_json::from_str(&output)
         .map_err(|err| AppError::new("probe_parse_json", err.to_string()))?;
 
-    // Parse into structured data for processing
+    // Step 4: Parse into structured data for processing
     let parsed: FfprobeOutput = serde_json::from_value(raw.clone())
         .map_err(|err| AppError::new("probe_parse_struct", err.to_string()))?;
 
-    // Generate application-optimized summary
+    // Step 5: Generate application-optimized summary
     let summary = summarize(&parsed);
 
+    // Step 6: Validate that file contains usable streams
+    validate_probe_result(&summary)?;
+
     Ok(ProbeResponse { raw, summary })
+}
+
+/// Probes a media file with detailed error classification.
+///
+/// This is an enhanced version of `probe_media` that returns classified errors
+/// with user-friendly messages when probing fails.
+///
+/// # Arguments
+/// * `app` - Tauri application handle for path resolution
+/// * `path` - File system path to the media file to analyze
+///
+/// # Returns
+/// `Ok(ProbeResponse)` on success, or `Err((AppError, ClassifiedError))` on failure.
+pub fn probe_media_classified(
+    app: &AppHandle,
+    path: &str,
+) -> Result<ProbeResponse, (AppError, ClassifiedError)> {
+    // Validate input first
+    let file_size = match validate_input(path) {
+        Ok(validation) => Some(validation.file_size),
+        Err(err) => {
+            let classified = classify_probe_error(None, &err.message, None);
+            return Err((err, classified));
+        },
+    };
+
+    // Run ffprobe
+    match run_ffprobe_with_stderr(app, path) {
+        Ok(output) => {
+            // Parse JSON
+            let raw: Value = match serde_json::from_str(&output) {
+                Ok(v) => v,
+                Err(err) => {
+                    let app_err = AppError::new("probe_parse_json", err.to_string());
+                    let classified = ClassifiedError::new(
+                        ErrorCategory::InputProblem,
+                        Some(
+                            "Failed to parse ffprobe output - file may not be a valid media file"
+                                .to_string(),
+                        ),
+                        None,
+                    );
+                    return Err((app_err, classified));
+                },
+            };
+
+            // Parse struct
+            let parsed: FfprobeOutput = match serde_json::from_value(raw.clone()) {
+                Ok(v) => v,
+                Err(err) => {
+                    let app_err = AppError::new("probe_parse_struct", err.to_string());
+                    let classified = ClassifiedError::new(
+                        ErrorCategory::InputProblem,
+                        Some("File structure not recognized as valid media".to_string()),
+                        None,
+                    );
+                    return Err((app_err, classified));
+                },
+            };
+
+            let summary = summarize(&parsed);
+
+            // Validate streams
+            if let Err(err) = validate_probe_result(&summary) {
+                let classified = ClassifiedError::new(
+                    ErrorCategory::InputProblem,
+                    Some("File contains no usable media streams".to_string()),
+                    None,
+                );
+                return Err((err, classified));
+            }
+
+            Ok(ProbeResponse { raw, summary })
+        },
+        Err((err, stderr)) => {
+            let classified = classify_probe_error(
+                Some(1), // Assume exit code 1 for ffprobe failures
+                &stderr,
+                file_size,
+            );
+            Err((err, classified))
+        },
+    }
+}
+
+/// Runs ffprobe and returns both stdout and stderr on failure.
+fn run_ffprobe_with_stderr(app: &AppHandle, path: &str) -> Result<String, (AppError, String)> {
+    let mut last_err: Option<String> = None;
+    let mut last_stderr = String::new();
+
+    for candidate in candidate_ffprobe_paths(app) {
+        let mut command = Command::new(&candidate);
+        command.args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
+            path,
+        ]);
+
+        match command.output() {
+            Ok(output) if output.status.success() => {
+                return Ok(String::from_utf8_lossy(&output.stdout).to_string());
+            },
+            Ok(output) => {
+                last_stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                last_err = Some(format!(
+                    "ffprobe exited with status {} (stderr: {})",
+                    output
+                        .status
+                        .code()
+                        .map(|c| c.to_string())
+                        .unwrap_or_else(|| "unknown".into()),
+                    last_stderr.trim()
+                ));
+            },
+            Err(error) => {
+                last_err = Some(error.to_string());
+            },
+        }
+    }
+
+    Err((
+        AppError::new(
+            "probe_ffprobe_exec",
+            last_err.unwrap_or_else(|| "Unable to execute ffprobe".into()),
+        ),
+        last_stderr,
+    ))
 }
 
 /** Executes `ffprobe` on a media file and returns JSON output.

@@ -25,15 +25,46 @@ fn completion_payload_includes_logs_and_status() {
         job_id: "job-1".into(),
         success: false,
         cancelled: false,
+        timed_out: false,
         exit_code: Some(1),
         signal: None,
         code: "job_failed".into(),
         message: Some("ffmpeg exited with status 1".into()),
         logs: vec!["line 1".into(), "line 2".into()],
+        error_category: Some("input_problem".into()),
+        user_message: Some("The input file could not be read.".into()),
+        technical_details: Some("Invalid data found when processing input".into()),
     };
 
     let json: Value = serde_json::to_value(&payload).expect("serialize payload");
     assert_eq!(json["jobId"], "job-1");
     assert_eq!(json["code"], "job_failed");
     assert_eq!(json["logs"].as_array().unwrap().len(), 2);
+    assert_eq!(json["errorCategory"], "input_problem");
+    assert_eq!(json["userMessage"], "The input file could not be read.");
+}
+
+#[test]
+fn completion_payload_omits_optional_fields_when_none() {
+    let payload = CompletionPayload {
+        job_id: "job-2".into(),
+        success: true,
+        cancelled: false,
+        timed_out: false,
+        exit_code: Some(0),
+        signal: None,
+        code: "job_completed".into(),
+        message: None,
+        logs: vec![],
+        error_category: None,
+        user_message: None,
+        technical_details: None,
+    };
+
+    let json: Value = serde_json::to_value(&payload).expect("serialize payload");
+    assert_eq!(json["success"], true);
+    // Optional fields should not be present
+    assert!(json.get("errorCategory").is_none());
+    assert!(json.get("userMessage").is_none());
+    assert!(json.get("technicalDetails").is_none());
 }

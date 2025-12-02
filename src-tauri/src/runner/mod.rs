@@ -4,6 +4,7 @@ pub mod events;
 pub mod external;
 pub mod job_registry;
 pub mod output_manager;
+pub mod output_validator;
 pub mod process_spawner;
 pub mod progress_monitor;
 pub mod validator;

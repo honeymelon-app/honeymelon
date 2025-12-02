@@ -536,3 +536,4 @@ async fn test_actual_conversion() {
 - Understand [State Management](/architecture/state) for job tracking
 - Review [Tech Stack](/architecture/tech-stack) choices
 - Explore the [Conversion Pipeline](/architecture/pipeline) flow
+- See [Pipeline Internals](/architecture/pipeline-internals) for error classification and timeout handling

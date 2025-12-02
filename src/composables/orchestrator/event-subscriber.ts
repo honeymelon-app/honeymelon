@@ -14,6 +14,18 @@ export interface ProgressEventPayload {
   raw: string;
 }
 
+/**
+ * Error categories from the Rust FFmpeg error classifier.
+ * Used to provide appropriate UI feedback and recovery suggestions.
+ */
+export type ErrorCategory =
+  | 'INPUT_PROBLEM' // File not found, corrupted, permission denied
+  | 'UNSUPPORTED_COMBINATION' // Codec/container mismatch, invalid options
+  | 'RESOURCE_ISSUE' // Disk full, out of memory
+  | 'INTERNAL_PIPELINE_ERROR' // Unexpected FFmpeg crash
+  | 'TIMEOUT' // Job exceeded time limit
+  | 'CANCELLED'; // User cancelled
+
 export interface CompletionEventPayload {
   jobId: string;
   success: boolean;
@@ -23,6 +35,12 @@ export interface CompletionEventPayload {
   code?: string | null;
   message?: string | null;
   logs?: string[];
+  /** Classified error category from Rust backend */
+  errorCategory?: ErrorCategory | null;
+  /** User-friendly error message from Rust backend */
+  userMessage?: string | null;
+  /** Whether the job timed out */
+  timedOut?: boolean;
 }
 
 export interface RunnerEventSubscriberOptions {

@@ -78,6 +78,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/architecture/overview' },
             { text: 'Conversion Pipeline', link: '/architecture/pipeline' },
+            { text: 'Pipeline Internals', link: '/architecture/pipeline-internals' },
             { text: 'FFmpeg Integration', link: '/architecture/ffmpeg' },
             { text: 'State Management', link: '/architecture/state' },
             { text: 'Tech Stack', link: '/architecture/tech-stack' },
