@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2] - 2025-12-02
+
 ### Added
 
+- FFmpeg pipeline integration test suite with 16 regression tests
+- Test media generation script (`npm run generate-test-media`) for CI
+- CI enforcement: tests now fail (instead of skip) when dependencies are missing in CI environment
 - Expanded format support (ported from Comet):
   - Video containers: AVI, FLV, M4V, TS, OGV, MPEG (now 11 total)
   - Audio containers: OGG, AAC, AIFF, Opus (now 8 total)
@@ -27,10 +32,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Removed all emojis and Unicode symbols from codebase for better cross-platform compatibility
+- Replaced arrows and checkmarks with ASCII equivalents (>, <>, [OK], [PASS], [FAIL])
 - Removed footer from app shell, integrated controls into job queue toolbar
 - Toolbar now uses icon buttons with tooltips instead of text buttons
 - Updated presets system with dynamic generation from target profiles
 - Container rules refactored with comprehensive codec compatibility matrix
+
+### Fixed
+
+- Fixed Clippy dead code warnings in FFmpeg pipeline test file
+- Fixed CI pipeline tests that were silently skipping instead of failing
 
 ### Documentation
 
@@ -38,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added detailed codec compatibility matrices for each container
 - Updated README with accurate format lists and line counts
 - Synced VitePress docs with expanded format support
+- Added FFMPEG_PIPELINE_TESTS.md documenting test infrastructure
 
 ## [0.0.1] - 2025-11-11
 
