@@ -23,8 +23,8 @@ Honeymelon converts media files through a three-stage pipeline:
 
 **Implementation:**
 
-- **Rust:** `src-tauri/src/ffmpeg_probe.rs` → `probe_media()` function
-- **TypeScript wrapper:** `src/lib/ffmpeg-probe.ts` → `probeMedia()` function
+- **Rust:** `src-tauri/src/ffmpeg_probe.rs` > `probe_media()` function
+- **TypeScript wrapper:** `src/lib/ffmpeg-probe.ts` > `probeMedia()` function
 
 **Process:**
 
@@ -49,19 +49,19 @@ Honeymelon converts media files through a three-stage pipeline:
 
 **Implementation:**
 
-- **TypeScript:** `src/lib/ffmpeg-plan.ts` → `planJob()` function
+- **TypeScript:** `src/lib/ffmpeg-plan.ts` > `planJob()` function
 - **Planners:**
   - `src/lib/planners/video-planner.ts` — decides copy vs transcode for video
   - `src/lib/planners/audio-planner.ts` — decides copy vs transcode for audio
   - `src/lib/planners/subtitle-planner.ts` — subtitle handling strategy
-- **Args builder:** `src/lib/builders/ffmpeg-args-builder.ts` → `FFmpegArgsBuilder` class
+- **Args builder:** `src/lib/builders/ffmpeg-args-builder.ts` > `FFmpegArgsBuilder` class
 
 **Process:**
 
 1. Resolve `Preset` from `presetId` (or default)
-2. Call `VideoPlanner.plan()` → returns `VideoAction` (copy/transcode/drop)
-3. Call `AudioPlanner.plan()` → returns `AudioAction` (copy/transcode/drop)
-4. Call `SubtitlePlanner.plan()` → returns `SubtitlePlanDecision`
+2. Call `VideoPlanner.plan()` > returns `VideoAction` (copy/transcode/drop)
+3. Call `AudioPlanner.plan()` > returns `AudioAction` (copy/transcode/drop)
+4. Call `SubtitlePlanner.plan()` > returns `SubtitlePlanDecision`
 5. Use `FFmpegArgsBuilder` to assemble args:
    - Input file (`-i`)
    - Video codec and options
@@ -147,16 +147,16 @@ FFmpeg arguments are built entirely in TypeScript (`FFmpegArgsBuilder`) as a `st
 
 **Current mapping** (`explain_ffmpeg_exit_code`):
 
-- `1` → "Encoding failed. Check input file format and codec support."
-- `2` → "Invalid FFmpeg arguments. Please report this issue."
-- `69` → "Output file already exists and cannot be overwritten."
-- Other → No specific explanation
+- `1` > "Encoding failed. Check input file format and codec support."
+- `2` > "Invalid FFmpeg arguments. Please report this issue."
+- `69` > "Output file already exists and cannot be overwritten."
+- Other > No specific explanation
 
 **Exit status categories:**
 
-- `status.success()` && not cancelled → Job success
-- Cancelled flag set → Job cancelled
-- Otherwise → Job failed
+- `status.success()` && not cancelled > Job success
+- Cancelled flag set > Job cancelled
+- Otherwise > Job failed
 
 ---
 

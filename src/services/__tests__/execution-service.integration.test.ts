@@ -9,7 +9,7 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
-describe('ExecutionService ↔ Tauri bridge', () => {
+describe('ExecutionService <> Tauri bridge', () => {
   let service: ExecutionService;
 
   beforeEach(() => {

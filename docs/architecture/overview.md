@@ -252,9 +252,9 @@ graph TD
 
 ## Communication Layers
 
-### Frontend ↔ Backend (Tauri IPC)
+### Frontend <> Backend (Tauri IPC)
 
-**Command Pattern** (Frontend → Backend):
+**Command Pattern** (Frontend > Backend):
 
 ```typescript
 // Frontend
@@ -274,7 +274,7 @@ async fn probe_media(file_path: String) -> Result<ProbeResult, String> {
 
 ```
 
-**Event Pattern** (Backend → Frontend):
+**Event Pattern** (Backend > Frontend):
 
 ```rust
 // Backend emits event
@@ -291,7 +291,7 @@ listen('ffmpeg://progress', (event) => {
 });
 ```
 
-### Backend ↔ FFmpeg (Process Spawning)
+### Backend <> FFmpeg (Process Spawning)
 
 ```rust
 use std::process::{Command, Stdio};

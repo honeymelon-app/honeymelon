@@ -27,7 +27,7 @@ Honeymelon is a macOS Apple Silicon media converter built with Tauri + Vue 3. It
 
 ## Architecture
 
-### Core Conversion Pipeline: Probe → Plan → Execute
+### Core Conversion Pipeline: Probe > Plan > Execute
 
 The application follows a three-stage conversion pipeline implemented across frontend and backend:
 
@@ -40,9 +40,9 @@ The application follows a three-stage conversion pipeline implemented across fro
    - Evaluates container rules ([src/lib/container-rules.ts](src/lib/container-rules.ts)) and encoder capabilities
    - Returns `PlannerDecision` with FFmpeg arguments, remux flag, warnings
    - Key decision logic:
-     - If source codec matches preset codec → copy
-     - If codec matches but container differs → copy if container allows
-     - Otherwise → transcode with tier-specific quality settings
+     - If source codec matches preset codec > copy
+     - If codec matches but container differs > copy if container allows
+     - Otherwise > transcode with tier-specific quality settings
 
 3. **Execute** (runner modules under `src-tauri/src/runner`)
    - Rust side spawns FFmpeg as child process
@@ -67,7 +67,7 @@ Presets define target container + codec combinations with quality tiers:
 
 ### Job Queue ([src/stores/jobs.ts](src/stores/jobs.ts), [src/composables/use-job-orchestrator.ts](src/composables/use-job-orchestrator.ts))
 
-- Pinia store manages job lifecycle: `queued` → `probing` → `planning` → `running` → `completed/failed/cancelled`
+- Pinia store manages job lifecycle: `queued` > `probing` > `planning` > `running` > `completed/failed/cancelled`
 - Orchestrator handles concurrency limits (default 2) and exclusive jobs
 - Exclusive jobs (AV1, ProRes) block parallel execution to prevent resource exhaustion
 - Progress updates streamed via Tauri events update job state in real-time
@@ -99,7 +99,7 @@ Exposed commands:
   - `jobs.ts` — Job queue state machine
   - `prefs.ts` — User preferences (FFmpeg path, output directory, defaults)
 - `composables/` — Vue composables:
-  - `use-job-orchestrator.ts` — Orchestrates probe → plan → execute lifecycle
+  - `use-job-orchestrator.ts` — Orchestrates probe > plan > execute lifecycle
 - `components/ui/` — shadcn-vue UI components (auto-generated, edit carefully)
 
 ### Backend (`src-tauri/src/`)
@@ -117,7 +117,7 @@ Exposed commands:
 
 - Use `<script setup>` with Composition API
 - 2-space indentation
-- Import order: external packages → `@/` local modules
+- Import order: external packages > `@/` local modules
 - Component names: PascalCase; lib modules: kebab-case
 
 ### Rust Style
@@ -128,7 +128,7 @@ Exposed commands:
 
 ### Tailwind Classes
 
-- Group by: layout → spacing → color
+- Group by: layout > spacing > color
 - Use `tw-animate-css` for animations
 - Prefer `class-variance-authority` for component variants
 

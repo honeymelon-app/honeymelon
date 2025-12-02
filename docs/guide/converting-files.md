@@ -98,22 +98,22 @@ For each stream (video, audio), the planner determines one of three actions:
 
 #### Example Plans
 
-**Remux Plan** (MKV with H.264 → MP4)
+**Remux Plan** (MKV with H.264 > MP4)
 
 ```
 
-Video: H.264 → Copy (compatible with MP4)
-Audio: AAC → Copy (compatible with MP4)
+Video: H.264 > Copy (compatible with MP4)
+Audio: AAC > Copy (compatible with MP4)
 Result: Fast remux, no quality loss
 
 ```
 
-**Transcode Plan** (MKV with VP9 → MP4)
+**Transcode Plan** (MKV with VP9 > MP4)
 
 ```
 
-Video: VP9 → Transcode to H.264 (VP9 not in MP4)
-Audio: Opus → Transcode to AAC (Opus not in MP4)
+Video: VP9 > Transcode to H.264 (VP9 not in MP4)
+Audio: Opus > Transcode to AAC (Opus not in MP4)
 Result: Full transcode required
 
 ```

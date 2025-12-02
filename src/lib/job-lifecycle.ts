@@ -80,7 +80,7 @@ export function createLifecycleGuard(): LifecycleGuard {
       const allowed = canTransitionStatus(current.status, next.status);
       if (!allowed) {
         const reason = context ? ` via ${context}` : '';
-        const message = `[job-lifecycle] Illegal transition ${current.status} → ${next.status}${reason}`;
+        const message = `[job-lifecycle] Illegal transition ${current.status} > ${next.status}${reason}`;
         if (DEV_MODE) {
           throw new Error(message);
         }

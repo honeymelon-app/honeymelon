@@ -222,7 +222,7 @@ To distribute Honeymelon outside the Mac App Store, you must code sign and notar
 **Create App-Specific Password**:
 
 1. Go to [appleid.apple.com](https://appleid.apple.com)
-2. Navigate to Security → App-Specific Passwords
+2. Navigate to Security > App-Specific Passwords
 3. Generate new password (label: "Honeymelon Notarization")
 4. Save securely
 
@@ -431,10 +431,10 @@ xcrun notarytool log <notarization-uuid> --apple-id "$APPLE_ID" --password "$APP
 
 **Common Causes**:
 
-1. App-specific password expired → Generate new one at appleid.apple.com
-2. Wrong Team ID → Verify with `security find-identity -v -p codesigning`
-3. Bundle validation errors → Check notarytool log
-4. Hardened runtime issues → Verify `entitlements.plist` present
+1. App-specific password expired > Generate new one at appleid.apple.com
+2. Wrong Team ID > Verify with `security find-identity -v -p codesigning`
+3. Bundle validation errors > Check notarytool log
+4. Hardened runtime issues > Verify `entitlements.plist` present
 
 ## Advanced Topics
 

@@ -250,7 +250,7 @@ describe('jobs store', () => {
       const jobId = store.enqueue('/path.mp4', TEST_PRESET_1);
 
       expect(() => store.markRunning(jobId!, {} as any)).toThrow(
-        /Illegal transition queued → running via markRunning/,
+        /Illegal transition queued > running via markRunning/,
       );
     });
   });

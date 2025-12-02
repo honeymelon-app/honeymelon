@@ -63,7 +63,7 @@ export class AudioPlanner {
         warnings.push(`Encoder ${encoder} not reported by FFmpeg; transcode may fail.`);
       }
 
-      note = `Audio: transcode ${sourceAudioCodec ?? 'unknown'} → ${preset.audio.codec} with ${encoder}.`;
+      note = `Audio: transcode ${sourceAudioCodec ?? 'unknown'} > ${preset.audio.codec} with ${encoder}.`;
     }
 
     if (action === 'drop' && preset.audio.codec !== 'none') {

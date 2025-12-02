@@ -178,7 +178,7 @@ brew upgrade ffmpeg
 **If encoding is slower than expected**:
 
 1. **Enable hardware acceleration**:
-   - Check Preferences → Hardware Acceleration
+   - Check Preferences > Hardware Acceleration
    - Only works for H.264/H.265 on Apple Silicon
 
 2. **Use faster preset**:
@@ -277,8 +277,8 @@ brew upgrade ffmpeg
 **Possible reasons**:
 
 1. **Transcoding to less efficient codec**:
-   - H.264 → ProRes will increase size
-   - Compressed → uncompressed increases size
+   - H.264 > ProRes will increase size
+   - Compressed > uncompressed increases size
 
 2. **High quality settings**:
    - "High" quality tier uses higher bitrates
@@ -353,7 +353,7 @@ brew upgrade ffmpeg
 
 **Solution**:
 
-1. Open **System Settings** → **Privacy & Security**
+1. Open **System Settings** > **Privacy & Security**
 2. Click **"Open Anyway"** next to Honeymelon warning
 3. Confirm you want to open the app
 
@@ -370,7 +370,7 @@ xattr -cr /Applications/Honeymelon.app
 
 **Grant permissions**:
 
-1. Open **System Settings** → **Privacy & Security** → **Files and Folders**
+1. Open **System Settings** > **Privacy & Security** > **Files and Folders**
 2. Enable access for Honeymelon
 3. Restart the application
 

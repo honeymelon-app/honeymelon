@@ -244,6 +244,7 @@ struct FfprobeOutput {
 
 /// Result of input validation before probing.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct InputValidation {
     /// File size in bytes
     pub file_size: u64,
@@ -416,6 +417,7 @@ pub fn probe_media(app: &AppHandle, path: &str) -> Result<ProbeResponse, AppErro
 ///
 /// # Returns
 /// `Ok(ProbeResponse)` on success, or `Err((AppError, ClassifiedError))` on failure.
+#[allow(dead_code)]
 pub fn probe_media_classified(
     app: &AppHandle,
     path: &str,
@@ -489,6 +491,7 @@ pub fn probe_media_classified(
 }
 
 /// Runs ffprobe and returns both stdout and stderr on failure.
+#[allow(dead_code)]
 fn run_ffprobe_with_stderr(app: &AppHandle, path: &str) -> Result<String, (AppError, String)> {
     let mut last_err: Option<String> = None;
     let mut last_stderr = String::new();

@@ -198,7 +198,7 @@ Learn more about ADRs:
 For other architecture information, see:
 
 - **[Architecture Overview](./overview.md)** – System design summary
-- **[Pipeline Architecture](./pipeline.md)** – Probe → Plan → Execute workflow
+- **[Pipeline Architecture](./pipeline.md)** – Probe > Plan > Execute workflow
 - **[Technical Stack](./tech-stack.md)** – Technology choices overview
 - **[State Management](./state.md)** – Job state machine design
 

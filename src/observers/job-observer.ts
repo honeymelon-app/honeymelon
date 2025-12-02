@@ -55,7 +55,7 @@ export class JobMetricsObserver implements JobStateObserver {
     }
 
     // Track state transitions
-    // console.debug(`[metrics] Job ${_jobId} transitioned: ${oldState.status} → ${newState.status}`);
+    // console.debug(`[metrics] Job ${_jobId} transitioned: ${oldState.status} > ${newState.status}`);
   }
 
   /**

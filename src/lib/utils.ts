@@ -106,10 +106,10 @@ export function getFileExtension(filename: string): string {
 export function formatPath(path?: string): string {
   if (!path) return '';
 
-  let formatted = path.replace(/\\/g, '/').replace(/^\//, '').replace(/\//g, ' → ');
+  let formatted = path.replace(/\\/g, '/').replace(/^\//, '').replace(/\//g, ' > ');
 
   if (formatted.length > 40) {
-    formatted = formatted.slice(formatted.lastIndexOf('→') + 2);
+    formatted = formatted.slice(formatted.lastIndexOf('>') + 2);
   }
 
   return formatted;

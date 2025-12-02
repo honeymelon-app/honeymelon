@@ -342,8 +342,8 @@ Honeymelon will process the entire queue automatically.
 **Strategy**:
 
 1. Add all files at once
-2. Video files → `video-to-mp4`
-3. Audio files → `audio-to-m4a`
+2. Video files > `video-to-mp4`
+3. Audio files > `audio-to-m4a`
 4. Use **Balanced** quality tier
 5. Set concurrency to 2
 6. Start batch

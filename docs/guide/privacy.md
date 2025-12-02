@@ -21,14 +21,14 @@ Honeymelon is designed with privacy as a core principle. This page explains our 
 
 Honeymelon does **NOT** collect, store, or transmit:
 
-- ❌ Personal information (name, email, etc.)
-- ❌ Usage data or analytics
-- ❌ File names or media metadata
-- ❌ Conversion history
-- ❌ Error reports or crash logs
-- ❌ Device identifiers
-- ❌ IP addresses
-- ❌ Location data
+- Personal information (name, email, etc.)
+- Usage data or analytics
+- File names or media metadata
+- Conversion history
+- Error reports or crash logs
+- Device identifiers
+- IP addresses
+- Location data
 
 ## How Your Data is Handled
 
@@ -98,7 +98,7 @@ Honeymelon may request the following macOS permissions:
 
 - **Purpose**: Access protected directories if needed
 - **Default**: Not required for normal operation
-- **Control**: You can grant/revoke in System Settings → Privacy & Security
+- **Control**: You can grant/revoke in System Settings > Privacy & Security
 
 ### Notifications (Optional)
 
@@ -195,13 +195,13 @@ None of these third-party components collect or transmit user data.
 
 Unlike many media converters, Honeymelon:
 
-| Feature           | Honeymelon | Many Competitors   |
-| ----------------- | ---------- | ------------------ |
-| Cloud Processing  | ❌ Never   | ✅ Often Required  |
-| Telemetry         | ❌ None    | ✅ Usually Present |
-| Account Required  | ❌ No      | ✅ Sometimes       |
-| Internet Required | ❌ No      | ✅ Often           |
-| Data Collection   | ❌ None    | ✅ Common          |
+| Feature           | Honeymelon | Many Competitors |
+| ----------------- | ---------- | ---------------- |
+| Cloud Processing  | Never      | Often Required   |
+| Telemetry         | None       | Usually Present  |
+| Account Required  | No         | Sometimes        |
+| Internet Required | No         | Often            |
+| Data Collection   | None       | Common           |
 
 ## Open Source
 

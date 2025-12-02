@@ -317,7 +317,7 @@ export class JobError extends Error {
 /**
  * Union type representing all possible states of a conversion job.
  *
- * Jobs progress through these states in order: queued → probing → planning → running → completed/failed/cancelled.
+ * Jobs progress through these states in order: queued > probing > planning > running > completed/failed/cancelled.
  * Each state contains relevant metadata for that stage of processing.
  */
 export type JobState =

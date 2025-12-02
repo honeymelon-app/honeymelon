@@ -58,6 +58,11 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# Test media corpus (generated locally for FFmpeg pipeline tests)
+test-media/normal/
+test-media/edge-cases/
+test-media/known-bad/
+
 # Package manager caches
 .pnpm-store/
 .pnpm-debug.log*

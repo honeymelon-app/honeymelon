@@ -148,7 +148,7 @@ describe('VideoPlanner', () => {
         const result = planner.plan(summary, basePreset, 'balanced', warnings);
 
         expect(result.action.action).toBe('transcode');
-        expect(result.action.note).toContain('transcode vp9 → h264');
+        expect(result.action.note).toContain('transcode vp9 > h264');
       });
 
       it('should use hardware accelerated encoder when available', () => {

@@ -156,7 +156,7 @@ describe('AudioPlanner', () => {
 
       expect(result.action.action).toBe('transcode');
       expect(result.action.encoder).toBe('aac');
-      expect(result.action.note).toBe('Audio: transcode mp3 → aac with aac.');
+      expect(result.action.note).toBe('Audio: transcode mp3 > aac with aac.');
       expect(warnings).toHaveLength(0);
     });
 
@@ -375,7 +375,7 @@ describe('AudioPlanner', () => {
       const result = planner.plan(summary, preset, 'balanced', warnings);
 
       expect(result.action.action).toBe('transcode');
-      expect(result.action.note).toContain('pcm_s16le → flac');
+      expect(result.action.note).toContain('pcm_s16le > flac');
     });
   });
 });

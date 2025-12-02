@@ -91,6 +91,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -108,8 +114,19 @@ jobs:
       - name: Check Rust formatting
         run: cd src-tauri && cargo fmt --all -- --check
 
+      - name: Install Node dependencies
+        run: npm ci
+
       - name: Download FFmpeg binaries
         run: npm run download-ffmpeg
+
+      - name: Verify FFmpeg binaries
+        run: |
+          echo "Verifying FFmpeg binaries..."
+          ls -lh src-tauri/bin/ || { echo "::error::FFmpeg bin directory not found"; exit 1; }
+          src-tauri/bin/ffmpeg -version | head -n 1 || { echo "::error::ffmpeg binary not working"; exit 1; }
+          src-tauri/bin/ffprobe -version | head -n 1 || { echo "::error::ffprobe binary not working"; exit 1; }
+          echo "✓ FFmpeg binaries verified"
 
       - name: Run Clippy (Rust linter)
         run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
@@ -118,8 +135,13 @@ jobs:
         run: cd src-tauri && cargo test --all-features --lib
 
       - name: Run Rust integration tests
-        run: cd src-tauri && cargo test --test '*' --all-features
-        continue-on-error: true
+        run: cd src-tauri && cargo test --all-features --tests -- --nocapture
+
+      - name: Run FFmpeg pipeline regression tests
+        run: |
+          echo "Running FFmpeg pipeline regression tests..."
+          cd src-tauri && cargo test --test ffmpeg_pipeline -- --nocapture
+          echo "✓ Pipeline regression tests passed"
 
   # Job 3: Build Application
   build:
@@ -371,7 +393,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Required Checks" >> $GITHUB_STEP_SUMMARY
           echo "- Lint and format checks: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Rust checks: ${{ needs.rust-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Rust checks (incl. FFmpeg pipeline tests): ${{ needs.rust-check.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Results" >> $GITHUB_STEP_SUMMARY

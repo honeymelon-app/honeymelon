@@ -32,7 +32,7 @@ Honeymelon is a macOS Apple Silicon media converter built with Tauri + Vue 3. It
 
 ## Architecture
 
-### Core Conversion Pipeline: Probe → Plan → Execute
+### Core Conversion Pipeline: Probe > Plan > Execute
 
 The application follows a three-stage conversion pipeline implemented across frontend and backend:
 
@@ -45,9 +45,9 @@ The application follows a three-stage conversion pipeline implemented across fro
    - Evaluates container rules ([src/lib/container-rules.ts](src/lib/container-rules.ts)) and encoder capabilities
    - Returns `PlannerDecision` with FFmpeg arguments, remux flag, warnings
    - Key decision logic:
-     - If source codec matches preset codec → copy
-     - If codec matches but container differs → copy if container allows
-     - Otherwise → transcode with tier-specific quality settings
+     - If source codec matches preset codec > copy
+     - If codec matches but container differs > copy if container allows
+     - Otherwise > transcode with tier-specific quality settings
 
 3. **Execute** (runner modules under `src-tauri/src/runner`)
    - Rust side spawns FFmpeg as child process
@@ -132,7 +132,7 @@ Exposed commands:
 
 - Use `<script setup>` with Composition API
 - 2-space indentation
-- Import order: external packages → `@/` local modules
+- Import order: external packages > `@/` local modules
 - Component names: PascalCase; lib modules: kebab-case
 
 ### Rust Style
@@ -143,7 +143,7 @@ Exposed commands:
 
 ### Tailwind Classes
 
-- Group by: layout → spacing → color
+- Group by: layout > spacing > color
 - Use `tw-animate-css` for animations
 - Prefer `class-variance-authority` for component variants
 
@@ -159,7 +159,7 @@ Exposed commands:
 - Frontend: Vitest suites cover planners, presets, job services, orchestrator clients, and file handlers. Run with `npm run test:unit`, `npm run test:unit:watch`, or `npm run test:unit:coverage` (ensure `npm run download-ffmpeg` has fetched binaries first).
 - Backend: `cd src-tauri && cargo test` executes Rust unit + integration suites, mirroring the `JobLifecycle` invariants and runner validator/concurrency logic.
 - E2E: Playwright specs under `e2e/tests` require `npm run tauri dev` in another terminal; launch via `npm run test:e2e` or `npm run test:e2e:ui` for debugging.
-- CI: `ci.yml` enforces lint → type-check → Vitest → build → `cargo test`; match that locally before pushing.
+- CI: `ci.yml` enforces lint > type-check > Vitest > build > `cargo test`; match that locally before pushing.
 - Use the shared orchestrator teardown helper in tests to avoid leaking mocked `listen` subscriptions between runs.
 
 ## FFmpeg Integration Notes

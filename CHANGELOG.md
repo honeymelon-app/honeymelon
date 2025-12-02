@@ -47,7 +47,7 @@ This is the initial public release. See [Unreleased] section for complete featur
 
 - Initial public release of Honeymelon media converter
 - Remux-first FFmpeg workflow for lossless stream copying
-- Three-stage conversion pipeline: Probe → Plan → Execute
+- Three-stage conversion pipeline: Probe > Plan > Execute
 - Preset system with quality tiers (fast, balanced, high)
 - Support for H.264, HEVC, VP9, AV1, VP8, Theora, MPEG-4, FLV1, and MPEG-2 video codecs
 - Support for AAC, MP3, Opus, Vorbis, FLAC, PCM, MP2, and AC3 audio codecs

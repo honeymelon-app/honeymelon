@@ -161,103 +161,103 @@ Honeymelon can encode to:
 
 | Codec  | Compatible | Notes                |
 | ------ | ---------- | -------------------- |
-| H.264  | ✅         | Fully supported      |
-| H.265  | ✅         | Fully supported      |
-| VP9    | ❌         | Not supported in MP4 |
-| AV1    | ⚠️         | Limited support      |
-| ProRes | ❌         | Use MOV instead      |
-| AAC    | ✅         | Recommended audio    |
-| MP3    | ✅         | Widely supported     |
-| Opus   | ❌         | Use WebM instead     |
+| H.264  |            | Fully supported      |
+| H.265  |            | Fully supported      |
+| VP9    |            | Not supported in MP4 |
+| AV1    |            | Limited support      |
+| ProRes |            | Use MOV instead      |
+| AAC    |            | Recommended audio    |
+| MP3    |            | Widely supported     |
+| Opus   |            | Use WebM instead     |
 
 ### MKV Container
 
 | Codec  | Compatible | Notes           |
 | ------ | ---------- | --------------- |
-| H.264  | ✅         | Fully supported |
-| H.265  | ✅         | Fully supported |
-| VP9    | ✅         | Fully supported |
-| AV1    | ✅         | Fully supported |
-| ProRes | ✅         | Supported       |
-| AAC    | ✅         | Supported       |
-| Opus   | ✅         | Recommended     |
-| FLAC   | ✅         | Lossless audio  |
+| H.264  |            | Fully supported |
+| H.265  |            | Fully supported |
+| VP9    |            | Fully supported |
+| AV1    |            | Fully supported |
+| ProRes |            | Supported       |
+| AAC    |            | Supported       |
+| Opus   |            | Recommended     |
+| FLAC   |            | Lossless audio  |
 
 ### WebM Container
 
 | Codec  | Compatible | Notes             |
 | ------ | ---------- | ----------------- |
-| VP8    | ✅         | Older web codec   |
-| VP9    | ✅         | Recommended       |
-| AV1    | ✅         | Next-gen web      |
-| H.264  | ❌         | Not supported     |
-| Opus   | ✅         | Recommended audio |
-| Vorbis | ✅         | Older audio codec |
-| AAC    | ❌         | Not supported     |
+| VP8    |            | Older web codec   |
+| VP9    |            | Recommended       |
+| AV1    |            | Next-gen web      |
+| H.264  |            | Not supported     |
+| Opus   |            | Recommended audio |
+| Vorbis |            | Older audio codec |
+| AAC    |            | Not supported     |
 
 ### MOV Container
 
 | Codec  | Compatible | Notes              |
 | ------ | ---------- | ------------------ |
-| H.264  | ✅         | Widely supported   |
-| H.265  | ✅         | Fully supported    |
-| ProRes | ✅         | Professional codec |
-| VP9    | ❌         | Use MKV/WebM       |
-| AAC    | ✅         | Recommended        |
-| PCM    | ✅         | Uncompressed       |
+| H.264  |            | Widely supported   |
+| H.265  |            | Fully supported    |
+| ProRes |            | Professional codec |
+| VP9    |            | Use MKV/WebM       |
+| AAC    |            | Recommended        |
+| PCM    |            | Uncompressed       |
 
 ### AVI Container
 
 | Codec  | Compatible | Notes           |
 | ------ | ---------- | --------------- |
-| H.264  | ✅         | Supported       |
-| MPEG-4 | ✅         | Legacy codec    |
-| Theora | ✅         | Open codec      |
-| H.265  | ❌         | Limited support |
-| MP3    | ✅         | Recommended     |
-| PCM    | ✅         | Uncompressed    |
-| AC3    | ✅         | Surround sound  |
+| H.264  |            | Supported       |
+| MPEG-4 |            | Legacy codec    |
+| Theora |            | Open codec      |
+| H.265  |            | Limited support |
+| MP3    |            | Recommended     |
+| PCM    |            | Uncompressed    |
+| AC3    |            | Surround sound  |
 
 ### FLV Container
 
 | Codec | Compatible | Notes         |
 | ----- | ---------- | ------------- |
-| H.264 | ✅         | Recommended   |
-| FLV1  | ✅         | Legacy codec  |
-| H.265 | ❌         | Not supported |
-| AAC   | ✅         | Recommended   |
-| MP3   | ✅         | Supported     |
+| H.264 |            | Recommended   |
+| FLV1  |            | Legacy codec  |
+| H.265 |            | Not supported |
+| AAC   |            | Recommended   |
+| MP3   |            | Supported     |
 
 ### TS Container (Transport Stream)
 
 | Codec  | Compatible | Notes              |
 | ------ | ---------- | ------------------ |
-| H.264  | ✅         | Common             |
-| H.265  | ✅         | Supported          |
-| MPEG-2 | ✅         | Broadcast standard |
-| VP9    | ❌         | Not supported      |
-| AAC    | ✅         | Supported          |
-| MP3    | ✅         | Supported          |
-| AC3    | ✅         | Broadcast audio    |
+| H.264  |            | Common             |
+| H.265  |            | Supported          |
+| MPEG-2 |            | Broadcast standard |
+| VP9    |            | Not supported      |
+| AAC    |            | Supported          |
+| MP3    |            | Supported          |
+| AC3    |            | Broadcast audio    |
 
 ### OGV Container
 
 | Codec  | Compatible | Notes         |
 | ------ | ---------- | ------------- |
-| Theora | ✅         | Recommended   |
-| VP8    | ✅         | Supported     |
-| H.264  | ❌         | Not supported |
-| Vorbis | ✅         | Recommended   |
-| Opus   | ✅         | Supported     |
+| Theora |            | Recommended   |
+| VP8    |            | Supported     |
+| H.264  |            | Not supported |
+| Vorbis |            | Recommended   |
+| Opus   |            | Supported     |
 
 ### MPEG Container
 
 | Codec  | Compatible | Notes          |
 | ------ | ---------- | -------------- |
-| MPEG-2 | ✅         | Standard codec |
-| H.264  | ❌         | Not supported  |
-| MP2    | ✅         | Standard audio |
-| AC3    | ✅         | Surround sound |
+| MPEG-2 |            | Standard codec |
+| H.264  |            | Not supported  |
+| MP2    |            | Standard audio |
+| AC3    |            | Surround sound |
 
 ## Special Formats
 

@@ -12,7 +12,7 @@ Customize Honeymelon's behavior through the Preferences dialog. This guide expla
 Open the Preferences dialog:
 
 - **Keyboard**: Press `Cmd + ,`
-- **Menu Bar**: Honeymelon → Preferences
+- **Menu Bar**: Honeymelon > Preferences
 - **First Launch**: Preferences open automatically
 
 ## Settings Overview
@@ -53,7 +53,7 @@ Custom directory (~/Converted):
 
 - **Add "-converted"** (default): Appends `-converted` to filename
 - **Custom suffix**: Enter your own suffix (e.g., `-h264`, `-optimized`)
-- **No suffix**: Uses original filename (⚠️ risky)
+- **No suffix**: Uses original filename ( risky)
 
 **Examples**:
 
@@ -120,7 +120,7 @@ See [Presets & Quality](/guide/presets) for detailed explanations.
 
 **Description**: Location of the FFmpeg executable.
 
-**Default**: Auto-detect (bundled → system → error)
+**Default**: Auto-detect (bundled > system > error)
 
 **Detection Order**:
 
@@ -286,7 +286,7 @@ Preferences are stored at:
 
 ```
 
-Advanced users can manually edit this file (⚠️ use caution).
+Advanced users can manually edit this file ( use caution).
 
 ## Preference Best Practices
 

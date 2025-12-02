@@ -75,16 +75,16 @@ The docs will be available at `http://localhost:5173/`
 
 ### Features
 
-- ✅ Comprehensive user guides
-- ✅ Detailed architecture documentation
-- ✅ Development and contribution guides
-- ✅ Legal and compliance information
-- ✅ Full-text search (built-in)
-- ✅ Responsive design
-- ✅ Dark mode support
-- ✅ Markdown support with extensions
-- ✅ Mermaid diagrams
-- ✅ Code syntax highlighting
+- Comprehensive user guides
+- Detailed architecture documentation
+- Development and contribution guides
+- Legal and compliance information
+- Full-text search (built-in)
+- Responsive design
+- Dark mode support
+- Markdown support with extensions
+- Mermaid diagrams
+- Code syntax highlighting
 
 ## Writing Documentation
 

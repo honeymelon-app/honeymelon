@@ -7,7 +7,7 @@ labels:
 title: 'security: '
 ---
 
-⚠️ **Do not share sensitive details publicly.** For high-severity vulnerabilities, email `security@honeymelon.app` or follow the instructions in [`SECURITY.md`](../SECURITY.md).
+**Do not share sensitive details publicly.** For high-severity vulnerabilities, email `security@honeymelon.app` or follow the instructions in [`SECURITY.md`](../SECURITY.md).
 
 ## Summary
 

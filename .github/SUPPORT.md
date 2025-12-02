@@ -132,7 +132,7 @@ file /Applications/Honeymelon.app/Contents/Resources/ffmpeg
 
 ### Performance Issues
 
-- Check concurrent job settings (Preferences → Concurrent Jobs)
+- Check concurrent job settings (Preferences > Concurrent Jobs)
 - Try reducing concurrent jobs or setting to 1
 - Monitor CPU usage with Activity Monitor
 - Check available disk space

@@ -515,7 +515,7 @@ describe('useJobOrchestrator', () => {
         code: 'ERR',
       },
     });
-    expect(jobsStore.markFailed).toHaveBeenCalledWith(job.id, 'formatted', 'ERR');
+    expect(jobsStore.markFailed).toHaveBeenCalledWith(job.id, 'formatted', 'ERR', undefined);
     await vi.waitFor(() =>
       expect(notificationModuleMock.sendNotification).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Conversion failed' }),

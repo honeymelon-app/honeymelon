@@ -98,7 +98,7 @@ Each preset supports three quality tiers that control encoding parameters:
 
 **Best For**:
 
-- Container format changes (MKV → MP4)
+- Container format changes (MKV > MP4)
 - When source quality is already optimal
 - Quick conversions where speed matters
 - Preserving original encode settings

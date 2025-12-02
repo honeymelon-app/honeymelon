@@ -19,7 +19,7 @@ Honeymelon pairs a Vue 3 frontend with a Tauri shell. `src/main.ts` bootstraps `
 
 ## Coding Style & Naming Conventions
 
-Use TypeScript with Vue `<script setup>`. Keep 2-space indentation and group imports external → local. Name components and composables in PascalCase, utility modules in `src/lib` as kebab-case, and keep Tailwind classes grouped layout → spacing → color. Rust modules stay snake_case and expose Tauri commands with concise doc comments when behavior is non-obvious.
+Use TypeScript with Vue `<script setup>`. Keep 2-space indentation and group imports external > local. Name components and composables in PascalCase, utility modules in `src/lib` as kebab-case, and keep Tailwind classes grouped layout > spacing > color. Rust modules stay snake_case and expose Tauri commands with concise doc comments when behavior is non-obvious.
 
 ## Testing Guidelines
 

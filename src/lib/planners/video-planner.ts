@@ -139,7 +139,7 @@ export class VideoPlanner {
       }
 
       const accelerationNote = isHardwareAccelerated ? ' (hardware accelerated)' : '';
-      note = `Video: transcode ${sourceVideoCodec ?? 'unknown'} → ${preset.video.codec} with ${encoder}${accelerationNote}.`;
+      note = `Video: transcode ${sourceVideoCodec ?? 'unknown'} > ${preset.video.codec} with ${encoder}${accelerationNote}.`;
     }
 
     if (action === 'drop' && preset.video.codec !== 'none') {
@@ -179,7 +179,7 @@ export class VideoPlanner {
     if (!summary.fps) {
       notes.push(`Video: using default ${DEFAULTS.GIF_DEFAULT_FPS} fps for GIF output.`);
     } else if (Math.abs(targetFps - sourceFps) >= 1) {
-      notes.push(`Video: fps clamped from ${Math.round(sourceFps)} → ${targetFps} for GIF output.`);
+      notes.push(`Video: fps clamped from ${Math.round(sourceFps)} > ${targetFps} for GIF output.`);
     }
 
     const measuredWidth =

@@ -60,6 +60,7 @@ impl JobCoordinator {
     }
 
     /// Starts a job with additional options for validation and timeout.
+    #[allow(clippy::too_many_arguments)]
     pub fn start_job_with_options(
         &self,
         app: AppHandle,

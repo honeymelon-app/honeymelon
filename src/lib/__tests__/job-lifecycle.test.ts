@@ -48,7 +48,7 @@ describe('jobLifecycle', () => {
     });
 
     expect(() => jobLifecycle.ensureTransition(queued, illegalRunning, 'unit-test')).toThrow(
-      /Illegal transition queued → running via unit-test/,
+      /Illegal transition queued > running via unit-test/,
     );
   });
 });

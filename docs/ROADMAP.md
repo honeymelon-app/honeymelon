@@ -23,7 +23,7 @@ Honeymelon follows semantic versioning. Each release trains on three pillars:
 
 ### Highlights
 
-- Remux-first conversion pipeline with probe → plan → execute stages
+- Remux-first conversion pipeline with probe > plan > execute stages
 - FFmpeg capability detection and automatic preset availability
 - Batch job queue with concurrency controls and progress telemetry
 - License activation flow with offline verification and event hooks

@@ -21,30 +21,30 @@ editLink: false
 
 ---
 
-## Phase 1 — Critical Foundation (Weeks 1–2) ✅ COMPLETE
+## Phase 1 — Critical Foundation (Weeks 1–2) COMPLETE
 
-### Legal & Documentation ✅
+### Legal & Documentation
 
 - [x] **`BUILD.md`** — Complete build/signing/notarization guide (17KB)
 - [x] **`EULA.md`** — End-user license for commercial distribution (15KB)
 - [x] **`PRIVACY.md`** — Privacy policy (11KB)
 - [x] **License consistency** — Fixed MIT references in `CONTRIBUTING.md` line 378
-- [x] **`third-party-notices.md`** — Fixed date typo (2025-10-30 → 2024-10-30)
+- [x] **`third-party-notices.md`** — Fixed date typo (2025-10-30 > 2024-10-30)
 - [x] **`.github/SUPPORT.md`** — Support channels and SLAs (5.9KB)
 
-### Git & Repository ✅
+### Git & Repository
 
 - [x] **`.gitattributes`** — Line endings, diff behavior, binary files configured
 - [x] **Branch protection** — Documented required settings in `CONTRIBUTING.md`
 
-### CI/CD Critical Fixes ✅
+### CI/CD Critical Fixes
 
 - [x] **Coverage gates are blocking** — Added coverage threshold check (fails if < 80%)
 - [x] **E2E tests are blocking** — Removed `continue-on-error: true` from `ci.yml`
 - [x] **Security audits are blocking** — Removed `|| true` from npm/cargo audit
 - [x] **CodeQL** — Created `.github/workflows/codeql.yml` for security scanning
 
-### VitePress Integration ✅
+### VitePress Integration
 
 - [x] **Updated config** — Added Roadmap, Support, Privacy, EULA, ADR, Build to navigation
 - [x] **Created pages** — 6 new VitePress docs pages linking to root documentation
@@ -55,15 +55,15 @@ editLink: false
 
 ## Phase 2 — Testing Coverage (Weeks 3–4)
 
-**Goal:** Lift coverage from **34.82% → 80%+**
+**Goal:** Lift coverage from **34.82% > 80%+**
 
 ### Unit & Integration
 
-- [ ] **Vue composables** — Tests for `use-job-orchestrator`, `use-app-orchestration` (**0% → covered**)
-- [ ] **`ffmpeg-probe`** — Add unit tests (**0% → covered**)
-- [ ] **`error-handler`** — Add unit tests (**0% → covered**)
-- [ ] **Capabilities** — Improve tests (**~20% → higher**)
-- [ ] **File discovery** — Improve tests (**~18% → higher**)
+- [ ] **Vue composables** — Tests for `use-job-orchestrator`, `use-app-orchestration` (**0% > covered**)
+- [ ] **`ffmpeg-probe`** — Add unit tests (**0% > covered**)
+- [ ] **`error-handler`** — Add unit tests (**0% > covered**)
+- [ ] **Capabilities** — Improve tests (**~20% > higher**)
+- [ ] **File discovery** — Improve tests (**~18% > higher**)
 - [ ] **E2E scaffolds** — Convert **200+** placeholders to real tests
 - [ ] **Rust integration tests** — Backend integration suite
 
@@ -132,7 +132,7 @@ editLink: false
 
 ## Success Metrics
 
-- **Testing:** Coverage **34.82% → 80%+**
+- **Testing:** Coverage **34.82% > 80%+**
 - **CI/CD:** All checks blocking; no `continue-on-error`
 - **Legal:** EULA, Privacy Policy, copyright
 - **Docs:** `BUILD.md`, API docs, ADRs, `ROADMAP.md`

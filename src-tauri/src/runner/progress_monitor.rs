@@ -128,7 +128,7 @@ pub fn calculate_timeout(duration_seconds: Option<f64>) -> f64 {
     match duration_seconds {
         Some(duration) if duration > 0.0 => {
             let calculated = duration * MULTIPLIER + BUFFER_SECONDS;
-            calculated.max(MIN_TIMEOUT).min(DEFAULT_TIMEOUT_SECONDS)
+            calculated.clamp(MIN_TIMEOUT, DEFAULT_TIMEOUT_SECONDS)
         },
         _ => DEFAULT_TIMEOUT_SECONDS,
     }
@@ -139,6 +139,7 @@ pub struct ProgressMonitor;
 
 impl ProgressMonitor {
     /// Starts monitoring an FFmpeg process
+    #[allow(clippy::too_many_arguments)]
     pub fn start(
         app: AppHandle,
         emitter: SharedEmitter,
@@ -435,6 +436,7 @@ impl ProgressMonitor {
         Some(hours * 3600.0 + minutes * 60.0 + seconds)
     }
 
+    #[allow(dead_code)]
     fn explain_ffmpeg_exit_code(code: i32) -> Option<&'static str> {
         match code {
             1 => Some("Encoding failed. Check input file format and codec support."),

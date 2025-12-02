@@ -196,7 +196,7 @@ interface FFmpegPlan {
 
 ### Example Plans
 
-#### Example 1: Remux MKV → MP4
+#### Example 1: Remux MKV > MP4
 
 ```text
 Input: video.mkv (H.264 + AAC)
@@ -204,8 +204,8 @@ Preset: video-to-mp4
 Quality: Fast
 
 Plan:
-  Video: H.264 → Copy (compatible)
-  Audio: AAC → Copy (compatible)
+  Video: H.264 > Copy (compatible)
+  Audio: AAC > Copy (compatible)
   Estimated Speed: Fast (remux)
 
 FFmpeg Command:
@@ -213,7 +213,7 @@ FFmpeg Command:
 
 ```
 
-#### Example 2: Transcode MKV → MP4
+#### Example 2: Transcode MKV > MP4
 
 ```text
 Input: video.mkv (VP9 + Opus)
@@ -221,8 +221,8 @@ Preset: video-to-mp4
 Quality: Balanced
 
 Plan:
-  Video: VP9 → Transcode to H.264 (incompatible)
-  Audio: Opus → Transcode to AAC (incompatible)
+  Video: VP9 > Transcode to H.264 (incompatible)
+  Audio: Opus > Transcode to AAC (incompatible)
   Estimated Speed: Moderate (transcode)
 
 FFmpeg Command:
@@ -241,8 +241,8 @@ Preset: video-to-mkv
 Quality: High
 
 Plan:
-  Video: ProRes → Transcode to H.265 (user wants compression)
-  Audio: PCM → Transcode to FLAC (lossless compression)
+  Video: ProRes > Transcode to H.265 (user wants compression)
+  Audio: PCM > Transcode to FLAC (lossless compression)
   Estimated Speed: Slow (high quality encode)
 
 FFmpeg Command:

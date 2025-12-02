@@ -51,7 +51,7 @@ impl OutputManager {
             Err(err) if err.kind() == ErrorKind::PermissionDenied => Err(AppError::new(
                 "job_output_permission",
                 format!(
-                    "Unable to write output file at {}: {err}. Select a different output directory in Preferences or grant Honeymelon Full Disk Access (System Settings → Privacy & Security → Full Disk Access).",
+                    "Unable to write output file at {}: {err}. Select a different output directory in Preferences or grant Honeymelon Full Disk Access (System Settings > Privacy & Security > Full Disk Access).",
                     output.display()
                 ),
             )),

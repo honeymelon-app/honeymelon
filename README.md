@@ -87,7 +87,7 @@ Honeymelon is a native macOS desktop application that provides an intelligent in
 ### Intelligent Conversion Engine
 
 - **Remux-first strategy**: Automatically detects codec compatibility and uses lossless stream copying when possible
-- **Smart planning**: Three-phase pipeline (Probe → Plan → Execute) ensures optimal conversion strategy
+- **Smart planning**: Three-phase pipeline (Probe > Plan > Execute) ensures optimal conversion strategy
 - **Container-aware**: Validates codec compatibility with target containers (MP4, MKV, WebM, MOV, AVI, FLV, TS, OGV, MPEG)
 - **Quality tiers**: Fast (remux-priority), Balanced (quality/size), High (maximum quality)
 
@@ -196,9 +196,9 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 
 **Decision Matrix**:
 
-- **Full Remux**: All streams copied (`remuxOnly = true`) → fastest, lossless
+- **Full Remux**: All streams copied (`remuxOnly = true`) > fastest, lossless
 - **Partial Transcode**: Some streams copied, others re-encoded
-- **Full Transcode**: All streams require encoding → applies tier-specific settings
+- **Full Transcode**: All streams require encoding > applies tier-specific settings
 
 **Output**: `PlannerDecision` with complete FFmpeg arguments array, remux flag, human-readable notes, warnings
 
@@ -216,9 +216,9 @@ Honeymelon uses a three-stage conversion pipeline that intelligently decides bet
 
 **Event System**:
 
-- `ffmpeg://progress` → Real-time metrics (processed seconds, FPS, encoding speed)
-- `ffmpeg://stderr` → Raw FFmpeg output for debugging
-- `ffmpeg://completion` → Final status with success/failure/cancellation flag
+- `ffmpeg://progress` > Real-time metrics (processed seconds, FPS, encoding speed)
+- `ffmpeg://stderr` > Raw FFmpeg output for debugging
+- `ffmpeg://completion` > Final status with success/failure/cancellation flag
 
 **Circular Log Buffer**: Last 500 lines retained per job, prevents unbounded memory growth
 
@@ -331,7 +331,7 @@ src-tauri/
 
 ### Configuration
 
-**Access**: `Cmd+,` or menu: Honeymelon → Preferences
+**Access**: `Cmd+,` or menu: Honeymelon > Preferences
 
 **Settings:**
 
@@ -417,7 +417,7 @@ src-tauri/
 ### Continuous Integration
 
 - `ci.yml` installs FFmpeg via `npm run download-ffmpeg`, runs ESLint/Clippy, enforces Markdown lint + format checks, executes `npm run type-check`, `npm run test:unit`, `npm run build`, and finishes with `cargo test`
-- `release.yml` mirrors those gates (lint → type-check → unit tests → coverage → build) before packaging artifacts, preventing regressions from skipping CI
+- `release.yml` mirrors those gates (lint > type-check > unit tests > coverage > build) before packaging artifacts, preventing regressions from skipping CI
 - Both workflows cache npm/cargo artifacts for speed and fail fast when Vitest coverage or Markdown formatting drifts from the expected state
 
 ### Release Process
@@ -539,7 +539,7 @@ For licensing inquiries, contact: <tjthavarshan@gmail.com>
 | **Choppy HEVC playback**         | Use H.264 preset for broader compatibility. Reduce quality tier from High to Balanced.                                                                    |
 | **Large GIF files**              | Keep clips <10s. Resolution auto-limited to 640px width. Consider WebM for better compression.                                                            |
 | **FFmpeg not found**             | Install: `brew install ffmpeg`, or specify custom path in Preferences, or bundle with app.                                                                |
-| **Permission denied**            | Grant Full Disk Access: System Settings → Privacy & Security → Full Disk Access → Add Honeymelon.app                                                      |
+| **Permission denied**            | Grant Full Disk Access: System Settings > Privacy & Security > Full Disk Access > Add Honeymelon.app                                                      |
 | **Slow AV1/ProRes encoding**     | Expected: AV1 (0.05-0.5x realtime), ProRes (0.5-2x). Exclusive mode prevents concurrent slow jobs.                                                        |
 
 ### Performance Tips
@@ -549,7 +549,7 @@ For licensing inquiries, contact: <tjthavarshan@gmail.com>
 - Use Fast tier (remux-priority)
 - Match source/target codecs (enables stream copy)
 - Increase concurrent jobs if CPU/RAM available
-- Use MKV (accepts any codec → more remux opportunities)
+- Use MKV (accepts any codec > more remux opportunities)
 
 **Memory**:
 

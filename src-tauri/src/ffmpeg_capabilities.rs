@@ -245,7 +245,7 @@ fn run_ffmpeg(app: &AppHandle, args: &[&str]) -> Result<String, AppError> {
 /// and ensure consistent path resolution across the application.
 ///
 /// # Returns
-/// A vector of candidate paths in priority order (env var → dev bundle → app bundle → PATH)
+/// A vector of candidate paths in priority order (env var > dev bundle > app bundle > PATH)
 pub fn candidate_ffmpeg_paths(app: &AppHandle) -> Vec<OsString> {
     crate::binary_resolver::resolve_ffmpeg_paths(app)
 }

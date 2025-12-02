@@ -35,6 +35,7 @@ pub struct ExpectedOutput {
     pub min_size_bytes: u64,
 }
 
+#[allow(dead_code)]
 impl ExpectedOutput {
     /// Creates expectations for a video file.
     pub fn video_with_audio() -> Self {
@@ -75,6 +76,7 @@ impl ExpectedOutput {
 
 /// Result of output validation.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ValidationResult {
     /// Whether validation passed
     pub valid: bool,
