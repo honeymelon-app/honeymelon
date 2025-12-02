@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3] - 2025-12-02
+
+### Fixed
+
+- **CRITICAL**: Fixed output file validation checking wrong path (directory instead of temp file)
+  - Conversions were succeeding but reporting "something went wrong"
+  - Output files were left as `.tmp` files instead of being renamed to final destination
+  - Root cause: `validate_output()` was called with `final_path.parent()` instead of `temp_path`
+
 ## [0.0.2] - 2025-12-02
 
 ### Added
