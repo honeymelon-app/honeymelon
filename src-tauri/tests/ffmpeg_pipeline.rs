@@ -274,6 +274,7 @@ fn execute_conversion(input_path: &Path, output_path: &Path, transcode: bool) ->
 
 /// Result of a conversion attempt
 #[derive(Debug)]
+#[allow(dead_code)]
 struct ConversionResult {
     success: bool,
     exit_code: Option<i32>,
@@ -285,6 +286,7 @@ struct ConversionResult {
 
 /// Error categories matching those in ffmpeg_errors.rs
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[allow(dead_code)]
 enum ErrorCategory {
     InputProblem,
     UnsupportedCombination,
