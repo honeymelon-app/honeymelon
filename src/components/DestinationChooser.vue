@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { invoke } from '@tauri-apps/api/core';
-import { Folder, FolderOpen } from 'lucide-vue-next';
+import { FolderOpenDot, FolderOpen } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { ref, computed, type HTMLAttributes } from 'vue';
 
@@ -75,7 +75,7 @@ function openDialog() {
             @click="openDialog"
             data-test="destination-trigger"
           >
-            <Folder class="size-4" :class="{ 'text-primary': outputDirectory }" />
+            <FolderOpenDot class="size-4" :class="{ 'text-primary': outputDirectory }" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>

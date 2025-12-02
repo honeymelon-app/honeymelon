@@ -42,6 +42,12 @@ Convert video files to different container formats:
 | `video-to-mov`  | MOV    | H.264       | AAC         | Apple ecosystem         |
 | `video-to-mkv`  | MKV    | H.265       | AAC         | High efficiency         |
 | `video-to-webm` | WebM   | VP9         | Opus        | Web streaming           |
+| `video-to-avi`  | AVI    | MPEG-4      | MP3         | Legacy compatibility    |
+| `video-to-flv`  | FLV    | H.264       | AAC         | Flash video             |
+| `video-to-m4v`  | M4V    | H.264       | AAC         | Apple/iTunes            |
+| `video-to-ts`   | TS     | H.264       | AAC         | Broadcast streams       |
+| `video-to-ogv`  | OGV    | Theora      | Vorbis      | Open source video       |
+| `video-to-mpeg` | MPEG   | MPEG-2      | MP2         | DVD/Broadcast           |
 | `video-to-gif`  | GIF    | GIF         | None        | Animations, memes       |
 
 ### Audio Presets
@@ -54,6 +60,22 @@ Extract or convert audio streams:
 | `audio-to-mp3`  | MP3    | MP3         | Legacy support          |
 | `audio-to-flac` | FLAC   | FLAC        | Lossless archival       |
 | `audio-to-wav`  | WAV    | PCM         | Uncompressed audio      |
+| `audio-to-ogg`  | OGG    | Vorbis      | Open source audio       |
+| `audio-to-aac`  | AAC    | AAC         | Raw AAC                 |
+| `audio-to-aiff` | AIFF   | PCM         | Apple uncompressed      |
+| `audio-to-opus` | Opus   | Opus        | Efficient web audio     |
+
+### Image Presets
+
+Extract frames or convert images:
+
+| Preset          | Target | Codec | Use Case              |
+| --------------- | ------ | ----- | --------------------- |
+| `image-to-png`  | PNG    | PNG   | Lossless screenshots  |
+| `image-to-jpg`  | JPG    | JPEG  | Universal photos      |
+| `image-to-webp` | WebP   | WebP  | Modern web images     |
+| `image-to-bmp`  | BMP    | BMP   | Legacy uncompressed   |
+| `image-to-tiff` | TIFF   | TIFF  | Professional archival |
 
 ## Quality Tiers
 
@@ -240,6 +262,42 @@ MKV is the most flexible container and rarely requires transcoding.
 - Audio: AAC, PCM
 
 Similar to MP4 but with better support for professional codecs like ProRes.
+
+### AVI Container
+
+**Compatible Codecs**:
+
+- Video: H.264, MPEG-4, Theora
+- Audio: MP3, PCM, AC3
+
+Legacy container with broad video support.
+
+### FLV Container
+
+**Compatible Codecs**:
+
+- Video: H.264, FLV1
+- Audio: AAC, MP3
+
+Flash video format, primarily for legacy systems.
+
+### TS Container
+
+**Compatible Codecs**:
+
+- Video: H.264, H.265, MPEG-2
+- Audio: AAC, MP3, AC3
+
+Transport stream for broadcast and streaming.
+
+### OGV Container
+
+**Compatible Codecs**:
+
+- Video: Theora, VP8
+- Audio: Vorbis, Opus
+
+Open source video container.
 
 ## Hardware Acceleration
 

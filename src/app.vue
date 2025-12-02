@@ -71,8 +71,6 @@ const {
   presetsReady,
   activeJobs,
   completedJobs,
-  hasActiveJobs,
-  hasQueuedJobs,
   presetOptions,
   isAboutOpen,
   handleBrowse,
@@ -173,6 +171,9 @@ const hasVideoCompletedJobs = computed(() => videoCompletedJobs.value.length > 0
 const hasNoVideoJobs = computed(
   () => videoActiveJobs.value.length === 0 && videoCompletedJobs.value.length === 0,
 );
+const hasVideoQueuedJobs = computed(() =>
+  videoActiveJobs.value.some((job) => job.state.status === 'queued'),
+);
 
 /**
  * Computed properties for audio jobs.
@@ -186,6 +187,9 @@ const hasAudioCompletedJobs = computed(() => audioCompletedJobs.value.length > 0
 const hasNoAudioJobs = computed(
   () => audioActiveJobs.value.length === 0 && audioCompletedJobs.value.length === 0,
 );
+const hasAudioQueuedJobs = computed(() =>
+  audioActiveJobs.value.some((job) => job.state.status === 'queued'),
+);
 
 /**
  * Computed properties for image jobs.
@@ -198,6 +202,9 @@ const hasImageActiveJobs = computed(() => imageActiveJobs.value.length > 0);
 const hasImageCompletedJobs = computed(() => imageCompletedJobs.value.length > 0);
 const hasNoImageJobs = computed(
   () => imageActiveJobs.value.length === 0 && imageCompletedJobs.value.length === 0,
+);
+const hasImageQueuedJobs = computed(() =>
+  imageActiveJobs.value.some((job) => job.state.status === 'queued'),
 );
 
 /**
@@ -255,14 +262,7 @@ const handleImageBrowse = () => handleBrowse('image');
     </div>
 
     <!-- Main Application Window -->
-    <Window
-      v-else
-      :show-footer="hasActiveJobs"
-      :active-job-count="activeJobs.length"
-      :can-start-all="hasQueuedJobs"
-      @cancel-all="cancelAll"
-      @start-all="startAll"
-    >
+    <Window v-else>
       <!-- Container with relative positioning for absolute controls -->
       <div class="relative flex flex-col flex-1">
         <!-- Top-right controls for global settings -->
@@ -325,11 +325,14 @@ const handleImageBrowse = () => handleBrowse('image');
                   :has-active-jobs="hasVideoActiveJobs"
                   :has-completed-jobs="hasVideoCompletedJobs"
                   :has-no-jobs="hasNoVideoJobs"
+                  :has-queued-jobs="hasVideoQueuedJobs"
                   :preset-options="presetOptions"
                   :on-cancel-job="handleCancelJob"
                   :on-update-preset="handleUpdatePreset"
                   :on-start-job="handleStartJob"
                   :on-clear-completed="clearCompleted"
+                  :on-cancel-all="cancelAll"
+                  :on-start-all="startAll"
                 />
               </TabsContent>
 
@@ -354,11 +357,14 @@ const handleImageBrowse = () => handleBrowse('image');
                   :has-active-jobs="hasAudioActiveJobs"
                   :has-completed-jobs="hasAudioCompletedJobs"
                   :has-no-jobs="hasNoAudioJobs"
+                  :has-queued-jobs="hasAudioQueuedJobs"
                   :preset-options="presetOptions"
                   :on-cancel-job="handleCancelJob"
                   :on-update-preset="handleUpdatePreset"
                   :on-start-job="handleStartJob"
                   :on-clear-completed="clearCompleted"
+                  :on-cancel-all="cancelAll"
+                  :on-start-all="startAll"
                 />
               </TabsContent>
 
@@ -383,11 +389,14 @@ const handleImageBrowse = () => handleBrowse('image');
                   :has-active-jobs="hasImageActiveJobs"
                   :has-completed-jobs="hasImageCompletedJobs"
                   :has-no-jobs="hasNoImageJobs"
+                  :has-queued-jobs="hasImageQueuedJobs"
                   :preset-options="presetOptions"
                   :on-cancel-job="handleCancelJob"
                   :on-update-preset="handleUpdatePreset"
                   :on-start-job="handleStartJob"
                   :on-clear-completed="clearCompleted"
+                  :on-cancel-all="cancelAll"
+                  :on-start-all="startAll"
                 />
               </TabsContent>
             </div>

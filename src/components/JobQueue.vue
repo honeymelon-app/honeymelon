@@ -60,6 +60,8 @@ interface JobQueueProps {
   hasCompletedJobs: boolean;
   /** Whether there are no jobs at all */
   hasNoJobs: boolean;
+  /** Whether there are queued jobs ready to start */
+  hasQueuedJobs: boolean;
   /** Available preset options for job configuration */
   presetOptions: Preset[];
   /** Callback for canceling a specific job */
@@ -73,6 +75,10 @@ interface JobQueueProps {
   onStartJob?: (jobId: string) => void;
   /** Callback for clearing all completed jobs */
   onClearCompleted?: () => void;
+  /** Callback for canceling all jobs */
+  onCancelAll?: () => void;
+  /** Callback for starting all queued jobs */
+  onStartAll?: () => void;
 }
 
 const props = defineProps<JobQueueProps>();
@@ -96,10 +102,13 @@ const allJobs = computed(() => [...props.activeJobs, ...props.completedJobs]);
     variant="unified"
     :available-presets="props.presetOptions"
     :show-clear-button="props.hasCompletedJobs"
+    :can-start-all="props.hasQueuedJobs"
     @cancel="props.onCancelJob"
     @update-preset="props.onUpdatePreset"
     @start="props.onStartJob"
     @clear-completed="props.onClearCompleted"
+    @cancel-all="props.onCancelAll"
+    @start-all="props.onStartAll"
   />
 
   <!-- Empty state message when no jobs are present -->

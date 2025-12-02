@@ -15,10 +15,10 @@
  * - Remux-only presets copy streams without re-encoding for faster processing
  * - Subtitle handling varies by format (keep, convert, burn, or drop)
  *
- * Supported formats:
- * - Video: MP4, MOV, MKV, WebM, GIF
- * - Audio: M4A, MP3, FLAC, WAV
- * - Image: PNG, JPEG, WebP
+ * Supported formats (ported from Comet + original Honeymelon):
+ * - Video: MP4, MOV, MKV, WebM, GIF, AVI, FLV, M4V, TS, OGV, MPEG
+ * - Audio: M4A, MP3, FLAC, WAV, OGG, AAC, AIFF, Opus
+ * - Image: PNG, JPEG, WebP, BMP, TIFF
  */
 
 import { AUDIO_CONTAINERS, IMAGE_CONTAINERS, VIDEO_CONTAINERS } from './media-formats';
@@ -130,6 +130,60 @@ const VIDEO_TARGET_PROFILES: Record<(typeof VIDEO_CONTAINERS)[number], VideoTarg
     subtitleNotes: 'GIF output drops audio and subtitle streams.',
     supportedSources: VIDEO_CONTAINERS.filter((c) => c !== 'gif'),
   },
+  avi: {
+    label: 'AVI',
+    codecLabel: 'MPEG-4 + MP3',
+    videoCodec: 'mpeg4',
+    audioCodec: 'mp3',
+    subtitleMode: 'drop',
+    subtitleNotes: 'AVI has limited subtitle support; burn-in recommended.',
+    supportedSources: VIDEO_CONTAINERS.filter((c) => c !== 'avi'),
+  },
+  flv: {
+    label: 'FLV',
+    codecLabel: 'H.264 + AAC',
+    videoCodec: 'h264',
+    audioCodec: 'aac',
+    subtitleMode: 'drop',
+    subtitleNotes: 'FLV does not support embedded subtitles.',
+    supportedSources: VIDEO_CONTAINERS.filter((c) => c !== 'flv'),
+  },
+  m4v: {
+    label: 'M4V',
+    codecLabel: 'H.264 + AAC',
+    videoCodec: 'h264',
+    audioCodec: 'aac',
+    subtitleMode: 'convert',
+    subtitleNotes: 'Text subtitles convert to mov_text (Apple compatible).',
+    supportedSources: VIDEO_CONTAINERS.filter((c) => c !== 'm4v'),
+  },
+  ts: {
+    label: 'TS',
+    codecLabel: 'H.264 + AAC',
+    videoCodec: 'h264',
+    audioCodec: 'aac',
+    subtitleMode: 'drop',
+    subtitleNotes: 'Transport stream; subtitles typically burned in.',
+    supportedSources: VIDEO_CONTAINERS.filter((c) => c !== 'ts'),
+  },
+  ogv: {
+    label: 'OGV',
+    codecLabel: 'Theora + Vorbis',
+    videoCodec: 'theora',
+    audioCodec: 'vorbis',
+    subtitleMode: 'drop',
+    subtitleNotes: 'Ogg Video has limited subtitle support.',
+    supportedSources: VIDEO_CONTAINERS.filter((c) => c !== 'ogv'),
+  },
+  mpeg: {
+    label: 'MPEG',
+    codecLabel: 'MPEG-2 + MP2',
+    videoCodec: 'mpeg2video',
+    audioCodec: 'mp2',
+    subtitleMode: 'drop',
+    subtitleNotes: 'Legacy format; subtitles not supported in output.',
+    supportedSources: VIDEO_CONTAINERS.filter((c) => c !== 'mpeg'),
+  },
 };
 
 /**
@@ -162,6 +216,30 @@ const AUDIO_TARGET_PROFILES: Record<(typeof AUDIO_CONTAINERS)[number], AudioTarg
     audioCodec: 'pcm_s16le',
     supportedSources: AUDIO_CONTAINERS.filter((c) => c !== 'wav'),
   },
+  ogg: {
+    label: 'Ogg',
+    codecLabel: 'Vorbis',
+    audioCodec: 'vorbis',
+    supportedSources: AUDIO_CONTAINERS.filter((c) => c !== 'ogg'),
+  },
+  aac: {
+    label: 'AAC',
+    codecLabel: 'AAC',
+    audioCodec: 'aac',
+    supportedSources: AUDIO_CONTAINERS.filter((c) => c !== 'aac'),
+  },
+  aiff: {
+    label: 'AIFF',
+    codecLabel: 'PCM',
+    audioCodec: 'pcm_s16le',
+    supportedSources: AUDIO_CONTAINERS.filter((c) => c !== 'aiff'),
+  },
+  opus: {
+    label: 'Opus',
+    codecLabel: 'Opus',
+    audioCodec: 'opus',
+    supportedSources: AUDIO_CONTAINERS.filter((c) => c !== 'opus'),
+  },
 };
 
 /**
@@ -187,6 +265,18 @@ const IMAGE_TARGET_PROFILES: Record<(typeof IMAGE_CONTAINERS)[number], ImageTarg
     codecLabel: 'WebP',
     videoCodec: 'webp',
     supportedSources: IMAGE_CONTAINERS.filter((c) => c !== 'webp'),
+  },
+  bmp: {
+    label: 'BMP',
+    codecLabel: 'BMP',
+    videoCodec: 'bmp',
+    supportedSources: IMAGE_CONTAINERS.filter((c) => c !== 'bmp'),
+  },
+  tiff: {
+    label: 'TIFF',
+    codecLabel: 'TIFF',
+    videoCodec: 'tiff',
+    supportedSources: IMAGE_CONTAINERS.filter((c) => c !== 'tiff'),
   },
 };
 

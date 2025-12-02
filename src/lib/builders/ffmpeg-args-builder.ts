@@ -5,15 +5,28 @@ import { resolveVideoProfile } from '../planners/video-planner';
 import type { Container, ProbeSummary, Preset, TierDefaults } from '../types';
 
 const CONTAINER_TO_MUXER: Partial<Record<Container, string>> = {
+  // Video muxers
   mp4: 'mp4',
   mov: 'mp4',
-  m4a: 'mp4',
+  m4v: 'mp4',
   mkv: 'matroska',
   webm: 'webm',
   gif: 'gif',
+  avi: 'avi',
+  flv: 'flv',
+  ts: 'mpegts',
+  ogv: 'ogg',
+  mpeg: 'mpeg',
+  // Audio muxers
+  m4a: 'mp4',
   mp3: 'mp3',
   flac: 'flac',
   wav: 'wav',
+  ogg: 'ogg',
+  aac: 'adts',
+  aiff: 'aiff',
+  opus: 'ogg', // Opus typically uses Ogg container
+  // Image muxers (image2 handled specially in video planner)
 };
 
 function muxerForContainer(container: Container): string | undefined {

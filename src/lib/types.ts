@@ -14,20 +14,39 @@
  *
  * These are the file formats that Honeymelon can read from and write to.
  * Each container type supports different codecs and features.
+ *
+ * Video containers: mp4, mov, mkv, webm, gif, avi, flv, m4v, ts, ogv, mpeg
+ * Audio containers: m4a, mp3, flac, wav, ogg, aac, aiff, opus
+ * Image containers: png, jpg, webp, bmp, tiff
  */
 export type Container =
+  // Video containers
   | 'mp4'
-  | 'webm'
   | 'mov'
   | 'mkv'
+  | 'webm'
   | 'gif'
+  | 'avi'
+  | 'flv'
+  | 'm4v'
+  | 'ts'
+  | 'ogv'
+  | 'mpeg'
+  // Audio containers
   | 'm4a'
   | 'mp3'
   | 'flac'
   | 'wav'
+  | 'ogg'
+  | 'aac'
+  | 'aiff'
+  | 'opus'
+  // Image containers
   | 'png'
   | 'jpg'
-  | 'webp';
+  | 'webp'
+  | 'bmp'
+  | 'tiff';
 
 /**
  * Media content types supported by the application.
@@ -46,6 +65,7 @@ export type VCodec =
   | 'copy'
   | 'h264'
   | 'hevc'
+  | 'vp8'
   | 'vp9'
   | 'av1'
   | 'prores'
@@ -53,6 +73,12 @@ export type VCodec =
   | 'png'
   | 'mjpeg'
   | 'webp'
+  | 'bmp'
+  | 'tiff'
+  | 'mpeg4'
+  | 'flv1'
+  | 'mpeg2video'
+  | 'theora'
   | 'none';
 
 /**
@@ -70,6 +96,9 @@ export type ACodec =
   | 'vorbis'
   | 'flac'
   | 'pcm_s16le'
+  | 'pcm_s24le'
+  | 'mp2'
+  | 'ac3'
   | 'none';
 
 /**

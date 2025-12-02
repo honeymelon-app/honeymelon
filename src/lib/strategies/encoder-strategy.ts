@@ -46,6 +46,7 @@ export class HardwareFirstVideoStrategy implements VideoEncoderSelectionStrategy
     none: null,
     h264: ['h264_videotoolbox', 'libx264'],
     hevc: ['hevc_videotoolbox', 'libx265'],
+    vp8: ['libvpx'],
     vp9: ['libvpx-vp9'],
     av1: ['libaom-av1', 'libsvtav1'],
     gif: 'gif',
@@ -53,6 +54,12 @@ export class HardwareFirstVideoStrategy implements VideoEncoderSelectionStrategy
     png: 'png',
     mjpeg: 'mjpeg',
     webp: 'libwebp',
+    bmp: 'bmp',
+    tiff: 'tiff',
+    mpeg4: ['mpeg4'],
+    flv1: ['flv'],
+    mpeg2video: ['mpeg2video'],
+    theora: ['libtheora'],
   };
 
   selectEncoder(codec: VCodec, capabilities?: CapabilitySnapshot): string | null {
@@ -93,6 +100,7 @@ export class SoftwareOnlyVideoStrategy implements VideoEncoderSelectionStrategy 
     none: null,
     h264: 'libx264',
     hevc: 'libx265',
+    vp8: 'libvpx',
     vp9: 'libvpx-vp9',
     av1: 'libaom-av1',
     gif: 'gif',
@@ -100,6 +108,12 @@ export class SoftwareOnlyVideoStrategy implements VideoEncoderSelectionStrategy 
     png: 'png',
     mjpeg: 'mjpeg',
     webp: 'libwebp',
+    bmp: 'bmp',
+    tiff: 'tiff',
+    mpeg4: 'mpeg4',
+    flv1: 'flv',
+    mpeg2video: 'mpeg2video',
+    theora: 'libtheora',
   };
 
   selectEncoder(codec: VCodec, _capabilities?: CapabilitySnapshot): string | null {
@@ -123,7 +137,10 @@ export class HardwareFirstAudioStrategy implements AudioEncoderSelectionStrategy
     mp3: ['libmp3lame'],
     flac: ['flac'],
     pcm_s16le: ['pcm_s16le'],
+    pcm_s24le: ['pcm_s24le'],
     alac: ['alac'],
+    mp2: ['mp2', 'libtwolame'],
+    ac3: ['ac3'],
   };
 
   selectEncoder(codec: ACodec, capabilities?: CapabilitySnapshot): string | null {
@@ -164,7 +181,10 @@ export class SoftwareOnlyAudioStrategy implements AudioEncoderSelectionStrategy 
     mp3: 'libmp3lame',
     flac: 'flac',
     pcm_s16le: 'pcm_s16le',
+    pcm_s24le: 'pcm_s24le',
     alac: 'alac',
+    mp2: 'mp2',
+    ac3: 'ac3',
   };
 
   selectEncoder(codec: ACodec, _capabilities?: CapabilitySnapshot): string | null {

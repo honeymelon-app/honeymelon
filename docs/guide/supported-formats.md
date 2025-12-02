@@ -27,7 +27,7 @@ Honeymelon can read virtually any video container that FFmpeg supports:
 
 ### Output Containers
 
-Honeymelon currently provides presets for these output containers:
+Honeymelon provides presets for these output containers:
 
 | Container | Extension | Video Codecs           | Audio Codecs    |
 | --------- | --------- | ---------------------- | --------------- |
@@ -35,6 +35,12 @@ Honeymelon currently provides presets for these output containers:
 | **MOV**   | `.mov`    | H.264, H.265, ProRes   | AAC, PCM        |
 | **MKV**   | `.mkv`    | H.264, H.265, VP9, AV1 | AAC, Opus, FLAC |
 | **WebM**  | `.webm`   | VP8, VP9, AV1          | Opus, Vorbis    |
+| **AVI**   | `.avi`    | H.264, MPEG-4, Theora  | MP3, PCM, AC3   |
+| **FLV**   | `.flv`    | H.264, FLV1            | AAC, MP3        |
+| **M4V**   | `.m4v`    | H.264, H.265           | AAC             |
+| **TS**    | `.ts`     | H.264, H.265, MPEG-2   | AAC, MP3, AC3   |
+| **OGV**   | `.ogv`    | Theora, VP8            | Vorbis, Opus    |
+| **MPEG**  | `.mpeg`   | MPEG-2                 | MP2, AC3        |
 | **GIF**   | `.gif`    | GIF                    | None            |
 
 ## Video Codecs
@@ -65,10 +71,27 @@ Honeymelon can encode to:
 | ---------- | ----------- | --------- | ----------------------- |
 | **H.264**  | Good        | Fast      | Universal compatibility |
 | **H.265**  | Excellent   | Moderate  | 4K, efficient storage   |
+| **VP8**    | Good        | Fast      | Legacy web streaming    |
 | **VP9**    | Excellent   | Slow      | Web streaming           |
 | **AV1**    | Outstanding | Very Slow | Next-gen web            |
 | **ProRes** | Lossless    | Fast      | Professional editing    |
+| **Theora** | Good        | Moderate  | Open source video       |
+| **MPEG-4** | Acceptable  | Fast      | Legacy compatibility    |
+| **FLV1**   | Acceptable  | Fast      | Flash video             |
+| **MPEG-2** | Acceptable  | Fast      | Broadcast/DVD           |
 | **GIF**    | Low         | Fast      | Animations, memes       |
+
+## Image Formats
+
+### Output Containers
+
+| Container | Extension | Codec | Use Case              |
+| --------- | --------- | ----- | --------------------- |
+| **PNG**   | `.png`    | PNG   | Lossless screenshots  |
+| **JPG**   | `.jpg`    | JPEG  | Universal photos      |
+| **WebP**  | `.webp`   | WebP  | Modern web images     |
+| **BMP**   | `.bmp`    | BMP   | Legacy uncompressed   |
+| **TIFF**  | `.tiff`   | TIFF  | Professional archival |
 
 ## Audio Formats
 
@@ -92,6 +115,10 @@ Honeymelon can encode to:
 | **MP3**   | `.mp3`    | MP3         | Lossy, compatible |
 | **FLAC**  | `.flac`   | FLAC        | Lossless          |
 | **WAV**   | `.wav`    | PCM         | Uncompressed      |
+| **OGG**   | `.ogg`    | Vorbis      | Lossy, open       |
+| **AAC**   | `.aac`    | AAC         | Lossy, raw        |
+| **AIFF**  | `.aiff`   | PCM         | Uncompressed      |
+| **Opus**  | `.opus`   | Opus        | Lossy, efficient  |
 
 ## Audio Codecs
 
@@ -117,13 +144,16 @@ Honeymelon can decode:
 
 Honeymelon can encode to:
 
-| Codec    | Type         | Bitrate      | Use Case                |
-| -------- | ------------ | ------------ | ----------------------- |
-| **AAC**  | Lossy        | 128-320 kbps | General purpose         |
-| **MP3**  | Lossy        | 128-320 kbps | Universal compatibility |
-| **Opus** | Lossy        | 64-256 kbps  | Efficient web audio     |
-| **FLAC** | Lossless     | Variable     | Archival                |
-| **PCM**  | Uncompressed | Fixed        | Professional audio      |
+| Codec      | Type         | Bitrate      | Use Case                |
+| ---------- | ------------ | ------------ | ----------------------- |
+| **AAC**    | Lossy        | 128-320 kbps | General purpose         |
+| **MP3**    | Lossy        | 128-320 kbps | Universal compatibility |
+| **Opus**   | Lossy        | 64-256 kbps  | Efficient web audio     |
+| **FLAC**   | Lossless     | Variable     | Archival                |
+| **PCM**    | Uncompressed | Fixed        | Professional audio      |
+| **Vorbis** | Lossy        | 96-320 kbps  | Open source audio       |
+| **MP2**    | Lossy        | 128-384 kbps | Broadcast audio         |
+| **AC3**    | Lossy        | 192-640 kbps | Surround sound          |
 
 ## Codec Compatibility Matrix
 
@@ -175,6 +205,59 @@ Honeymelon can encode to:
 | VP9    | ❌         | Use MKV/WebM       |
 | AAC    | ✅         | Recommended        |
 | PCM    | ✅         | Uncompressed       |
+
+### AVI Container
+
+| Codec  | Compatible | Notes           |
+| ------ | ---------- | --------------- |
+| H.264  | ✅         | Supported       |
+| MPEG-4 | ✅         | Legacy codec    |
+| Theora | ✅         | Open codec      |
+| H.265  | ❌         | Limited support |
+| MP3    | ✅         | Recommended     |
+| PCM    | ✅         | Uncompressed    |
+| AC3    | ✅         | Surround sound  |
+
+### FLV Container
+
+| Codec | Compatible | Notes         |
+| ----- | ---------- | ------------- |
+| H.264 | ✅         | Recommended   |
+| FLV1  | ✅         | Legacy codec  |
+| H.265 | ❌         | Not supported |
+| AAC   | ✅         | Recommended   |
+| MP3   | ✅         | Supported     |
+
+### TS Container (Transport Stream)
+
+| Codec  | Compatible | Notes              |
+| ------ | ---------- | ------------------ |
+| H.264  | ✅         | Common             |
+| H.265  | ✅         | Supported          |
+| MPEG-2 | ✅         | Broadcast standard |
+| VP9    | ❌         | Not supported      |
+| AAC    | ✅         | Supported          |
+| MP3    | ✅         | Supported          |
+| AC3    | ✅         | Broadcast audio    |
+
+### OGV Container
+
+| Codec  | Compatible | Notes         |
+| ------ | ---------- | ------------- |
+| Theora | ✅         | Recommended   |
+| VP8    | ✅         | Supported     |
+| H.264  | ❌         | Not supported |
+| Vorbis | ✅         | Recommended   |
+| Opus   | ✅         | Supported     |
+
+### MPEG Container
+
+| Codec  | Compatible | Notes          |
+| ------ | ---------- | -------------- |
+| MPEG-2 | ✅         | Standard codec |
+| H.264  | ❌         | Not supported  |
+| MP2    | ✅         | Standard audio |
+| AC3    | ✅         | Surround sound |
 
 ## Special Formats
 
@@ -330,6 +413,7 @@ Planned additions:
 - **More ProRes variants**: 422 HQ, 4444
 - **DNxHD/DNxHR**: Avid editing codecs
 - **Image sequences**: PNG, JPEG sequences
+- **SVG**: Vector graphics export
 
 ## Format Recommendations
 
