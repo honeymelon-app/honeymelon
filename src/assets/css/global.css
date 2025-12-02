@@ -64,6 +64,206 @@
   }
 }
 
+/* Custom animation keyframes */
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes bounce-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-2px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Animation utility classes */
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.animate-bounce-soft {
+  animation: bounce-soft 1s ease-in-out infinite;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-slide-up-fade {
+  animation: slide-up-fade 0.3s ease-out forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.animate-pop {
+  animation: pop 0.2s ease-out;
+}
+
+/* Icon hover animations */
+.icon-hover-rotate {
+  transition: transform 0.2s ease;
+}
+
+.icon-hover-rotate:hover {
+  transform: rotate(90deg);
+}
+
+.icon-hover-scale {
+  transition: transform 0.15s ease;
+}
+
+.icon-hover-scale:hover {
+  transform: scale(1.1);
+}
+
+.icon-hover-bounce:hover {
+  animation: bounce-soft 0.4s ease;
+}
+
+/* Button press effect */
+.btn-press:active {
+  transform: scale(0.96);
+}
+
+/* Header icon hover animations */
+@keyframes spin-once {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loop-de-loop {
+  0% {
+    transform: rotateY(0deg);
+  }
+
+  50% {
+    transform: rotateY(180deg);
+  }
+
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes folder-open {
+  0% {
+    transform: rotateX(0deg);
+  }
+
+  50% {
+    transform: rotateX(-20deg) translateY(-2px);
+  }
+
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+.animate-spin-once {
+  animation: spin-once 0.5s ease-in-out;
+}
+
+.animate-loop-de-loop {
+  animation: loop-de-loop 0.6s ease-in-out;
+}
+
+.animate-folder-open {
+  animation: folder-open 0.4s ease-in-out;
+}
+
+/* Group hover animation triggers */
+.group:hover .group-hover\:animate-spin-once {
+  animation: spin-once 0.5s ease-in-out;
+}
+
+.group:hover .group-hover\:animate-loop-de-loop {
+  animation: loop-de-loop 0.6s ease-in-out;
+}
+
+.group:hover .group-hover\:animate-folder-open {
+  animation: folder-open 0.4s ease-in-out;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);

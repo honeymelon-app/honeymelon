@@ -26,10 +26,10 @@ const props = defineProps<{
         <Button
           variant="outline"
           @click.stop
-          class="capitalize cursor-pointer"
+          class="capitalize cursor-pointer group"
           data-test="language-toggle"
         >
-          <Earth class="size-4 mr-2" />
+          <Earth class="size-4 mr-2 transition-transform group-hover:animate-spin-once" />
           {{ currentLocale }}
         </Button>
       </DropdownMenuTrigger>

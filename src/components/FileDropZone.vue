@@ -100,10 +100,12 @@ function handleBrowse() {
     >
       <!-- Upload icon for visual indication -->
       <div
-        class="w-12 h-12 rounded-full bg-muted/80 flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors duration-200"
+        class="w-12 h-12 rounded-full bg-muted/80 flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-all duration-300"
+        :class="{ 'animate-bounce-soft': isDragOver }"
       >
         <Upload
-          class="w-6 h-6 text-muted-foreground group-hover:text-primary/70 transition-colors duration-200"
+          class="w-6 h-6 text-muted-foreground group-hover:text-primary/70 transition-all duration-300 group-hover:scale-110"
+          :class="{ 'text-primary': isDragOver }"
           aria-hidden="true"
         />
       </div>

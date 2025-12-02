@@ -50,11 +50,20 @@ const eta = computed(() => {
 
 <template>
   <div v-if="state.status === 'running'" class="space-y-2">
-    <Progress
-      :model-value="progress"
-      class="h-1.5"
-      :aria-label="`Conversion progress: ${Math.round(progress)}% complete`"
-    />
+    <div class="relative">
+      <Progress
+        :model-value="progress"
+        class="h-1.5"
+        :aria-label="`Conversion progress: ${Math.round(progress)}% complete`"
+      />
+      <!-- Shimmer overlay -->
+      <div
+        class="absolute inset-0 h-1.5 rounded-full overflow-hidden pointer-events-none"
+        style="mask-image: linear-gradient(to right, transparent, black, transparent)"
+      >
+        <div class="h-full w-full animate-shimmer" />
+      </div>
+    </div>
     <div
       class="flex items-center justify-between text-xs text-muted-foreground"
       aria-live="polite"

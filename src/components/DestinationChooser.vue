@@ -71,11 +71,14 @@ function openDialog() {
           <Button
             variant="outline"
             size="icon"
-            class="cursor-pointer"
+            class="cursor-pointer group"
             @click="openDialog"
             data-test="destination-trigger"
           >
-            <FolderOpenDot class="size-4" :class="{ 'text-primary': outputDirectory }" />
+            <FolderOpenDot
+              class="size-4 transition-transform group-hover:animate-folder-open"
+              :class="{ 'text-primary': outputDirectory }"
+            />
           </Button>
         </TooltipTrigger>
         <TooltipContent>

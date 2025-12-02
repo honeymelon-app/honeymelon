@@ -88,11 +88,11 @@ function handleStartAll() {
               <Button
                 variant="ghost"
                 size="icon"
-                class="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-background"
+                class="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-background btn-press"
                 @click="handleClearCompleted"
                 data-test="clear-completed-button"
               >
-                <Trash2 class="h-3.5 w-3.5" />
+                <Trash2 class="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -106,11 +106,11 @@ function handleStartAll() {
               <Button
                 variant="ghost"
                 size="icon"
-                class="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-background"
+                class="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-background btn-press"
                 @click="handleCancelAll"
                 data-test="cancel-all-button"
               >
-                <X class="h-3.5 w-3.5" />
+                <X class="h-3.5 w-3.5 transition-transform duration-200 hover:rotate-90" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -125,12 +125,14 @@ function handleStartAll() {
               <Button
                 variant="default"
                 size="sm"
-                class="h-7 cursor-pointer shadow-sm text-xs px-3"
+                class="h-7 cursor-pointer shadow-sm text-xs px-3 btn-press group/convert"
                 :disabled="!canStartAll"
                 @click="handleStartAll"
                 data-test="start-all-button"
               >
-                <Play class="mr-1 h-3 w-3" />
+                <Play
+                  class="mr-1 h-3 w-3 transition-transform duration-200 group-hover/convert:scale-110"
+                />
                 Convert All
               </Button>
             </TooltipTrigger>

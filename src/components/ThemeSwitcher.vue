@@ -39,13 +39,22 @@ onMounted(() => {
           <Button
             variant="outline"
             size="icon"
-            class="cursor-pointer"
+            class="cursor-pointer group"
             @click="toggleMode"
             data-test="theme-toggle"
           >
-            <MoonStar v-if="mode === 'light'" class="size-4" />
-            <Sun v-if="mode === 'dark'" class="size-4" />
-            <SunMoon v-if="mode === 'system'" class="size-4" />
+            <MoonStar
+              v-if="mode === 'light'"
+              class="size-4 transition-transform group-hover:animate-loop-de-loop"
+            />
+            <Sun
+              v-if="mode === 'dark'"
+              class="size-4 transition-transform group-hover:animate-loop-de-loop"
+            />
+            <SunMoon
+              v-if="mode === 'system'"
+              class="size-4 transition-transform group-hover:animate-loop-de-loop"
+            />
           </Button>
         </TooltipTrigger>
         <TooltipContent>

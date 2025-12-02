@@ -17,6 +17,7 @@ interface StatusInfo {
   color: string;
   bgColor: string;
   spin?: boolean;
+  pulse?: boolean;
 }
 
 const statusInfo = computed<StatusInfo>(() => {
@@ -60,6 +61,7 @@ const statusInfo = computed<StatusInfo>(() => {
         icon: CheckCircle2,
         color: 'text-green-500',
         bgColor: 'bg-green-500/10',
+        pulse: true,
       };
     case 'failed':
       return {
@@ -89,13 +91,18 @@ const statusInfo = computed<StatusInfo>(() => {
 <template>
   <div
     :class="[
-      'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+      'flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-300',
       statusInfo.bgColor,
+      statusInfo.pulse && 'animate-pulse-soft',
     ]"
   >
     <component
       :is="statusInfo.icon"
-      :class="['h-5 w-5', statusInfo.color, statusInfo.spin && 'animate-spin']"
+      :class="[
+        'h-5 w-5 transition-all duration-200',
+        statusInfo.color,
+        statusInfo.spin && 'animate-spin',
+      ]"
     />
   </div>
 </template>

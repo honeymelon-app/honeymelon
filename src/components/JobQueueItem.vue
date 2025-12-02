@@ -166,7 +166,7 @@ async function handleShowInFinder() {
   <ContextMenu>
     <ContextMenuTrigger as-child>
       <div
-        class="group relative rounded-lg border p-4 bg-card transition-all duration-200"
+        class="group relative rounded-lg border p-4 bg-card transition-all duration-200 animate-slide-up-fade"
         :class="{
           'hover:bg-accent/40 hover:border-border/80': state.status === 'queued',
           'opacity-60': state.status === 'cancelled',
@@ -203,12 +203,15 @@ async function handleShowInFinder() {
                       <Button
                         v-if="canStart"
                         size="sm"
-                        class="h-7 px-2.5 text-xs cursor-pointer shadow-sm"
+                        class="h-7 px-2.5 text-xs cursor-pointer shadow-sm btn-press group/btn"
                         aria-label="Start conversion job"
                         @click="handleStart"
                         data-test="job-start-button"
                       >
-                        <Play class="mr-1 h-3 w-3" aria-hidden="true" />
+                        <Play
+                          class="mr-1 h-3 w-3 transition-transform duration-200 group-hover/btn:scale-110"
+                          aria-hidden="true"
+                        />
                         Start
                       </Button>
                     </TooltipTrigger>
@@ -224,12 +227,15 @@ async function handleShowInFinder() {
                         v-if="canCancel"
                         variant="ghost"
                         size="icon"
-                        class="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        class="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-destructive hover:bg-destructive/10 btn-press"
                         aria-label="Cancel job"
                         @click="handleCancel"
                         data-test="job-cancel-button"
                       >
-                        <X class="h-3.5 w-3.5" aria-hidden="true" />
+                        <X
+                          class="h-3.5 w-3.5 transition-transform duration-200 hover:rotate-90"
+                          aria-hidden="true"
+                        />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
