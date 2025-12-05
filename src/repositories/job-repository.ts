@@ -120,14 +120,23 @@ export interface JobRepository {
 export class InMemoryJobRepository implements JobRepository {
   private jobs: Map<JobId, JobRecord>;
   private initPromise: Promise<void> | null = null;
+  private readonly persistEnabled: boolean;
 
-  constructor() {
+  constructor(options: { persist?: boolean; autoLoad?: boolean } = {}) {
+    const isTestEnv = typeof process !== 'undefined' && Boolean(process.env?.VITEST);
+    this.persistEnabled = options.persist ?? !isTestEnv;
     this.jobs = new Map();
-    // Auto-initialize
-    this.init();
+
+    if (options.autoLoad) {
+      void this.init();
+    }
   }
 
   init(): Promise<void> {
+    if (!this.persistEnabled) {
+      return Promise.resolve();
+    }
+
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
@@ -135,13 +144,10 @@ export class InMemoryJobRepository implements JobRepository {
       if (savedJobs && Array.isArray(savedJobs)) {
         this.jobs.clear();
         for (const job of savedJobs) {
-          // Skip invalid records
           if (!job || !job.id || !job.path) {
             continue;
           }
 
-          // Reset running/probing/planning jobs to queued or failed on restart
-          // to avoid stuck states
           if (
             job.state.status === 'running' ||
             job.state.status === 'probing' ||
@@ -166,6 +172,7 @@ export class InMemoryJobRepository implements JobRepository {
   }
 
   private async persist() {
+    if (!this.persistEnabled) return;
     await this.init(); // Ensure loaded before saving
     // Deep clone to strip proxies and ensure plain objects
     const plainJobs = JSON.parse(JSON.stringify(Array.from(this.jobs.values())));
