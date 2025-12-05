@@ -1014,6 +1014,7 @@ mod tests {
         let data = FfprobeOutput {
             format: FfprobeFormat {
                 duration: Some("120.5".to_string()),
+                size: None,
             },
             streams: vec![FfprobeStream {
                 codec_type: Some("video".into()),
@@ -1047,6 +1048,7 @@ mod tests {
         let data = FfprobeOutput {
             format: FfprobeFormat {
                 duration: Some("60.0".to_string()),
+                size: None,
             },
             streams: vec![FfprobeStream {
                 codec_type: Some("audio".into()),
@@ -1070,6 +1072,7 @@ mod tests {
         let data = FfprobeOutput {
             format: FfprobeFormat {
                 duration: Some("180.25".to_string()),
+                size: None,
             },
             streams: vec![
                 FfprobeStream {
@@ -1111,6 +1114,7 @@ mod tests {
         let data = FfprobeOutput {
             format: FfprobeFormat {
                 duration: Some("invalid".to_string()),
+                size: None,
             },
             streams: vec![],
         };
@@ -1122,7 +1126,10 @@ mod tests {
     #[test]
     fn test_summarize_missing_duration() {
         let data = FfprobeOutput {
-            format: FfprobeFormat { duration: None },
+            format: FfprobeFormat {
+                duration: None,
+                size: None,
+            },
             streams: vec![],
         };
 
@@ -1135,6 +1142,7 @@ mod tests {
         let data = FfprobeOutput {
             format: FfprobeFormat {
                 duration: Some("10.0".to_string()),
+                size: None,
             },
             streams: vec![FfprobeStream {
                 codec_type: Some("video".into()),
@@ -1154,6 +1162,7 @@ mod tests {
         let data = FfprobeOutput {
             format: FfprobeFormat {
                 duration: Some("10.0".to_string()),
+                size: None,
             },
             streams: vec![FfprobeStream {
                 codec_type: Some("video".into()),
@@ -1177,6 +1186,7 @@ mod tests {
         let data = FfprobeOutput {
             format: FfprobeFormat {
                 duration: Some("10.0".to_string()),
+                size: None,
             },
             streams: vec![FfprobeStream {
                 codec_type: Some("video".into()),
