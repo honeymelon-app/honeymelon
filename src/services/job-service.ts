@@ -23,6 +23,11 @@ export class JobService {
     this.jobsMap = ref(new Map(repository.getInternalMap())) as Ref<Map<JobId, JobRecord>>;
   }
 
+  async init() {
+    await this.repository.init();
+    this.jobsMap.value = new Map(this.repository.getInternalMap());
+  }
+
   get reactiveMap(): Ref<Map<JobId, JobRecord>> {
     return this.jobsMap;
   }

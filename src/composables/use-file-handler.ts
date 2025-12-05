@@ -3,6 +3,7 @@ import { type Ref } from 'vue';
 
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
 import type { Preset } from '@/lib/types';
+import { ProbeService } from '@/services/probe-service';
 import { useJobsStore } from '@/stores/jobs';
 
 interface UseFileHandlerOptions {
@@ -14,6 +15,7 @@ interface UseFileHandlerOptions {
 export function useFileHandler(options: UseFileHandlerOptions) {
   const { presetOptions, defaultPresetId, presetsReady } = options;
   const jobsStore = useJobsStore();
+  const probeService = new ProbeService();
 
   function isTauriRuntime(): boolean {
     return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -57,6 +59,20 @@ export function useFileHandler(options: UseFileHandlerOptions) {
     return false;
   }
 
+  async function enrichJobWithMetadata(jobId: string, path: string) {
+    try {
+      const result = await probeService.probe(path);
+      if (result.success && result.summary) {
+        jobsStore.updateJob(jobId, (job) => {
+          job.summary = result.summary;
+          return job;
+        });
+      }
+    } catch (err) {
+      console.warn(`[file-handler] Failed to probe metadata for ${path}`, err);
+    }
+  }
+
   async function addFiles(fileList: FileList) {
     try {
       if (!(await ensurePresetsReady())) return;
@@ -83,6 +99,8 @@ export function useFileHandler(options: UseFileHandlerOptions) {
         const jobId = jobsStore.enqueue(path, presetId);
         if (jobId) {
           jobIds.push(jobId);
+          // Trigger background probe to show metadata while waiting
+          enrichJobWithMetadata(jobId, path);
         }
       }
 
@@ -123,6 +141,8 @@ export function useFileHandler(options: UseFileHandlerOptions) {
         const jobId = jobsStore.enqueue(path, presetId);
         if (jobId) {
           jobIds.push(jobId);
+          // Trigger background probe to show metadata while waiting
+          enrichJobWithMetadata(jobId, path);
         }
       }
 

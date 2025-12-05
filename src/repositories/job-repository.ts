@@ -6,6 +6,7 @@
  * consumer code.
  */
 
+import { loadState, saveState } from '@/lib/store';
 import type { JobState } from '@/lib/types';
 import type { JobRecord, JobId } from '@/stores/job-types';
 
@@ -22,6 +23,11 @@ export type JobStatus = JobState['status'];
  * affecting application code.
  */
 export interface JobRepository {
+  /**
+   * Initializes the repository (loads data)
+   */
+  init(): Promise<void>;
+
   /**
    * Retrieves a job by its ID
    *
@@ -113,9 +119,57 @@ export interface JobRepository {
  */
 export class InMemoryJobRepository implements JobRepository {
   private jobs: Map<JobId, JobRecord>;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
     this.jobs = new Map();
+    // Auto-initialize
+    this.init();
+  }
+
+  init(): Promise<void> {
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = (async () => {
+      const savedJobs = await loadState<JobRecord[]>('jobs');
+      if (savedJobs && Array.isArray(savedJobs)) {
+        this.jobs.clear();
+        for (const job of savedJobs) {
+          // Skip invalid records
+          if (!job || !job.id || !job.path) {
+            continue;
+          }
+
+          // Reset running/probing/planning jobs to queued or failed on restart
+          // to avoid stuck states
+          if (
+            job.state.status === 'running' ||
+            job.state.status === 'probing' ||
+            job.state.status === 'planning'
+          ) {
+            job.state = {
+              status: 'failed',
+              enqueuedAt: job.state.enqueuedAt,
+              startedAt: job.state.startedAt,
+              finishedAt: Date.now(),
+              error: 'Interrupted by application restart',
+              code: 'interrupted',
+              errorCategory: 'CANCELLED',
+            };
+          }
+          this.jobs.set(job.id, job);
+        }
+      }
+    })();
+
+    return this.initPromise;
+  }
+
+  private async persist() {
+    await this.init(); // Ensure loaded before saving
+    // Deep clone to strip proxies and ensure plain objects
+    const plainJobs = JSON.parse(JSON.stringify(Array.from(this.jobs.values())));
+    saveState('jobs', plainJobs);
   }
 
   getById(id: JobId): JobRecord | undefined {
@@ -132,14 +186,18 @@ export class InMemoryJobRepository implements JobRepository {
 
   save(job: JobRecord): void {
     this.jobs.set(job.id, job);
+    this.persist();
   }
 
   delete(id: JobId): boolean {
-    return this.jobs.delete(id);
+    const result = this.jobs.delete(id);
+    if (result) this.persist();
+    return result;
   }
 
   clear(): void {
     this.jobs.clear();
+    this.persist();
   }
 
   count(): number {
@@ -161,16 +219,28 @@ export class InMemoryJobRepository implements JobRepository {
     return this.getAll().filter((job) => statusSet.has(job.state.status));
   }
 
-  /**
-   * Gets jobs by path (useful for detecting duplicates)
-   *
-   * @param path - File path to search for
-   * @returns Job records with matching path
-   */
   getByPath(path: string): JobRecord[] {
     return this.getAll().filter((job) => job.path === path);
   }
 
+  /**
+   * Updates a job using an updater function
+   *
+   * @param id - Job ID to update
+   * @param updater - Function that receives current job and returns updated job
+   * @returns True if job was updated, false if not found
+   */
+  update(id: JobId, updater: (job: JobRecord) => JobRecord): boolean {
+    const existing = this.jobs.get(id);
+    if (!existing) {
+      return false;
+    }
+
+    const updated = updater(existing);
+    this.jobs.set(id, updated);
+    this.persist();
+    return true;
+  }
   /**
    * Gets jobs by preset ID
    *
@@ -189,24 +259,6 @@ export class InMemoryJobRepository implements JobRepository {
    */
   find(predicate: (job: JobRecord) => boolean): JobRecord[] {
     return this.getAll().filter(predicate);
-  }
-
-  /**
-   * Updates a job using an updater function
-   *
-   * @param id - Job ID to update
-   * @param updater - Function that receives current job and returns updated job
-   * @returns True if job was updated, false if not found
-   */
-  update(id: JobId, updater: (job: JobRecord) => JobRecord): boolean {
-    const existing = this.jobs.get(id);
-    if (!existing) {
-      return false;
-    }
-
-    const updated = updater(existing);
-    this.jobs.set(id, updated);
-    return true;
   }
 
   /**

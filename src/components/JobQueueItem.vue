@@ -9,6 +9,9 @@ import {
   FileX,
   Settings,
   HardDrive,
+  Monitor,
+  Film,
+  Trash2,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -26,7 +29,7 @@ import {
 } from '@/components/ui/context-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
-import type { ErrorCategory, JobState, Preset } from '@/lib/types';
+import type { ErrorCategory, JobState, Preset, ProbeSummary } from '@/lib/types';
 import { formatFileSize, formatDuration, pathBasename, getFileExtension } from '@/lib/utils';
 
 interface JobQueueItemProps {
@@ -37,6 +40,8 @@ interface JobQueueItemProps {
   availablePresets: Preset[];
   fileSize?: number;
   duration?: number;
+  summary?: ProbeSummary;
+  isBatchProcessing?: boolean;
 }
 
 const props = defineProps<JobQueueItemProps>();
@@ -47,8 +52,26 @@ const emit = defineEmits<{
   start: [jobId: string];
 }>();
 
-const fileName = computed(() => pathBasename(props.path));
+const fileName = computed(() => {
+  const name = pathBasename(props.path);
+  return name || 'Unknown File';
+});
 const fileExtension = computed(() => getFileExtension(props.path));
+const displayFileSize = computed(() => props.fileSize ?? props.summary?.size);
+const displayDuration = computed(() => props.duration ?? props.summary?.durationSec);
+const resolution = computed(() => {
+  if (props.summary?.width && props.summary?.height) {
+    return `${props.summary.width}×${props.summary.height}`;
+  }
+  return undefined;
+});
+const codecs = computed(() => {
+  if (!props.summary) return undefined;
+  const parts = [];
+  if (props.summary.vcodec) parts.push(props.summary.vcodec);
+  if (props.summary.acodec) parts.push(props.summary.acodec);
+  return parts.join(' + ');
+});
 
 const sourceContainer = computed(() => inferContainerFromPath(props.path));
 const sourceMediaKind = computed(() =>
@@ -108,14 +131,25 @@ const canChangePreset = computed(() => {
   return props.state.status === 'queued' && presetChoices.value.length > 0;
 });
 
-const canStart = computed(() => props.state.status === 'queued');
+const canStart = computed(() => props.state.status === 'queued' && !props.isBatchProcessing);
 
 const canCancel = computed(() => {
   return (
     props.state.status === 'running' ||
     props.state.status === 'queued' ||
     props.state.status === 'probing' ||
-    props.state.status === 'planning'
+    props.state.status === 'planning' ||
+    props.state.status === 'completed' ||
+    props.state.status === 'failed' ||
+    props.state.status === 'cancelled'
+  );
+});
+
+const isFinished = computed(() => {
+  return (
+    props.state.status === 'completed' ||
+    props.state.status === 'failed' ||
+    props.state.status === 'cancelled'
   );
 });
 
@@ -225,14 +259,12 @@ async function handleShowInFinder() {
   <ContextMenu>
     <ContextMenuTrigger as-child>
       <div
-        class="group relative rounded-lg border p-4 bg-card transition-all duration-200 animate-slide-up-fade"
+        class="group relative flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm transition-all hover:shadow-md"
         :class="{
-          'hover:bg-accent/40 hover:border-border/80': state.status === 'queued',
-          'opacity-60': state.status === 'cancelled',
+          'opacity-75 hover:opacity-100': isFinished,
         }"
-        data-test="job-card"
-        :data-job-id="jobId"
-        :data-state="state.status"
+        data-test="job-queue-item"
+        :data-status="state.status"
       >
         <div class="flex items-start gap-3">
           <!-- Status Icon -->
@@ -246,16 +278,54 @@ async function handleShowInFinder() {
                 <h3 class="truncate font-medium text-foreground text-sm">
                   {{ fileName }}
                 </h3>
-                <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <div class="mt-1 flex flex-wrap items-center gap-2.5 text-xs text-muted-foreground">
                   <Badge variant="outline" class="font-mono text-[10px] px-1.5 py-0 h-5">
                     {{ fileExtension }}
                   </Badge>
-                  <span v-if="fileSize" class="text-[11px]">{{ formatFileSize(fileSize) }}</span>
-                  <span v-if="duration" class="text-[11px]">{{ formatDuration(duration) }}</span>
+                  <span v-if="displayFileSize" class="flex items-center gap-1 text-[11px]">
+                    <HardDrive class="w-3 h-3 opacity-70" />
+                    {{ formatFileSize(displayFileSize) }}
+                  </span>
+                  <span v-if="displayDuration" class="flex items-center gap-1 text-[11px]">
+                    <Clock class="w-3 h-3 opacity-70" />
+                    {{ formatDuration(displayDuration) }}
+                  </span>
+                  <span
+                    v-if="resolution"
+                    class="flex items-center gap-1 text-[11px] border-l pl-2.5 ml-0.5 border-border/50 hidden sm:inline-flex"
+                  >
+                    <Monitor class="w-3 h-3 opacity-70" />
+                    {{ resolution }}
+                  </span>
+                  <span
+                    v-if="codecs"
+                    class="flex items-center gap-1 text-[10px] opacity-75 hidden sm:inline-flex"
+                  >
+                    <Film class="w-3 h-3 opacity-70" />
+                    {{ codecs }}
+                  </span>
                 </div>
               </div>
 
               <div class="flex items-center gap-2 shrink-0">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent btn-press"
+                        aria-label="Show in Finder"
+                        @click.stop="handleShowInFinder"
+                      >
+                        <FolderOpen class="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Show in Finder</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger as-child>
@@ -287,18 +357,19 @@ async function handleShowInFinder() {
                         variant="ghost"
                         size="icon"
                         class="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-destructive hover:bg-destructive/10 btn-press"
-                        aria-label="Cancel job"
+                        :aria-label="isFinished ? 'Remove from list' : 'Cancel job'"
                         @click="handleCancel"
                         data-test="job-cancel-button"
                       >
-                        <X
-                          class="h-3.5 w-3.5 transition-transform duration-200 hover:rotate-90"
+                        <component
+                          :is="isFinished ? Trash2 : X"
+                          class="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110"
                           aria-hidden="true"
                         />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Remove from queue</p>
+                      <p>{{ isFinished ? 'Remove from list' : 'Cancel job' }}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

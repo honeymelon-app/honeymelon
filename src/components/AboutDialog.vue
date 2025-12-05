@@ -123,7 +123,13 @@ async function deactivateLicense() {
           <span class="text-sm font-medium">License</span>
         </div>
         <div class="flex items-center gap-2">
-          <Badge v-if="isActivated" variant="default" class="text-xs"> Activated </Badge>
+          <Badge
+            v-if="isActivated"
+            variant="default"
+            class="text-xs bg-transparent border border-green-700 text-green-700"
+          >
+            Activated
+          </Badge>
           <Badge v-else variant="secondary" class="text-xs"> Not Activated </Badge>
         </div>
       </div>

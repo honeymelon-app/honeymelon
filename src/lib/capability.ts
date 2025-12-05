@@ -13,7 +13,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import { PRESETS } from './presets';
-import type { CapabilitySnapshot, Preset } from './types';
+import type { CapabilitySnapshot, Preset, VCodec, ACodec, Container } from './types';
 
 /**
  * Empty capability snapshot for fallback scenarios.
@@ -135,10 +135,39 @@ export function loadCapabilities(): Promise<CapabilitySnapshot> {
  * @returns true if preset is available, false otherwise
  */
 export function presetIsAvailable(
-  _preset: Preset,
-  _capabilities: CapabilitySnapshot | undefined,
+  preset: Preset,
+  capabilities: CapabilitySnapshot | undefined,
 ): boolean {
-  return true;
+  // In non-Tauri or dev contexts we may not have capabilities; allow presets then.
+  if (!capabilities) return true;
+
+  const { videoEncoders, audioEncoders, formats } = capabilities;
+
+  // If backend did not return formats, do not block presets by format.
+  const formatOk = formats.size === 0 || containerSupported(preset.container, formats);
+  if (!formatOk) {
+    return false;
+  }
+
+  const videoCodec = preset.video?.codec;
+  const audioCodec = preset.audio?.codec;
+
+  const videoUnknown = videoEncoders.size === 0;
+  const audioUnknown = audioEncoders.size === 0;
+
+  const videoOk =
+    videoCodec === 'none' ||
+    videoCodec === 'copy' ||
+    videoUnknown ||
+    hasVideoEncoder(videoEncoders, videoCodec);
+
+  const audioOk =
+    audioCodec === 'none' ||
+    audioCodec === 'copy' ||
+    audioUnknown ||
+    hasAudioEncoder(audioEncoders, audioCodec);
+
+  return videoOk && audioOk;
 }
 
 /**
@@ -153,6 +182,92 @@ export function presetIsAvailable(
  * @param _capabilities - System capabilities (currently unused)
  * @returns Array of available presets
  */
-export function availablePresets(_capabilities: CapabilitySnapshot | undefined): Preset[] {
-  return PRESETS;
+export function availablePresets(capabilities: CapabilitySnapshot | undefined): Preset[] {
+  if (!capabilities) return PRESETS;
+  return PRESETS.filter((preset) => presetIsAvailable(preset, capabilities));
+}
+
+function hasVideoEncoder(encoders: Set<string>, codec: VCodec): boolean {
+  if (encoders.has(codec)) return true;
+
+  const aliases: Record<VCodec, string[]> = {
+    copy: [],
+    none: [],
+    h264: ['libx264', 'h264_videotoolbox', 'h264_nvenc'],
+    hevc: ['libx265', 'hevc_videotoolbox', 'hevc_nvenc'],
+    vp8: ['libvpx'],
+    vp9: ['libvpx-vp9'],
+    av1: ['libaom-av1', 'svtav1'],
+    prores: ['prores', 'prores_ks', 'prores_aw'],
+    gif: ['gif'],
+    png: ['png'],
+    mjpeg: ['mjpeg'],
+    webp: ['libwebp', 'webp'],
+    bmp: ['bmp'],
+    tiff: ['tiff'],
+    mpeg4: ['mpeg4'],
+    flv1: ['flv1'],
+    mpeg2video: ['mpeg2video'],
+    theora: ['libtheora'],
+  } as const;
+
+  return (aliases[codec] ?? []).some((alias) => encoders.has(alias));
+}
+
+function hasAudioEncoder(encoders: Set<string>, codec: ACodec): boolean {
+  if (encoders.has(codec)) return true;
+
+  const aliases: Record<ACodec, string[]> = {
+    copy: [],
+    none: [],
+    aac: ['libfdk_aac'],
+    alac: ['alac'],
+    mp3: ['libmp3lame', 'mp3'],
+    opus: ['libopus', 'opus'],
+    vorbis: ['libvorbis', 'vorbis'],
+    flac: ['flac'],
+    pcm_s16le: ['pcm_s16le'],
+    pcm_s24le: ['pcm_s24le'],
+    mp2: ['mp2'],
+    ac3: ['ac3'],
+  } as const;
+
+  return (aliases[codec] ?? []).some((alias) => encoders.has(alias));
+}
+
+function containerSupported(container: Container, formats: Set<string>): boolean {
+  // formats often use canonical names; include aliases per container
+  if (formats.has(container)) return true;
+
+  const aliases: Record<Container, string[]> = {
+    // video
+    mp4: ['mov', 'mp4'],
+    mov: ['mov'],
+    mkv: ['matroska', 'mkv'],
+    webm: ['webm'],
+    gif: ['gif'],
+    avi: ['avi'],
+    flv: ['flv'],
+    m4v: ['mov', 'mp4', 'm4v'],
+    ts: ['mpegts', 'ts'],
+    ogv: ['ogg'],
+    mpeg: ['mpeg'],
+    // audio
+    m4a: ['ipod', 'm4a', 'mov', 'mp4'],
+    mp3: ['mp3'],
+    flac: ['flac'],
+    wav: ['wav'],
+    ogg: ['ogg'],
+    aac: ['adts', 'aac'],
+    aiff: ['aiff'],
+    opus: ['ogg', 'opus'],
+    // image
+    png: ['image2', 'png'],
+    jpg: ['image2', 'mjpeg', 'jpg', 'jpeg'],
+    webp: ['webp'],
+    bmp: ['image2', 'bmp'],
+    tiff: ['tiff', 'image2'],
+  } as const;
+
+  return (aliases[container] ?? []).some((alias) => formats.has(alias));
 }

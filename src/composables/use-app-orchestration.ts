@@ -45,6 +45,7 @@ import { useCapabilityGate } from '@/composables/use-capability-gate';
 import { useDesktopBridge } from '@/composables/use-desktop-bridge';
 import { useFileHandler } from '@/composables/use-file-handler';
 import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
+import { jobService } from '@/services/job-service';
 import { useJobsStore } from '@/stores/jobs';
 
 type NotificationModule = typeof NotificationPlugin;
@@ -297,7 +298,12 @@ export function useAppOrchestration() {
       return;
     }
 
-    if (job.state.status === 'queued') {
+    if (
+      job.state.status === 'queued' ||
+      job.state.status === 'completed' ||
+      job.state.status === 'failed' ||
+      job.state.status === 'cancelled'
+    ) {
       jobsStore.removeJob(jobId);
       return;
     }
@@ -544,6 +550,7 @@ export function useAppOrchestration() {
 
   const initializeCapabilities = async () => {
     await loadCapabilitySnapshot();
+    await jobService.init();
 
     if (fileHandler.isTauriRuntime()) {
       const { getCurrentWindow } = await import('@tauri-apps/api/window');
@@ -601,6 +608,7 @@ export function useAppOrchestration() {
     hasQueuedJobs,
     presetOptions,
     isAboutOpen,
+    batchAutoStart,
 
     // Handlers
     handleFileInput,

@@ -37,17 +37,17 @@
         "acceptFirstMouse": true,
         "tabbingIdentifier": null,
         "dragDropEnabled": true,
-        "devtools": true
+        "devtools": false
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": true,
       "capabilities": ["default"],
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/**", "$RESOURCE/**"]
+        "scope": ["$RESOURCE/**"]
       }
     }
   },

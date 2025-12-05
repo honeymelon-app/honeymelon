@@ -80,6 +80,7 @@ const {
   startAll,
   cancelAll,
   clearCompleted,
+  batchAutoStart,
 } = app;
 
 /**
@@ -333,6 +334,7 @@ const handleImageBrowse = () => handleBrowse('image');
                   :on-clear-completed="clearCompleted"
                   :on-cancel-all="cancelAll"
                   :on-start-all="startAll"
+                  :is-batch-processing="batchAutoStart"
                 />
               </TabsContent>
 
@@ -365,6 +367,7 @@ const handleImageBrowse = () => handleBrowse('image');
                   :on-clear-completed="clearCompleted"
                   :on-cancel-all="cancelAll"
                   :on-start-all="startAll"
+                  :is-batch-processing="batchAutoStart"
                 />
               </TabsContent>
 
@@ -397,6 +400,7 @@ const handleImageBrowse = () => handleBrowse('image');
                   :on-clear-completed="clearCompleted"
                   :on-cancel-all="cancelAll"
                   :on-start-all="startAll"
+                  :is-batch-processing="batchAutoStart"
                 />
               </TabsContent>
             </div>

@@ -130,6 +130,8 @@ The summary approach provides several benefits:
 pub struct ProbeSummary {
     /** Total duration in seconds (floating point for precision) */
     pub duration_sec: f64,
+    /** File size in bytes (None if not available) */
+    pub size: Option<u64>,
     /** Video width in pixels (None for audio-only files) */
     pub width: Option<u32>,
     /** Video height in pixels (None for audio-only files) */
@@ -181,6 +183,8 @@ minimize parsing overhead and memory usage.
 struct FfprobeFormat {
     /** Total duration as a string (parsed to f64 for calculations) */
     duration: Option<String>,
+    /** File size as a string (parsed to u64) */
+    size: Option<String>,
 }
 
 /** Internal representation of individual `ffprobe` streams.
@@ -687,6 +691,13 @@ fn summarize(data: &FfprobeOutput) -> ProbeSummary {
         .and_then(|value| value.parse::<f64>().ok())
         .unwrap_or_default();
 
+    // Extract file size from container format
+    let size = data
+        .format
+        .size
+        .as_deref()
+        .and_then(|value| value.parse::<u64>().ok());
+
     // Find first video and audio streams for metadata extraction
     let video_stream = data
         .streams
@@ -730,6 +741,7 @@ fn summarize(data: &FfprobeOutput) -> ProbeSummary {
     // Construct summary with normalized and extracted metadata
     ProbeSummary {
         duration_sec,
+        size,
         width: video_stream.and_then(|stream| stream.width),
         height: video_stream.and_then(|stream| stream.height),
         fps,

@@ -118,14 +118,20 @@ fn build_desktop_menu(app: &App<AppRuntime>) -> tauri::Result<tauri::menu::Menu<
         .item(&select_all_item)
         .build()?;
 
+    #[cfg(debug_assertions)]
     let toggle_devtools_item =
         MenuItemBuilder::with_id("toggle_devtools", "Toggle Developer Tools")
             .accelerator("CmdOrCtrl+Alt+I")
             .build(app)?;
 
-    let view_menu = SubmenuBuilder::new(app, "View")
-        .item(&toggle_devtools_item)
-        .build()?;
+    let view_menu = {
+        let mut builder = SubmenuBuilder::new(app, "View");
+        #[cfg(debug_assertions)]
+        {
+            builder = builder.item(&toggle_devtools_item);
+        }
+        builder.build()?
+    };
 
     let minimize_item = MenuItemBuilder::with_id("minimize", "Minimize")
         .accelerator("CmdOrCtrl+M")
@@ -181,11 +187,9 @@ fn register_menu_handlers(app: &App<AppRuntime>) {
                 let _ = window.maximize();
             }
         },
+        #[cfg(debug_assertions)]
         "toggle_devtools" => {
-            #[cfg(debug_assertions)]
-            {
-                eprintln!("DevTools: Right-click and choose 'Inspect Element'.");
-            }
+            eprintln!("DevTools: Right-click and choose 'Inspect Element'.");
         },
         _ => {
             if matches!(

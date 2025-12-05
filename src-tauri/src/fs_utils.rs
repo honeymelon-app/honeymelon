@@ -76,8 +76,19 @@ use crate::error::AppError;
  * individual problematic paths, allowing partial success when possible.
  */
 pub fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError> {
+    const MAX_DEPTH: usize = 6;
+    const MAX_FILES: usize = 500;
+    const ALLOWED_EXTS: &[&str] = &[
+        // Video
+        "mp4", "m4v", "mov", "mkv", "webm", "avi", "mpg", "mpeg", "ts", "m2ts", "mxf", "hevc",
+        "h265", "h264", "flv", "ogv", "wmv", "gif", // Audio
+        "mp3", "aac", "m4a", "flac", "wav", "aiff", "aif", "ogg", "opus", "wma", "alac", "wave",
+        // Images
+        "png", "jpg", "jpeg", "webp",
+    ];
+
     // BFS queue for directory traversal
-    let mut queue: VecDeque<PathBuf> = VecDeque::new();
+    let mut queue: VecDeque<(PathBuf, usize)> = VecDeque::new();
     // Set to track visited paths and prevent duplicates/cycles
     let mut visited: HashSet<PathBuf> = HashSet::new();
     // Collection of discovered files
@@ -88,11 +99,11 @@ pub fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError> {
         if path.is_empty() {
             continue;
         }
-        queue.push_back(PathBuf::from(path));
+        queue.push_back((PathBuf::from(path), 0));
     }
 
     // Process queue using breadth-first search
-    while let Some(current) = queue.pop_front() {
+    while let Some((current, depth)) = queue.pop_front() {
         // Skip if we've already processed this path
         if !visited.insert(current.clone()) {
             continue;
@@ -101,14 +112,24 @@ pub fn expand_media_paths(paths: Vec<String>) -> Result<Vec<String>, AppError> {
         // Check the path metadata to determine if it's a file or directory
         match fs::metadata(&current) {
             Ok(meta) if meta.is_file() => {
-                // It's a file, add it to our results
-                files.push(current);
+                // It's a file, only keep allowed media extensions
+                if let Some(ext) = current.extension().and_then(|e| e.to_str()) {
+                    let lowered = ext.to_ascii_lowercase();
+                    if ALLOWED_EXTS.contains(&lowered.as_str()) {
+                        files.push(current);
+                        if files.len() >= MAX_FILES {
+                            break;
+                        }
+                    }
+                }
             },
             Ok(meta) if meta.is_dir() => {
                 // It's a directory, enqueue all its children for processing
-                if let Ok(entries) = fs::read_dir(&current) {
-                    for entry in entries.flatten() {
-                        queue.push_back(entry.path());
+                if depth < MAX_DEPTH {
+                    if let Ok(entries) = fs::read_dir(&current) {
+                        for entry in entries.flatten() {
+                            queue.push_back((entry.path(), depth + 1));
+                        }
                     }
                 }
             },

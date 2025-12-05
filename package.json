@@ -64,12 +64,14 @@
     "docs:api": "npm run docs:api:ts && npm run docs:api:rust"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "@tailwindcss/vite": "^4.1.16",
     "@tanstack/vue-table": "^8.21.3",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-notification": "^2.3.3",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-store": "^2.4.1",
     "@unovis/ts": "^1.6.1",
     "@unovis/vue": "^1.6.1",
     "@vee-validate/zod": "^4.15.1",

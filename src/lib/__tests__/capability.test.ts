@@ -56,16 +56,24 @@ describe('presetIsAvailable', () => {
     expect(presetIsAvailable(remux, emptyCapabilities)).toBe(true);
   });
 
-  it('returns true even when specific encoders are missing', () => {
+  it('returns true when encoders are present and container supported', () => {
     const capabilities: CapabilitySnapshot = {
       ...emptyCapabilities,
       audioEncoders: new Set(['aac']),
+      videoEncoders: new Set(['h264']),
+      formats: new Set(['mp4']),
     };
     expect(presetIsAvailable(baseVideoPreset, capabilities)).toBe(true);
     expect(presetIsAvailable(baseVideoPreset, emptyCapabilities)).toBe(true);
   });
 
-  it('returns true for audio-only presets regardless of encoders', () => {
+  it('returns true for audio-only presets when encoders/container match', () => {
+    const capabilities: CapabilitySnapshot = {
+      ...emptyCapabilities,
+      audioEncoders: new Set(['mp3']),
+      formats: new Set(['mp3']),
+    };
+    expect(presetIsAvailable(baseAudioPreset, capabilities)).toBe(true);
     expect(presetIsAvailable(baseAudioPreset, emptyCapabilities)).toBe(true);
   });
 });
@@ -86,9 +94,10 @@ describe('availablePresets', () => {
       ...emptyCapabilities,
       videoEncoders: new Set(['h264_videotoolbox']),
       audioEncoders: new Set(['aac']),
+      formats: new Set(['mp4', 'mov', 'mkv', 'mp3', 'm4a', 'wav', 'flac', 'png', 'jpg', 'webp']),
     };
     const presets = availablePresets(capabilities);
-    expect(presets.length).toBe(PRESETS.length);
+    expect(presets.length).toBeGreaterThan(0);
   });
 });
 

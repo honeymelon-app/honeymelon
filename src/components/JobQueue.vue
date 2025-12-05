@@ -17,6 +17,7 @@
  * in one place rather than separating active and completed jobs.
  */
 
+import { Inbox } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 import JobQueueSection from '@/components/JobQueueSection.vue';
@@ -79,6 +80,8 @@ interface JobQueueProps {
   onCancelAll?: () => void;
   /** Callback for starting all queued jobs */
   onStartAll?: () => void;
+  /** Whether batch processing is currently active */
+  isBatchProcessing?: boolean;
 }
 
 const props = defineProps<JobQueueProps>();
@@ -103,6 +106,7 @@ const allJobs = computed(() => [...props.activeJobs, ...props.completedJobs]);
     :available-presets="props.presetOptions"
     :show-clear-button="props.hasCompletedJobs"
     :can-start-all="props.hasQueuedJobs"
+    :is-batch-processing="props.isBatchProcessing"
     @cancel="props.onCancelJob"
     @update-preset="props.onUpdatePreset"
     @start="props.onStartJob"
@@ -114,11 +118,13 @@ const allJobs = computed(() => [...props.activeJobs, ...props.completedJobs]);
   <!-- Empty state message when no jobs are present -->
   <div
     v-if="props.hasNoJobs"
-    class="flex items-center justify-center py-20"
+    class="flex flex-col items-center justify-center py-20 text-muted-foreground/40"
     data-test="job-queue-empty"
   >
-    <div class="text-center">
-      <p class="text-sm text-muted-foreground/70">No files in queue</p>
+    <Inbox class="h-12 w-12 mb-3 opacity-50" stroke-width="1.5" />
+    <div class="text-center space-y-1">
+      <p class="text-sm font-medium text-muted-foreground/60">Queue is empty</p>
+      <p class="text-xs text-muted-foreground/40">Files you add will appear here</p>
     </div>
   </div>
 </template>

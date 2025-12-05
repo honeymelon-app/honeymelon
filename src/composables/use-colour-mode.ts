@@ -1,13 +1,31 @@
 import { ref, computed, watch } from 'vue';
 
+import { loadState, saveState } from '@/lib/store';
+
 export type ColorMode = 'light' | 'dark' | 'system';
 
 /**
  * Colour mode composable to handle the colour mode of the application.
  */
 export function useColourMode() {
-  const storedMode = localStorage.getItem('color-mode') as ColorMode | null;
-  const mode = ref<ColorMode>(storedMode || 'system');
+  const mode = ref<ColorMode>('system');
+
+  const persistMode = (value: ColorMode) => {
+    saveState('color-mode', value);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('color-mode', value);
+    }
+  };
+
+  const loadInitialMode = () => {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem('color-mode') as ColorMode | null;
+      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+        mode.value = stored;
+        return;
+      }
+    }
+  };
 
   const updateHtmlAttributes = (newMode: ColorMode) => {
     const finalMode = newMode === 'system' ? getSystemTheme() : newMode;
@@ -27,10 +45,22 @@ export function useColourMode() {
       mode.value = mode.value === 'light' ? 'dark' : 'light';
     }
     updateHtmlAttributes(mode.value);
-    localStorage.setItem('color-mode', mode.value);
+    persistMode(mode.value);
   };
 
-  const handleColorModeChange = () => {
+  loadInitialMode();
+  updateHtmlAttributes(mode.value);
+
+  const handleColorModeChange = async () => {
+    // Load saved state from Tauri store if present
+    const savedMode = await loadState<ColorMode>('color-mode');
+    if (savedMode) {
+      mode.value = savedMode;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('color-mode', savedMode);
+      }
+    }
+
     if (mode.value === 'system') {
       // Listen for system theme changes
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -45,7 +75,7 @@ export function useColourMode() {
   };
 
   watch(mode, (newMode) => {
-    localStorage.setItem('color-mode', newMode);
+    persistMode(newMode);
     updateHtmlAttributes(newMode);
   });
 

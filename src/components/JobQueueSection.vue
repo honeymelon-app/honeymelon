@@ -5,16 +5,14 @@ import JobQueueItem from '@/components/JobQueueItem.vue';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { JobState, Preset } from '@/lib/types';
+import type { JobState, Preset, ProbeSummary } from '@/lib/types';
 
 interface JobRecord {
   id: string;
   path: string;
   state: JobState;
   presetId: string;
-  summary?: {
-    durationSec?: number;
-  };
+  summary?: ProbeSummary;
 }
 
 interface JobQueueSectionProps {
@@ -25,6 +23,8 @@ interface JobQueueSectionProps {
   showClearButton?: boolean;
   /** Whether the start all button should be enabled */
   canStartAll?: boolean;
+  /** Whether batch processing is currently active */
+  isBatchProcessing?: boolean;
 }
 
 defineProps<JobQueueSectionProps>();
@@ -145,7 +145,7 @@ function handleStartAll() {
     </div>
     <!-- Scrollable job list -->
     <ScrollArea class="h-[465px] overflow-hidden">
-      <div class="space-y-3 h-full">
+      <TransitionGroup name="list" tag="div" class="space-y-3 h-full p-1">
         <JobQueueItem
           v-for="job in jobs"
           :key="job.id"
@@ -155,11 +155,32 @@ function handleStartAll() {
           :preset-id="job.presetId"
           :available-presets="availablePresets"
           :duration="job.summary?.durationSec"
+          :summary="job.summary"
+          :is-batch-processing="isBatchProcessing"
           @cancel="handleCancel"
           @update-preset="handleUpdatePreset"
           @start="handleStart"
         />
-      </div>
+      </TransitionGroup>
     </ScrollArea>
   </section>
 </template>
+
+<style scoped>
+.list-move,
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.list-leave-active {
+  position: absolute;
+  width: 100%;
+}
+</style>

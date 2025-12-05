@@ -217,6 +217,8 @@ export interface Preset {
 export interface ProbeSummary {
   /** Duration of the media in seconds */
   durationSec: number;
+  /** File size in bytes */
+  size?: number;
   /** Video width in pixels (video only) */
   width?: number;
   /** Video height in pixels (video only) */

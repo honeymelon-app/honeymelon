@@ -51,8 +51,8 @@ const statusInfo = computed<StatusInfo>(() => {
       return {
         label: 'Converting',
         icon: Loader2,
-        color: 'text-primary',
-        bgColor: 'bg-primary/10',
+        color: 'text-blue-500',
+        bgColor: 'bg-blue-500/10',
         spin: true,
       };
     case 'completed':
