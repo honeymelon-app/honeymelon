@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Persist user settings and job history via the Tauri store (preferences, color mode, language, jobs), including automatic initialization of saved state on startup
+- Show richer job metadata in the queue (size, duration, resolution, codecs) by probing files in the background as they are enqueued
+- Indicate batch processing and block manual starts while auto-start is running to avoid double-starting queued jobs
+- Constrain recursive media discovery with allowed extensions plus depth and file-count limits to prevent runaway scans
+
+### Changed
+
+- Hardened Tauri security: production devtools disabled, CSP enabled, asset scope narrowed, and devtools menu kept behind debug builds with capability permissions trimmed
+- Refreshed job queue UI with a clearer empty state, inline actions (Finder/open, copy path, cancel/remove), and refined card layout with metadata chips
+- Use locally bundled Inter font via `@fontsource` for consistent typography without external font fetches
+
+### Fixed
+
+- On reopen, interrupted running/probing jobs are restored as failed instead of getting stuck, preventing phantom in-progress entries
+
 ## [0.0.3] - 2025-12-02
 
 ### Fixed
