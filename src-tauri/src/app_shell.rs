@@ -125,7 +125,7 @@ fn build_desktop_menu(app: &App<AppRuntime>) -> tauri::Result<tauri::menu::Menu<
             .build(app)?;
 
     let view_menu = {
-        let mut builder = SubmenuBuilder::new(app, "View");
+        let builder = SubmenuBuilder::new(app, "View");
         #[cfg(debug_assertions)]
         {
             builder = builder.item(&toggle_devtools_item);
