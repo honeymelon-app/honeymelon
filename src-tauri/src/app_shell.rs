@@ -125,12 +125,16 @@ fn build_desktop_menu(app: &App<AppRuntime>) -> tauri::Result<tauri::menu::Menu<
             .build(app)?;
 
     let view_menu = {
-        let builder = SubmenuBuilder::new(app, "View");
         #[cfg(debug_assertions)]
         {
-            builder = builder.item(&toggle_devtools_item);
+            SubmenuBuilder::new(app, "View")
+                .item(&toggle_devtools_item)
+                .build()?
         }
-        builder.build()?
+        #[cfg(not(debug_assertions))]
+        {
+            SubmenuBuilder::new(app, "View").build()?
+        }
     };
 
     let minimize_item = MenuItemBuilder::with_id("minimize", "Minimize")
