@@ -259,7 +259,7 @@ async function handleShowInFinder() {
   <ContextMenu>
     <ContextMenuTrigger as-child>
       <div
-        class="group relative flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm transition-all hover:shadow-md"
+        class="group relative flex flex-col gap-3 rounded-lg border bg-card p-3 transition-all hover:border-border"
         :class="{
           'opacity-75 hover:opacity-100': isFinished,
         }"
