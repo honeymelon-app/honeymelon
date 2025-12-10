@@ -199,7 +199,7 @@ jobs:
           codesign --force -s - src-tauri/bin/ffprobe || true
 
       - name: Sign FFmpeg binaries (Developer ID)
-        if: github.event.release.prerelease == false && env.HAS_DEV_ID == 'true'
+        if: env.HAS_DEV_ID == 'true'
         run: |
           for bin in ffmpeg ffprobe; do
             codesign --sign "${{ secrets.APPLE_SIGNING_IDENTITY }}" \
