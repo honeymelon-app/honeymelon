@@ -22,13 +22,13 @@ export default defineConfig({
 
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: 'Home', link: 'https://honeymelon.com' },
+      { text: 'Home', link: 'https://honeymelon.com', target: '_self' },
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Architecture', link: '/architecture/overview' },
       { text: 'Development', link: '/development/contributing' },
       { text: 'Legal', link: '/legal/license-compliance' },
       {
-        text: 'v0.1.0',
+        text: 'v0.0.4',
         items: [
           { text: 'Changelog', link: '/changelog' },
           { text: 'Roadmap', link: '/roadmap' },
