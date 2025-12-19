@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ref, nextTick } from 'vue';
 
-import { useLanguagePreferences, Locale } from '../use-language-preferences';
+import { useLanguagePreferences } from '../use-language-preferences';
+import { Locale } from '@/lib/locale';
 
 const useI18nMock = vi.fn();
 
@@ -36,18 +37,17 @@ describe('useLanguagePreferences', () => {
     localStorage.clear();
   });
 
-  it('initializes with stored locale without mutating existing i18n state', async () => {
+  it('initializes with stored locale and syncs i18n state', async () => {
     localStorage.setItem('locale', Locale.FR);
     const i18n = { locale: ref(Locale.EN) };
     useI18nMock.mockReturnValue(i18n);
 
     const { currentLocale } = useLanguagePreferences();
 
-    expect(currentLocale.value).toBe(Locale.FR);
-
     await nextTick();
 
-    expect(i18n.locale.value).toBe(Locale.EN);
+    expect(currentLocale.value).toBe(Locale.FR);
+    expect(i18n.locale.value).toBe(Locale.FR);
   });
 
   it('setLocale updates current locale, i18n locale, and storage', () => {
@@ -69,9 +69,8 @@ describe('useLanguagePreferences', () => {
     const { currentLocale } = useLanguagePreferences();
     currentLocale.value = Locale.DE;
 
-    await nextTick();
+    await vi.waitUntil(() => i18n.locale.value === Locale.DE, { timeout: 100 });
 
-    expect(i18n.locale.value).toBe(Locale.DE);
     expect(localStorage.getItem('locale')).toBe(Locale.DE);
   });
 });

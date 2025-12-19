@@ -23,7 +23,6 @@ function normalizeLocale(candidate?: string | null): Locale {
 export function useLanguagePreferences() {
   const { locale } = useI18n();
   const currentLocale = ref<Locale>(DEFAULT_LOCALE);
-  let isBootstrapping = true;
 
   const applyLocale = (next: Locale) => {
     currentLocale.value = next;
@@ -35,14 +34,19 @@ export function useLanguagePreferences() {
   };
 
   const init = async () => {
+    const initialLocale = currentLocale.value;
+
     // LocalStorage takes precedence for responsiveness, but we still persist to store for parity
     const fromLocalStorage =
       typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : null;
     const fromStore = await loadState<string>('locale');
 
     const resolved = normalizeLocale(fromLocalStorage ?? fromStore ?? DEFAULT_LOCALE);
-    applyLocale(resolved);
-    isBootstrapping = false;
+    const userMutatedDuringBootstrap = currentLocale.value !== initialLocale;
+    const chosen = userMutatedDuringBootstrap ? currentLocale.value : resolved;
+    applyLocale(normalizeLocale(chosen));
+    // Ensure any mutations that happened during bootstrap are applied once bootstrapping is done.
+    applyLocale(normalizeLocale(currentLocale.value));
   };
 
   const setLocale = (newLocale: string) => {
@@ -52,10 +56,9 @@ export function useLanguagePreferences() {
   watch(
     currentLocale,
     (next) => {
-      if (isBootstrapping) return;
       applyLocale(normalizeLocale(next));
     },
-    { flush: 'post' },
+    { flush: 'sync' },
   );
 
   void init();

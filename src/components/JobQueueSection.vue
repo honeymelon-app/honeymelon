@@ -80,7 +80,7 @@ function handleStartAll() {
       <div class="flex items-center gap-3">
         <h2 class="text-sm font-medium text-foreground">{{ title }}</h2>
         <span class="text-xs text-muted-foreground">
-          {{ t('queue.count', jobs.length, { count: jobs.length }) }}
+          {{ t('queue.count', { count: jobs.length }) }}
         </span>
       </div>
       <div class="flex items-center gap-1">
