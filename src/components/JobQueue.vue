@@ -19,6 +19,7 @@
 
 import { Inbox } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import JobQueueSection from '@/components/JobQueueSection.vue';
 import type { Preset, JobState } from '@/lib/types';
@@ -85,6 +86,7 @@ interface JobQueueProps {
 }
 
 const props = defineProps<JobQueueProps>();
+const { t } = useI18n();
 
 /**
  * Computed property that merges active and completed jobs.
@@ -101,7 +103,7 @@ const allJobs = computed(() => [...props.activeJobs, ...props.completedJobs]);
   <JobQueueSection
     v-if="!props.hasNoJobs"
     :jobs="allJobs"
-    title="Queue"
+    :title="t('queue.title')"
     variant="unified"
     :available-presets="props.presetOptions"
     :show-clear-button="props.hasCompletedJobs"
@@ -123,8 +125,8 @@ const allJobs = computed(() => [...props.activeJobs, ...props.completedJobs]);
   >
     <Inbox class="h-12 w-12 mb-3 opacity-50" stroke-width="1.5" />
     <div class="text-center space-y-1">
-      <p class="text-sm font-medium text-muted-foreground/60">Queue is empty</p>
-      <p class="text-xs text-muted-foreground/40">Files you add will appear here</p>
+      <p class="text-sm font-medium text-muted-foreground/60">{{ t('queue.emptyTitle') }}</p>
+      <p class="text-xs text-muted-foreground/40">{{ t('queue.emptyBody') }}</p>
     </div>
   </div>
 </template>

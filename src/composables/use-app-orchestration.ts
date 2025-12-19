@@ -576,8 +576,22 @@ export function useAppOrchestration() {
             return;
           }
         }
-        // Explicitly exit the app when the window is closed
-        await exit(0);
+
+        // Explicitly exit the app when the window is closed; fall back to closing the window if
+        // the process plugin is unavailable (prevents a no-op close button).
+        try {
+          await exit(0);
+        } catch (error) {
+          console.warn(
+            '[app] Failed to exit via plugin-process, falling back to window.close()',
+            error,
+          );
+          try {
+            await currentWindow.close();
+          } catch (fallbackError) {
+            console.error('[app] Fallback close failed', fallbackError);
+          }
+        }
       });
     }
   };

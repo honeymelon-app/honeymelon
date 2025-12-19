@@ -1,14 +1,18 @@
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { Locale, SUPPORTED_LOCALES } from '@/lib/locale';
 import { loadState, saveState } from '@/lib/store';
 
-export enum Locale {
-  EN = 'en',
-  ES = 'es',
-  FR = 'fr',
-  DE = 'de',
-  RU = 'ru',
+const DEFAULT_LOCALE = Locale.EN;
+
+function normalizeLocale(candidate?: string | null): Locale {
+  if (!candidate) {
+    return DEFAULT_LOCALE;
+  }
+  const lower = candidate.toLowerCase();
+  const match = SUPPORTED_LOCALES.find((locale) => locale === lower);
+  return match ?? DEFAULT_LOCALE;
 }
 
 /**
@@ -18,47 +22,43 @@ export enum Locale {
  */
 export function useLanguagePreferences() {
   const { locale } = useI18n();
-  const currentLocale = ref<string>(Locale.EN);
+  const currentLocale = ref<Locale>(DEFAULT_LOCALE);
   let isBootstrapping = true;
 
-  const init = async () => {
+  const applyLocale = (next: Locale) => {
+    currentLocale.value = next;
+    locale.value = next;
+    saveState('locale', next);
     if (typeof localStorage !== 'undefined') {
-      const localStorageLocale = localStorage.getItem('locale');
-      if (localStorageLocale) {
-        currentLocale.value = localStorageLocale;
-      }
+      localStorage.setItem('locale', next);
     }
+  };
 
-    const storedLocale = await loadState<string>('locale');
-    if (storedLocale) {
-      currentLocale.value = storedLocale;
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('locale', storedLocale);
-      }
-    }
+  const init = async () => {
+    // LocalStorage takes precedence for responsiveness, but we still persist to store for parity
+    const fromLocalStorage =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : null;
+    const fromStore = await loadState<string>('locale');
 
+    const resolved = normalizeLocale(fromLocalStorage ?? fromStore ?? DEFAULT_LOCALE);
+    applyLocale(resolved);
     isBootstrapping = false;
   };
 
   const setLocale = (newLocale: string) => {
-    currentLocale.value = newLocale;
-    locale.value = newLocale;
-    saveState('locale', newLocale);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('locale', newLocale);
-    }
+    applyLocale(normalizeLocale(newLocale));
   };
 
-  watch(currentLocale, (newLocale) => {
-    if (isBootstrapping) return;
-    locale.value = newLocale;
-    saveState('locale', newLocale);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('locale', newLocale);
-    }
-  });
+  watch(
+    currentLocale,
+    (next) => {
+      if (isBootstrapping) return;
+      applyLocale(normalizeLocale(next));
+    },
+    { flush: 'post' },
+  );
 
-  init();
+  void init();
 
   return {
     currentLocale,

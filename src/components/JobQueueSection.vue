@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Play, X, Trash2 } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 import JobQueueItem from '@/components/JobQueueItem.vue';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ interface JobQueueSectionProps {
 }
 
 defineProps<JobQueueSectionProps>();
+const { t } = useI18n();
 
 const emit = defineEmits<{
   cancel: [jobId: string];
@@ -78,7 +80,7 @@ function handleStartAll() {
       <div class="flex items-center gap-3">
         <h2 class="text-sm font-medium text-foreground">{{ title }}</h2>
         <span class="text-xs text-muted-foreground">
-          {{ jobs.length }} file{{ jobs.length !== 1 ? 's' : '' }}
+          {{ t('queue.count', jobs.length, { count: jobs.length }) }}
         </span>
       </div>
       <div class="flex items-center gap-1">
@@ -96,7 +98,7 @@ function handleStartAll() {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Clear completed</p>
+              <p>{{ t('queue.actions.clearCompleted') }}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -114,7 +116,7 @@ function handleStartAll() {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Clear queue</p>
+              <p>{{ t('queue.actions.clearQueue') }}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -133,11 +135,11 @@ function handleStartAll() {
                 <Play
                   class="mr-1 h-3 w-3 transition-transform duration-200 group-hover/convert:scale-110"
                 />
-                Convert All
+                {{ t('queue.actions.convertAll') }}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Start converting all queued files</p>
+              <p>{{ t('queue.actions.convertAllTooltip') }}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

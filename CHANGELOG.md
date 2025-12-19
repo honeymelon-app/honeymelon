@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] - 2025-12-06
+
+### Added
+
+- Expanded localization coverage across uploader prompts, queue controls, destination chooser, and job item actions for all supported languages (EN/ES/FR/DE/RU)
+- Added i18n fallback locale and normalized locale handling to keep UI strings consistent
+
+### Fixed
+
+- Language selection now persists reliably across sessions with normalization of stored locales
+- Main window close button now falls back to closing the window if the process plugin exit call fails, preventing no-op close attempts
+
 ## [0.0.4] - 2025-12-05
 
 ### Added

@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { FolderOpenDot, FolderOpen } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { ref, computed, type HTMLAttributes } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,13 +23,14 @@ const props = defineProps<{
 
 const prefsStore = usePrefsStore();
 const { outputDirectory } = storeToRefs(prefsStore);
+const { t } = useI18n();
 
 const isDialogOpen = ref(false);
 const isChoosing = ref(false);
 
 const displayPath = computed(() => {
   if (!outputDirectory.value) {
-    return 'Same as source';
+    return t('destination.sameAsSource');
   }
   const parts = outputDirectory.value.split('/').filter((part) => part.length > 0);
   if (parts.length <= 2) {
@@ -82,7 +84,7 @@ function openDialog() {
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Destination: {{ displayPath }}</p>
+          <p>{{ t('destination.tooltip', { path: displayPath }) }}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -90,7 +92,7 @@ function openDialog() {
     <Dialog v-model:open="isDialogOpen">
       <DialogContent class="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Output Destination</DialogTitle>
+          <DialogTitle>{{ t('destination.title') }}</DialogTitle>
         </DialogHeader>
 
         <div class="space-y-3">
@@ -111,9 +113,9 @@ function openDialog() {
                 />
               </div>
               <div class="flex-1 min-w-0">
-                <div class="font-medium text-sm">Same as source file</div>
+                <div class="font-medium text-sm">{{ t('destination.sameAsSource') }}</div>
                 <div class="text-xs text-muted-foreground mt-1">
-                  Save converted files in the same folder as the original
+                  {{ t('destination.sameAsSourceHint') }}
                 </div>
               </div>
               <div
@@ -145,7 +147,7 @@ function openDialog() {
               </div>
               <div class="flex-1 min-w-0">
                 <div class="font-medium text-sm">
-                  {{ isChoosing ? 'Choosing folder...' : 'Custom folder' }}
+                  {{ isChoosing ? t('destination.choosing') : t('destination.customFolder') }}
                 </div>
                 <TooltipProvider v-if="outputDirectory">
                   <Tooltip>
@@ -160,7 +162,7 @@ function openDialog() {
                   </Tooltip>
                 </TooltipProvider>
                 <div v-else class="text-xs text-muted-foreground mt-1">
-                  Click to choose a destination folder
+                  {{ t('destination.choosePrompt') }}
                 </div>
               </div>
               <div class="flex items-center gap-2 shrink-0">
@@ -177,7 +179,9 @@ function openDialog() {
 
         <div class="flex justify-end pt-2">
           <DialogClose as-child>
-            <Button variant="outline" size="sm" class="cursor-pointer"> Close </Button>
+            <Button variant="outline" size="sm" class="cursor-pointer">
+              {{ t('destination.close') }}
+            </Button>
           </DialogClose>
         </div>
       </DialogContent>

@@ -6,5 +6,6 @@ import { messages } from '@/locales/messages';
 export const i18n = createI18n({
   legacy: false,
   locale: Locale.EN,
+  fallbackLocale: Locale.EN,
   messages,
 });

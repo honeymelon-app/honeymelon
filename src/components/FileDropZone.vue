@@ -87,7 +87,7 @@ function handleBrowse() {
       class="group rounded-lg h-48 flex flex-col items-center justify-center cursor-pointer border-2 border-dashed border-border/60 mx-auto hover:border-primary/40 hover:bg-accent/30 transition-all duration-200"
       :class="{ 'border-primary bg-primary/5 scale-[1.01]': isDragOver }"
       role="button"
-      aria-label="Upload files"
+      :aria-label="t('upload.ariaFull')"
       tabindex="0"
       data-test="file-dropzone"
       :data-media-kind="mediaKind"
@@ -140,7 +140,7 @@ function handleBrowse() {
       class="group rounded-lg flex items-center justify-center cursor-pointer border border-dashed border-border/60 py-2.5 px-4 hover:border-primary/40 hover:bg-accent/30 transition-all duration-200"
       :class="{ 'border-primary bg-primary/5': isDragOver }"
       role="button"
-      aria-label="Upload more files"
+      :aria-label="t('upload.ariaCompact')"
       tabindex="0"
       data-test="file-dropzone"
       :data-media-kind="mediaKind"
@@ -155,19 +155,19 @@ function handleBrowse() {
         <!-- Upload icon -->
         <Upload class="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         <!-- Compact upload prompt -->
-        <span class="text-sm text-muted-foreground">Drop more files or</span>
+        <span class="text-sm text-muted-foreground">{{ t('upload.compactPrompt') }}</span>
         <!-- Browse button -->
         <Button
           variant="ghost"
           size="sm"
           :disabled="!presetsReady"
           class="cursor-pointer h-7 px-2 text-primary hover:text-primary"
-          aria-label="Browse for more media files"
+          :aria-label="t('upload.browseAria')"
           @click.stop="handleBrowse"
           data-test="file-browse-button"
           :data-media-kind="mediaKind"
         >
-          Browse
+          {{ t('upload.browse') }}
         </Button>
       </div>
     </div>

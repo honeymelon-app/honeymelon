@@ -14,6 +14,7 @@ import {
   Trash2,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import JobProgressBar from '@/components/JobProgressBar.vue';
 import JobStatusBadge from '@/components/JobStatusBadge.vue';
@@ -52,9 +53,11 @@ const emit = defineEmits<{
   start: [jobId: string];
 }>();
 
+const { t } = useI18n();
+
 const fileName = computed(() => {
   const name = pathBasename(props.path);
-  return name || 'Unknown File';
+  return name || t('job.unknownFile');
 });
 const fileExtension = computed(() => getFileExtension(props.path));
 const displayFileSize = computed(() => props.fileSize ?? props.summary?.size);
@@ -102,21 +105,21 @@ const statusLabel = computed(() => {
   const state = props.state;
   switch (state.status) {
     case 'queued':
-      return 'Waiting';
+      return t('job.status.queued');
     case 'probing':
-      return 'Analyzing';
+      return t('job.status.probing');
     case 'planning':
-      return 'Planning';
+      return t('job.status.planning');
     case 'running':
-      return 'Converting';
+      return t('job.status.running');
     case 'completed':
-      return 'Done';
+      return t('job.status.completed');
     case 'failed':
-      return 'Failed';
+      return t('job.status.failed');
     case 'cancelled':
-      return 'Cancelled';
+      return t('job.status.cancelled');
     default:
-      return 'Unknown';
+      return t('job.status.unknown');
   }
 });
 
@@ -177,15 +180,15 @@ const errorCategoryHelp = computed((): string | undefined => {
 
   switch (category) {
     case 'INPUT_PROBLEM':
-      return 'The source file may be corrupted or inaccessible. Try a different file.';
+      return t('job.errors.inputProblem');
     case 'UNSUPPORTED_COMBINATION':
-      return "This format combination isn't supported. Try a different preset.";
+      return t('job.errors.unsupportedCombination');
     case 'RESOURCE_ISSUE':
-      return 'Check available disk space and close other applications.';
+      return t('job.errors.resourceIssue');
     case 'TIMEOUT':
-      return 'The conversion took too long. Try a faster preset or shorter file.';
+      return t('job.errors.timeout');
     case 'INTERNAL_PIPELINE_ERROR':
-      return 'An unexpected error occurred. Please try again or report this issue.';
+      return t('job.errors.internal');
     default:
       return undefined;
   }
@@ -210,8 +213,9 @@ const errorIcon = computed(() => {
   }
 });
 
-const permissionHelpText =
-  'Choose a different output folder or grant Honeymelon Full Disk Access in System Settings.';
+const permissionHelpText = computed(() =>
+  t('job.permissionHelp', 'Choose a different output folder or grant Honeymelon Full Disk Access.'),
+);
 
 function handleCancel() {
   emit('cancel', props.jobId);
@@ -315,14 +319,14 @@ async function handleShowInFinder() {
                         variant="ghost"
                         size="icon"
                         class="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent btn-press"
-                        aria-label="Show in Finder"
+                        :aria-label="t('job.actions.showInFinder')"
                         @click.stop="handleShowInFinder"
                       >
                         <FolderOpen class="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Show in Finder</p>
+                      <p>{{ t('job.actions.showInFinder') }}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -333,7 +337,7 @@ async function handleShowInFinder() {
                         v-if="canStart"
                         size="sm"
                         class="h-7 px-2.5 text-xs cursor-pointer shadow-sm btn-press group/btn"
-                        aria-label="Start conversion job"
+                        :aria-label="t('job.actions.startTooltip')"
                         @click="handleStart"
                         data-test="job-start-button"
                       >
@@ -341,11 +345,11 @@ async function handleShowInFinder() {
                           class="mr-1 h-3 w-3 transition-transform duration-200 group-hover/btn:scale-110"
                           aria-hidden="true"
                         />
-                        Start
+                        {{ t('job.actions.start') }}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Start converting this file</p>
+                      <p>{{ t('job.actions.startTooltip') }}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -357,7 +361,7 @@ async function handleShowInFinder() {
                         variant="ghost"
                         size="icon"
                         class="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-destructive hover:bg-destructive/10 btn-press"
-                        :aria-label="isFinished ? 'Remove from list' : 'Cancel job'"
+                        :aria-label="isFinished ? t('job.actions.remove') : t('job.actions.cancel')"
                         @click="handleCancel"
                         data-test="job-cancel-button"
                       >
@@ -369,7 +373,7 @@ async function handleShowInFinder() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{{ isFinished ? 'Remove from list' : 'Cancel job' }}</p>
+                      <p>{{ isFinished ? t('job.actions.remove') : t('job.actions.cancel') }}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -424,7 +428,7 @@ async function handleShowInFinder() {
                 class="px-0 text-[11px] h-auto cursor-pointer"
                 @click="handleOpenDiskAccessHelp"
               >
-                Open Settings
+                {{ t('job.actions.openSettings') }}
               </Button>
               <span v-if="isPermissionError" class="text-muted-foreground text-[11px]">
                 {{ permissionHelpText }}
@@ -443,20 +447,20 @@ async function handleShowInFinder() {
     <ContextMenuContent class="w-48">
       <ContextMenuItem v-if="canStart" @click="handleStart">
         <Play class="mr-2 h-4 w-4" />
-        Start Conversion
+        {{ t('job.actions.contextStart') }}
       </ContextMenuItem>
       <ContextMenuItem v-if="canCancel" @click="handleCancel">
         <X class="mr-2 h-4 w-4" />
-        Cancel
+        {{ t('job.actions.contextCancel') }}
       </ContextMenuItem>
       <ContextMenuSeparator v-if="canStart || canCancel" />
       <ContextMenuItem @click="handleCopyPath">
         <Copy class="mr-2 h-4 w-4" />
-        Copy File Path
+        {{ t('job.actions.copyPath') }}
       </ContextMenuItem>
       <ContextMenuItem @click="handleShowInFinder">
         <FolderOpen class="mr-2 h-4 w-4" />
-        Show in Finder
+        {{ t('job.actions.showInFinder') }}
       </ContextMenuItem>
     </ContextMenuContent>
   </ContextMenu>
