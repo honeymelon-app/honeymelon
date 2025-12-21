@@ -31,10 +31,12 @@ pub struct LicenseInfo {
 /// Response from the activation API.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActivationResponse {
+    #[serde(default)]
     pub success: bool,
     pub license: Option<ActivationLicenseData>,
     pub error: Option<String>,
     pub error_code: Option<String>,
+    pub message: Option<String>,
 }
 
 /// License data returned from the activation API.

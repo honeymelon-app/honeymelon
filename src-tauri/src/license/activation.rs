@@ -51,11 +51,15 @@ pub async fn activate_online(
     let body: ActivationResponse = response
         .json()
         .await
-        .map_err(|e| LicenseError::NetworkError(e.to_string()))?;
+        .map_err(|e| LicenseError::NetworkError(format!("Failed to parse response: {}", e)))?;
 
     if !body.success {
+        // Prefer 'error' field, but fall back to 'message' for validation errors
+        let error_msg = body
+            .error
+            .or(body.message)
+            .unwrap_or_else(|| "Unknown error".to_string());
         let error_code = body.error_code.as_deref().unwrap_or("unknown");
-        let error_msg = body.error.unwrap_or_else(|| "Unknown error".to_string());
 
         return Err(match error_code {
             "license_not_found" => LicenseError::NotFound,
