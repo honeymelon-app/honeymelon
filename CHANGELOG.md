@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2025-12-24
+
+### Fixed
+
+- Improved license activation error handling: response parsing now falls back to `message` field when `error` is absent, and provides clearer parse failure messages
+
 ## [0.0.5] - 2025-12-06
 
 ### Added
