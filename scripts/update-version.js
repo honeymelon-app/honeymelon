@@ -144,7 +144,8 @@ function syncReadmeVersion() {
   const readmeRe = /(\*\*Version\*\*:\s*)(\d+\.\d+\.\d+(?:[-+][\w.]+)?)/;
   return replaceInFile('README.md', (contents) => {
     if (!readmeRe.test(contents)) {
-      throw new Error('Could not locate version line in README.md');
+      // README version line is optional
+      return contents;
     }
     return contents.replace(readmeRe, `$1${targetVersion}`);
   });
