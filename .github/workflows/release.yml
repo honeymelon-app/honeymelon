@@ -253,57 +253,12 @@ jobs:
             echo "Warning: No artifacts found"
           fi
 
-      - name: Upload artifacts
-        id: upload_artifacts
-        env:
-          UPLOAD_URL: ${{ secrets.ARTIFACT_UPLOAD_URL }}
-          PLATFORM_KEY: ${{ secrets.PLATFORM_KEY }}
-          PLATFORM_SECRET: ${{ secrets.PLATFORM_SECRET }}
-          CF_COOKIE: ${{ secrets.CF_COOKIE }}
-        run: |
-          set -Eeuo pipefail
-          if [ -z "${UPLOAD_URL:-}" ] || [ -z "${PLATFORM_KEY:-}" ] || [ -z "${CF_COOKIE:-}" ]; then
-            echo "::warning::Missing upload secrets"
-            {
-              echo "artifacts_b64<<EOF"
-              printf '[]' | base64
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          upload_file() {
-            local file="$1"
-            local response
-            response=$(curl -sS -X POST "$UPLOAD_URL" \
-              -H "X-Client-Key: $PLATFORM_KEY" \
-              -H "X-Client-Secret: $PLATFORM_SECRET" \
-              -H "Accept: application/json" \
-              -H "Cookie: $CF_COOKIE" \
-              -F "platform=darwinx64" \
-              -F "artifact=@$file" \
-              -w "%{http_code}" \
-              -o /tmp/response.json || echo "000")
-
-            [ "$response" = "200" ] || [ "$response" = "201" ] && jq -e '.data' /tmp/response.json 2>/dev/null || echo "null"
-          }
-
-          ARTIFACTS_JSON="[]"
-          while IFS= read -r -d '' file; do
-            data=$(upload_file "$file")
-            [ "$data" != "null" ] && ARTIFACTS_JSON=$(jq --argjson item "$data" '. + [$item]' <<< "$ARTIFACTS_JSON")
-          done < <(find src-tauri/target -path '*/release/bundle/release-artifacts/*' -type f -print0)
-
-          echo "artifacts_b64<<EOF" >> "$GITHUB_OUTPUT"
-          printf '%s' "$ARTIFACTS_JSON" | base64 >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
       - name: Extract metadata
         id: metadata
         run: |
           TAG="${{ github.event.release.tag_name }}"
           VERSION="${TAG#v}"
-          MAJOR=$(cut -d. -f1 <<< "$VERSION")
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
 
           if ${{ github.event.release.prerelease }}; then
             CHANNEL="beta"
@@ -320,29 +275,199 @@ jobs:
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           echo "commit_hash=${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
-      - name: Notify webhook
+      - name: Upload artifacts to platform
+        id: upload_artifacts
+        env:
+          UPLOAD_URL: ${{ secrets.ARTIFACT_UPLOAD_URL }}
+          PLATFORM_KEY: ${{ secrets.PLATFORM_KEY }}
+          PLATFORM_SECRET: ${{ secrets.PLATFORM_SECRET }}
+          CF_COOKIE: ${{ secrets.CF_COOKIE }}
         run: |
           set -euo pipefail
 
-          ARTIFACTS_JSON=$(printf '%s' "${{ steps.upload_artifacts.outputs.artifacts_b64 }}" | base64 -d 2>/dev/null || printf '[]')
-          jq . <<< "$ARTIFACTS_JSON" >/dev/null 2>&1 || ARTIFACTS_JSON='[]'
+          # Validate required secrets
+          missing_secrets=""
+          [ -z "${UPLOAD_URL:-}" ] && missing_secrets="${missing_secrets} ARTIFACT_UPLOAD_URL"
+          [ -z "${PLATFORM_KEY:-}" ] && missing_secrets="${missing_secrets} PLATFORM_KEY"
+          [ -z "${PLATFORM_SECRET:-}" ] && missing_secrets="${missing_secrets} PLATFORM_SECRET"
 
+          if [ -n "$missing_secrets" ]; then
+            echo "::warning::Missing secrets:${missing_secrets}"
+            echo 'artifacts=[]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Function to upload a single file with retry logic
+          upload_file() {
+            local file="$1"
+            local filename=$(basename "$file")
+            local max_retries=3
+            local retry_delay=5
+
+            echo "Uploading: $filename"
+
+            for attempt in $(seq 1 $max_retries); do
+              echo "  Attempt $attempt of $max_retries..."
+
+              # Build curl command with optional CF cookie
+              local curl_args=(
+                -sS --fail-with-body
+                --connect-timeout 30
+                --max-time 300
+                -X POST "$UPLOAD_URL"
+                -H "X-Client-Key: $PLATFORM_KEY"
+                -H "X-Client-Secret: $PLATFORM_SECRET"
+                -H "Accept: application/json"
+                -F "platform=darwinx64"
+                -F "artifact=@$file"
+              )
+
+              [ -n "${CF_COOKIE:-}" ] && curl_args+=(-H "Cookie: $CF_COOKIE")
+
+              local http_code
+              http_code=$(curl "${curl_args[@]}" -w "%{http_code}" -o /tmp/upload_response.json 2>/tmp/curl_error.txt) || true
+
+              # Check response
+              if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+                if jq -e '.data' /tmp/upload_response.json > /tmp/artifact_data.json 2>/dev/null; then
+                  echo "  ✓ Upload successful (HTTP $http_code)"
+                  cat /tmp/artifact_data.json
+                  return 0
+                else
+                  echo "  ✗ Invalid JSON response"
+                  cat /tmp/upload_response.json 2>/dev/null || true
+                fi
+              else
+                echo "  ✗ HTTP $http_code"
+                cat /tmp/upload_response.json 2>/dev/null || cat /tmp/curl_error.txt 2>/dev/null || true
+              fi
+
+              if [ $attempt -lt $max_retries ]; then
+                echo "  Retrying in ${retry_delay}s..."
+                sleep $retry_delay
+                retry_delay=$((retry_delay * 2))
+              fi
+            done
+
+            echo "  ✗ Failed after $max_retries attempts"
+            echo "null"
+            return 1
+          }
+
+          # Find and upload artifacts
+          ARTIFACTS_JSON="[]"
+          upload_count=0
+          fail_count=0
+
+          while IFS= read -r -d '' file; do
+            if upload_file "$file"; then
+              artifact_data=$(cat /tmp/artifact_data.json)
+              ARTIFACTS_JSON=$(echo "$ARTIFACTS_JSON" | jq --argjson item "$artifact_data" '. + [$item]')
+              upload_count=$((upload_count + 1))
+            else
+              fail_count=$((fail_count + 1))
+            fi
+          done < <(find src-tauri/target -path '*/release/bundle/release-artifacts/*' -type f -print0 2>/dev/null || true)
+
+          echo "Uploaded: $upload_count, Failed: $fail_count"
+
+          # Store artifacts JSON directly (no base64)
+          # Use heredoc for multiline JSON
+          {
+            echo 'artifacts<<ARTIFACTS_EOF'
+            echo "$ARTIFACTS_JSON"
+            echo 'ARTIFACTS_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Notify platform webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          PLATFORM_KEY: ${{ secrets.PLATFORM_KEY }}
+          PLATFORM_SECRET: ${{ secrets.PLATFORM_SECRET }}
+        run: |
+          set -euo pipefail
+
+          # Validate required secrets
+          if [ -z "${WEBHOOK_URL:-}" ] || [ -z "${PLATFORM_KEY:-}" ] || [ -z "${PLATFORM_SECRET:-}" ]; then
+            echo "::error::Missing webhook secrets (WEBHOOK_URL, PLATFORM_KEY, or PLATFORM_SECRET)"
+            exit 1
+          fi
+
+          # Parse artifacts from previous step
+          ARTIFACTS_JSON='${{ steps.upload_artifacts.outputs.artifacts }}'
+          if ! echo "$ARTIFACTS_JSON" | jq -e . > /dev/null 2>&1; then
+            echo "::warning::Invalid artifacts JSON, using empty array"
+            ARTIFACTS_JSON='[]'
+          fi
+
+          # Get release notes from event payload
+          RELEASE_NOTES=""
+          if [ -f "$GITHUB_EVENT_PATH" ]; then
+            RELEASE_NOTES=$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+          fi
+
+          # Build payload
           PAYLOAD=$(jq -n \
             --arg version "${{ steps.metadata.outputs.version }}" \
             --arg tag "${{ github.event.release.tag_name }}" \
             --arg commit_hash "${{ steps.metadata.outputs.commit_hash }}" \
             --arg channel "${{ steps.metadata.outputs.channel }}" \
-            --arg notes "$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH")" \
+            --arg notes "$RELEASE_NOTES" \
             --arg published_at "${{ github.event.release.published_at }}" \
             --argjson major "${{ steps.metadata.outputs.major }}" \
             --argjson artifacts "$ARTIFACTS_JSON" \
-            '{version: $version, tag: $tag, commit_hash: $commit_hash, channel: $channel, notes: $notes, published_at: $published_at, major: $major, artifacts: $artifacts}')
+            '{
+              version: $version,
+              tag: $tag,
+              commit_hash: $commit_hash,
+              channel: $channel,
+              notes: $notes,
+              published_at: $published_at,
+              major: $major,
+              artifacts: $artifacts
+            }')
 
-          curl -X POST "${{ secrets.WEBHOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            -H "X-Client-Key: ${{ secrets.PLATFORM_KEY }}" \
-            -H "X-Client-Secret: ${{ secrets.PLATFORM_SECRET }}" \
-            -d "$PAYLOAD"
+          echo "Webhook payload:"
+          echo "$PAYLOAD" | jq -C .
+
+          # Send webhook with retry logic
+          max_retries=3
+          retry_delay=5
+
+          for attempt in $(seq 1 $max_retries); do
+            echo "Sending webhook (attempt $attempt of $max_retries)..."
+
+            http_code=$(curl -sS --fail-with-body \
+              --connect-timeout 30 \
+              --max-time 60 \
+              -X POST "$WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -H "Accept: application/json" \
+              -H "X-Client-Key: $PLATFORM_KEY" \
+              -H "X-Client-Secret: $PLATFORM_SECRET" \
+              -d "$PAYLOAD" \
+              -w "%{http_code}" \
+              -o /tmp/webhook_response.json 2>/tmp/webhook_error.txt) || true
+
+            if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+              echo "✓ Webhook sent successfully (HTTP $http_code)"
+              cat /tmp/webhook_response.json 2>/dev/null || true
+              exit 0
+            fi
+
+            echo "✗ Webhook failed (HTTP $http_code)"
+            echo "Response:"
+            cat /tmp/webhook_response.json 2>/dev/null || cat /tmp/webhook_error.txt 2>/dev/null || echo "(no response body)"
+
+            if [ $attempt -lt $max_retries ]; then
+              echo "Retrying in ${retry_delay}s..."
+              sleep $retry_delay
+              retry_delay=$((retry_delay * 2))
+            fi
+          done
+
+          echo "::error::Webhook failed after $max_retries attempts"
+          exit 1
 
       - name: Upload debug artifacts
         uses: actions/upload-artifact@v4
