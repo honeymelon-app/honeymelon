@@ -22,6 +22,7 @@ export const ActivationErrorCodes = {
   LICENSE_REFUNDED: 'license_refunded',
   LICENSE_REVOKED: 'license_revoked',
   LICENSE_ALREADY_ACTIVATED: 'license_already_activated',
+  LICENSE_VERSION_NOT_ALLOWED: 'license_version_not_allowed',
   NETWORK_ERROR: 'network_error',
   ACTIVATION_SERVER_ERROR: 'activation_server_error',
 } as const;
@@ -43,6 +44,9 @@ export function getActivationErrorMessage(error: string): string {
   }
   if (error.includes('license_already_activated') || error.includes('already been activated')) {
     return 'This license has already been activated on another device.';
+  }
+  if (error.includes('license_version_not_allowed') || error.includes('valid up to Honeymelon')) {
+    return 'This license does not cover this version of Honeymelon.';
   }
   if (error.includes('network_error') || error.includes('Network')) {
     return 'Unable to connect to the activation server. Please check your internet connection.';

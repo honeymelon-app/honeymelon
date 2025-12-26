@@ -71,6 +71,22 @@ pub async fn activate_online(
                 }
             },
             "license_already_activated" => LicenseError::AlreadyActivated,
+            "license_version_not_allowed" => {
+                let max_major_version = error_msg
+                    .split_whitespace()
+                    .rev()
+                    .next()
+                    .and_then(|token| {
+                        token
+                            .trim_end_matches(".x.")
+                            .trim_end_matches(".x")
+                            .parse::<u8>()
+                            .ok()
+                    })
+                    .unwrap_or(0);
+
+                LicenseError::AppVersionNotAllowed { max_major_version }
+            },
             _ => LicenseError::ActivationServerError(format!(
                 "{}: {} (status: {})",
                 error_code, error_msg, status

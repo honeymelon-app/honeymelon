@@ -4,6 +4,8 @@ use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 
+const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub fn verify(key: &str) -> Result<LicenseInfo, LicenseError> {
     let blob = decode_key(key)?;
 
@@ -24,6 +26,16 @@ pub fn verify(key: &str) -> Result<LicenseInfo, LicenseError> {
 
     let parsed = parse_payload(payload_bytes)?;
 
+    if parsed.max_major_version != 255 {
+        if let Some(app_major) = current_app_major() {
+            if app_major > parsed.max_major_version as u64 {
+                return Err(LicenseError::AppVersionNotAllowed {
+                    max_major_version: parsed.max_major_version,
+                });
+            }
+        }
+    }
+
     Ok(LicenseInfo {
         key: format_key(key),
         license_id: parsed.license_id.to_string(),
@@ -34,6 +46,13 @@ pub fn verify(key: &str) -> Result<LicenseInfo, LicenseError> {
         signature: BASE64.encode(signature_bytes),
         activated_at: None,
     })
+}
+
+fn current_app_major() -> Option<u64> {
+    APP_VERSION
+        .split('.')
+        .next()
+        .and_then(|value| value.parse::<u64>().ok())
 }
 
 fn load_verifying_key() -> Result<VerifyingKey, LicenseError> {

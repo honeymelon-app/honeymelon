@@ -40,8 +40,13 @@ impl LicenseServiceApi for LicenseService {
         let app_version = app_version.to_string();
 
         Box::pin(async move {
-            // Generate device ID
-            let device_id = license::generate_device_id();
+            // Ensure the key is locally valid (signature + major-version eligibility)
+            // before making a one-time activation call.
+            let _ = license::verify(&key)?;
+
+            // Use a stable device id for this machine so reinstalls can re-activate
+            // without requiring support, while still preventing device switching.
+            let device_id = license::get_or_create_device_id(&app)?;
 
             // Call the async activation function directly
             let info = license::activate_online(&key, &app_version, Some(&device_id)).await?;

@@ -43,10 +43,17 @@ pub fn load(provider: &impl LicensePathProvider) -> Result<Option<LicenseInfo>, 
     let data = fs::read(&path)?;
     let stored: LicenseInfo = serde_json::from_slice(&data)?;
 
-    let mut verified = verify(&stored.key)?;
-    verified.activated_at = stored.activated_at;
-
-    Ok(Some(verified))
+    match verify(&stored.key) {
+        Ok(mut verified) => {
+            verified.activated_at = stored.activated_at;
+            Ok(Some(verified))
+        },
+        Err(error @ LicenseError::AppVersionNotAllowed { .. }) => {
+            let _ = remove(provider);
+            Err(error)
+        },
+        Err(error) => Err(error),
+    }
 }
 
 pub fn remove(provider: &impl LicensePathProvider) -> Result<(), LicenseError> {

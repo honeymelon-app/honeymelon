@@ -83,6 +83,8 @@ pub enum LicenseError {
     Revoked,
     #[error("license has already been activated")]
     AlreadyActivated,
+    #[error("license is valid up to Honeymelon {max_major_version}.x")]
+    AppVersionNotAllowed { max_major_version: u8 },
     #[error("activation server error: {0}")]
     ActivationServerError(String),
     #[error("network error: {0}")]
@@ -116,6 +118,7 @@ impl LicenseError {
             LicenseError::Refunded => "license_refunded",
             LicenseError::Revoked => "license_revoked",
             LicenseError::AlreadyActivated => "license_already_activated",
+            LicenseError::AppVersionNotAllowed { .. } => "license_version_not_allowed",
             LicenseError::ActivationServerError(_) => "activation_server_error",
             LicenseError::NetworkError(_) => "network_error",
         }
@@ -145,6 +148,13 @@ mod tests {
         assert_eq!(
             LicenseError::AlreadyActivated.code(),
             "license_already_activated"
+        );
+        assert_eq!(
+            LicenseError::AppVersionNotAllowed {
+                max_major_version: 1
+            }
+            .code(),
+            "license_version_not_allowed"
         );
     }
 
