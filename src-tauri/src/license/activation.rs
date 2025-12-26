@@ -74,8 +74,7 @@ pub async fn activate_online(
             "license_version_not_allowed" => {
                 let max_major_version = error_msg
                     .split_whitespace()
-                    .rev()
-                    .next()
+                    .next_back()
                     .and_then(|token| {
                         token
                             .trim_end_matches(".x.")
