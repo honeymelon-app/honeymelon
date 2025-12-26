@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7] - 2025-12-26
+
+### Added
+
+- Enforced major-version licensing: licenses now validate the running app’s major version (with lifetime licenses represented as `255` for all majors)
+- Reinstall-friendly activation: stable device ID per machine + idempotent re-activation on the same device
+
+### Fixed
+
+- Prevented “burning” one-time activation on ineligible licenses by validating locally before calling the activation API
+
 ## [0.0.6] - 2025-12-24
 
 ### Fixed
