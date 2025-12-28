@@ -26,12 +26,20 @@ impl OutputManager {
             }
         }
 
-        // Generate temporary file path
-        let temp_file_name = output
-            .file_name()
-            .and_then(|name| name.to_str())
-            .map(|name| format!("{name}.tmp"))
-            .unwrap_or_else(|| "output.tmp".to_string());
+        // Generate temporary file path while preserving the original extension
+        let temp_file_name = match (
+            output.file_stem().and_then(|name| name.to_str()),
+            output.extension().and_then(|ext| ext.to_str()),
+        ) {
+            (Some(stem), Some(ext)) if !stem.is_empty() && !ext.is_empty() => {
+                format!("{stem}.tmp.{ext}")
+            },
+            _ => output
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| format!("{name}.tmp"))
+                .unwrap_or_else(|| "output.tmp".to_string()),
+        };
         let temp_path = output.with_file_name(temp_file_name);
 
         // Validate write permissions
@@ -100,6 +108,23 @@ mod tests {
         assert!(result.is_ok());
 
         // Cleanup
+        let _ = fs::remove_dir_all(temp_dir.join("test_honeymelon_output"));
+    }
+
+    #[test]
+    fn test_prepare_preserves_extension_in_temp_name() {
+        let temp_dir = std::env::temp_dir();
+        let test_path = temp_dir.join("test_honeymelon_output/image.bmp");
+
+        let result = OutputManager::prepare(test_path.to_str().unwrap(), false);
+        assert!(result.is_ok());
+
+        let (_, temp_path) = result.unwrap();
+        assert_eq!(
+            temp_path.file_name().and_then(|name| name.to_str()),
+            Some("image.tmp.bmp")
+        );
+
         let _ = fs::remove_dir_all(temp_dir.join("test_honeymelon_output"));
     }
 

@@ -403,13 +403,15 @@ async function handleShowInFinder() {
               <TooltipProvider v-if="state.status === 'failed' && 'error' in state">
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <span
-                      class="text-destructive truncate max-w-[200px] cursor-help inline-flex items-center gap-1"
+                    <div
+                      class="flex items-start gap-1.5 text-destructive max-w-sm cursor-help"
                       role="alert"
                     >
-                      <component :is="errorIcon" class="h-3 w-3 shrink-0" aria-hidden="true" />
-                      {{ state.error }}
-                    </span>
+                      <component :is="errorIcon" class="mt-[1px] h-3.5 w-3.5 shrink-0" />
+                      <div class="min-w-0 text-[11px] leading-tight break-words">
+                        {{ state.error }}
+                      </div>
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent class="max-w-xs">
                     <div class="space-y-1">

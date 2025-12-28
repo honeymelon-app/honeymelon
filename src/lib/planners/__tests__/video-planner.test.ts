@@ -397,6 +397,21 @@ describe('VideoPlanner', () => {
       expect(result.args).toContain('1');
     });
 
+    it('should plan BMP image conversion with image2 muxer', () => {
+      const preset: Preset = {
+        ...basePreset,
+        container: 'bmp',
+        video: { codec: 'bmp' },
+      };
+
+      const result = planner.planImage(preset, warnings);
+
+      expect(result.args).toContain('-f');
+      expect(result.args).toContain('image2');
+      expect(result.args).toContain('-frames:v');
+      expect(result.args).toContain('1');
+    });
+
     it('should plan JPEG image conversion with quality', () => {
       const preset: Preset = {
         ...basePreset,

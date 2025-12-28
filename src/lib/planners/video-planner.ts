@@ -239,6 +239,8 @@ export class VideoPlanner {
       jpeg: 'image2',
       webp: 'image2',
       gif: 'image2',
+      bmp: 'image2',
+      tiff: 'image2',
     };
 
     const outputFormat = formatMap[preset.container];
