@@ -140,49 +140,17 @@ match result {
 
 ### Command Construction
 
-**Location**: [src/lib/ffmpeg-plan.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/lib/ffmpeg-plan.ts)
+**Location**: `src/lib/ffmpeg-plan.ts` and `src/lib/builders/ffmpeg-args-builder.ts`
 
-Build FFmpeg arguments from plan:
-
-```typescript
-function buildFFmpegCommand(plan: FFmpegPlan): string[] {
-  const args = [
-    '-i',
-    inputFile,
-    '-c:v',
-    plan.videoAction === 'copy' ? 'copy' : plan.videoCodec,
-    '-c:a',
-    plan.audioAction === 'copy' ? 'copy' : plan.audioCodec,
-  ];
-
-  if (plan.videoAction === 'transcode') {
-    args.push(...plan.videoOptions);
-  }
-
-  if (plan.audioAction === 'transcode') {
-    args.push(...plan.audioOptions);
-  }
-
-  args.push(outputFile);
-  return args;
-}
-```
-
-**Example Output**:
-
-```bash
-['-i', 'input.mkv', '-c:v', 'libx264', '-preset', 'medium',
- '-crf', '23', '-c:a', 'aac', '-b:a', '192k', 'output.mp4']
-
-```
+`planJob()` returns a `PlannerDecision` with `ffmpegArgs` built by `FFmpegArgsBuilder`. The args include the input, stream maps, codec selections, container muxer, and `-progress pipe:2 -nostats` for progress reporting.
 
 ### Process Spawning
 
 **Location**: runner modules under `src-tauri/src/runner` (see `src-tauri/src/runner/mod.rs` and its submodules)
 
 ```rust
+use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
-use tokio::io::{BufReader, AsyncBufReadExt};
 
 let mut child = Command::new(ffmpeg_path)
     .args(&ffmpeg_args)
@@ -193,16 +161,12 @@ let mut child = Command::new(ffmpeg_path)
 
 let stderr = child.stderr.take().unwrap();
 let reader = BufReader::new(stderr);
-let mut lines = reader.lines();
 
-while let Some(line) = lines.next_line().await? {
-    if let Some(progress) = parse_progress(&line) {
-        emit_progress_event(&app, &job_id, progress)?;
+for line in reader.lines() {
+    if let Ok(line) = line {
+        emit_progress_event(&app, &job_id, &line)?;
     }
 }
-
-let status = child.wait().await?;
-
 ```
 
 ### Progress Parsing
@@ -214,31 +178,7 @@ frame=  150 fps= 30 q=28.0 size=    1024kB time=00:00:05.00 bitrate=1677.7kbits/
 
 ```
 
-**Regex Pattern**:
-
-```rust
-static PROGRESS_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"frame=\s*(\d+) fps=\s*([\d.]+) .* time=(\S+) .* speed=\s*([\d.]+)x")
-        .unwrap()
-});
-
-```
-
-**Parse Function**:
-
-```rust
-fn parse_progress(line: &str) -> Option<Progress> {
-    let caps = PROGRESS_REGEX.captures(line)?;
-
-    Some(Progress {
-        frame: caps[1].parse().ok()?,
-        fps: caps[2].parse().ok()?,
-        time: parse_time(&caps[3])?,
-        speed: caps[4].parse().ok()?,
-    })
-}
-
-```
+Progress parsing accepts both key-value progress lines (`out_time=...`) and inline status lines (`time=...`) to extract `processed_seconds`, `fps`, and `speed`.
 
 ### Event Streaming
 
@@ -247,12 +187,12 @@ Progress events sent to frontend:
 ```rust
 app.emit("ffmpeg://progress", ProgressPayload {
     job_id,
-    frame,
-    fps,
-    time_seconds,
-    percentage,
-    eta_seconds,
-    speed_factor,
+    progress: ProgressMetrics {
+        processed_seconds,
+        fps,
+        speed,
+    },
+    raw,
 })?;
 
 ```
@@ -263,7 +203,7 @@ Frontend receives via Tauri events:
 import { listen } from '@tauri-apps/api/event';
 
 listen<ProgressPayload>('ffmpeg://progress', (event) => {
-  updateJobProgress(event.payload);
+  updateJobProgress(event.payload.progress);
 });
 ```
 
@@ -271,46 +211,24 @@ listen<ProgressPayload>('ffmpeg://progress', (event) => {
 
 ### Apple VideoToolbox
 
-FFmpeg supports hardware encoding via VideoToolbox:
+FFmpeg supports hardware encoding via VideoToolbox, most commonly for H.264:
 
 ```bash
-# H.264 hardware encoding
 -c:v h264_videotoolbox
-
-# H.265 hardware encoding
--c:v hevc_videotoolbox
-
 ```
 
 ### Automatic Selection
 
-**Location**: [src/lib/ffmpeg-plan.ts](https://github.com/honeymelon-app/honeymelon/blob/main/src/lib/ffmpeg-plan.ts)
+**Location**: `src/lib/strategies/encoder-strategy.ts`
 
-```typescript
-function selectEncoder(codec: string, hwAccel: boolean): string {
-  if (!hwAccel) {
-    return getSwEncoderForCodec(codec); // 'libx264', 'libx265', etc.
-  }
-
-  // Check if running on Apple Silicon
-  if (platform === 'darwin' && arch === 'aarch64') {
-    if (codec === 'h264') return 'h264_videotoolbox';
-    if (codec === 'hevc') return 'hevc_videotoolbox';
-  }
-
-  // Fallback to software
-  return getSwEncoderForCodec(codec);
-}
-```
+Encoder selection prefers hardware encoders (VideoToolbox/QSV/NVENC) when available in the detected capabilities, then falls back to software encoders.
 
 ### Performance Comparison
 
 | Encoder                | Speed (1080p) | Quality   | Power |
 | ---------------------- | ------------- | --------- | ----- |
-| libx264 (SW)           | 30-50 fps     | Excellent | High  |
-| h264_videotoolbox (HW) | 80-120 fps    | Good      | Low   |
-| libx265 (SW)           | 10-20 fps     | Excellent | High  |
-| hevc_videotoolbox (HW) | 40-70 fps     | Good      | Low   |
+| libx264 (SW)           | Moderate      | Excellent | High  |
+| h264_videotoolbox (HW) | Fast          | Good      | Low   |
 
 ## Capability Detection
 
@@ -371,46 +289,13 @@ fn parse_encoders(output: &str) -> Vec<String> {
 
 ### Filtering Presets
 
-Presets are filtered based on detected capabilities:
-
-```typescript
-function filterPresets(allPresets: Preset[], capabilities: Capabilities): Preset[] {
-  return allPresets.filter((preset) => {
-    const videoEncoderAvailable =
-      !preset.videoCodec || capabilities.encoders.includes(preset.videoCodec);
-
-    const audioEncoderAvailable =
-      !preset.audioCodec || capabilities.encoders.includes(preset.audioCodec);
-
-    return videoEncoderAvailable && audioEncoderAvailable;
-  });
-}
-```
-
-Users only see presets their FFmpeg installation can handle.
+`src/lib/capability.ts` exposes `presetIsAvailable` and `availablePresets`, which gate presets based on detected encoders and container formats. Presets that cannot be encoded with the current FFmpeg build are hidden from the UI.
 
 ## Error Handling
 
 ### FFmpeg Exit Codes
 
-```rust
-match status.code() {
-    Some(0) => {
-        // Success
-        emit_completion_event(job_id, output_path)?;
-    },
-    Some(code) => {
-        // Error with exit code
-        let error_msg = extract_error_from_stderr(&stderr_output);
-        emit_error_event(job_id, error_msg)?;
-    },
-    None => {
-        // Killed by signal
-        emit_cancelled_event(job_id)?;
-    }
-}
-
-```
+Completion events include `success`, `cancelled`, `exit_code`, and a classified error category with a user-facing message when available.
 
 ### Common FFmpeg Errors
 
@@ -424,76 +309,17 @@ match status.code() {
 
 ### Stderr Parsing
 
-Extract meaningful errors from FFmpeg output:
-
-```rust
-fn extract_error(stderr: &str) -> String {
-    // Look for FFmpeg error lines
-    for line in stderr.lines().rev() {
-        if line.contains("Error") || line.contains("Invalid") {
-            return line.to_string();
-        }
-    }
-
-    // Fallback to last non-empty line
-    stderr.lines()
-        .filter(|l| !l.trim().is_empty())
-        .last()
-        .unwrap_or("Unknown error")
-        .to_string()
-}
-
-```
+`ffmpeg_errors.rs` extracts relevant stderr lines and maps common failure patterns to categories such as input problems, unsupported combinations, resource issues, and timeouts.
 
 ## Process Management
 
 ### Cancellation
 
-User cancels a running job:
-
-```rust
-pub async fn cancel_job(job_id: &str) -> Result<()> {
-    let mut jobs = RUNNING_JOBS.lock().await;
-
-    if let Some(child) = jobs.get_mut(job_id) {
-        child.kill().await?;
-        jobs.remove(job_id);
-
-        // Clean up partial output
-        if let Some(output) = get_output_path(job_id) {
-            let _ = tokio::fs::remove_file(output).await;
-        }
-
-        Ok(())
-    } else {
-        Err("Job not found".into())
-    }
-}
-
-```
+Cancellation kills the FFmpeg process, cleans up the temp output, and emits a completion event flagged as cancelled.
 
 ### Timeout Handling
 
-Prevent hung processes:
-
-```rust
-use tokio::time::{timeout, Duration};
-
-let result = timeout(
-    Duration::from_secs(3600), // 1 hour max
-    child.wait()
-).await;
-
-match result {
-    Ok(Ok(status)) => handle_completion(status),
-    Ok(Err(e)) => handle_error(e),
-    Err(_) => {
-        child.kill().await?;
-        handle_timeout()
-    }
-}
-
-```
+Timeouts are calculated from media duration (`calculate_timeout`) and enforced in the progress monitor.
 
 ## Testing FFmpeg Integration
 
@@ -516,20 +342,7 @@ mod tests {
 
 ### Integration Tests
 
-Test actual FFmpeg execution with sample files:
-
-```rust
-#[tokio::test]
-async fn test_actual_conversion() {
-    let input = "test_files/sample.mp4";
-    let output = "/tmp/output.mp4";
-
-    let result = convert_file(input, output, ConversionOptions::default()).await;
-
-    assert!(result.is_ok());
-    assert!(Path::new(output).exists());
-}
-```
+FFmpeg pipeline tests live under `docs/FFMPEG_PIPELINE_TESTS.md` and the Rust runner/unit tests validate argument handling and output verification.
 
 ## Next Steps
 

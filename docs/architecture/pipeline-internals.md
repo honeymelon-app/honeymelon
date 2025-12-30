@@ -41,7 +41,7 @@ Honeymelon converts media files through a three-stage pipeline:
    - `hasTextSubs`, `hasImageSubs`
    - `channels`, `color` metadata
 
-**Current validation:** Minimal — probe errors surface as `probe_ffprobe_exec` or `probe_parse_json` codes.
+**Current validation:** Rejects zero-byte inputs and files with no usable streams, and surfaces ffprobe errors as `probe_*` codes.
 
 ### 2. Plan Stage
 
@@ -72,6 +72,8 @@ Honeymelon converts media files through a three-stage pipeline:
 
 **Output:** `PlannerDecision` with `ffmpegArgs: string[]`, `remuxOnly: boolean`, `notes`, `warnings`
 
+**Note:** Subtitle burn-in is currently surfaced as a warning; filters are not injected yet.
+
 ### 3. Execute Stage
 
 **Purpose:** Spawn FFmpeg process and monitor progress until completion.
@@ -90,7 +92,7 @@ Honeymelon converts media files through a three-stage pipeline:
 1. **Tauri command** `start_job(job_id, args, output_path, exclusive)`:
    - Validates args via `JobValidator`
    - Resolves FFmpeg path via `ProcessSpawner::resolve_ffmpeg()`
-   - Creates temp output path (`<output>.tmp`)
+   - Creates temp output path (`<stem>.tmp.<ext>`)
    - Spawns FFmpeg via `Command::new(ffmpeg_path).args(args).arg(temp_path)`
    - Registers job in `JobRegistry`
 2. **Progress monitoring** in background thread:
@@ -100,7 +102,7 @@ Honeymelon converts media files through a three-stage pipeline:
    - Stores recent logs in circular buffer
 3. **Completion handling:**
    - Captures exit status
-   - On success: moves temp file to final path via `OutputManager::finalize()`
+   - On success: validates output and moves temp file to final path via `OutputManager::finalize()`
    - On failure: cleans up temp file
    - Emits `ffmpeg://completion` event with success/failure/cancelled status
 
@@ -116,7 +118,7 @@ FFmpeg arguments are built entirely in TypeScript (`FFmpegArgsBuilder`) as a `st
 -i <input>
 -map 0:v:0? -c:v <video_codec> [video_options...]
 -map 0:a:0? -c:a <audio_codec> [audio_options...]
--map 0:s? -c:s copy [subtitle_options...]
+-map 0:s? -c:s copy|mov_text [subtitle_options...]
 -movflags +faststart (for MP4/MOV)
 -f <muxer>
 -progress pipe:2 -nostats
@@ -190,17 +192,13 @@ FFmpeg arguments are built entirely in TypeScript (`FFmpegArgsBuilder`) as a `st
 
 ## Timeout Handling
 
-**Current:** None — jobs run indefinitely until completion, failure, or manual cancellation.
+**Current:** Adaptive timeout based on media duration (`calculate_timeout`), with a 10-minute minimum and a 2-hour cap.
 
 ---
 
 ## Output Validation
 
-**Current:** Minimal — only checks FFmpeg exit code. No verification that:
-
-- Output file exists
-- Output file has non-zero size
-- Output file is valid media
+**Current:** Validates output for existence, non-zero size, and expected audio/video streams using a quick ffprobe check (`src-tauri/src/runner/output_validator.rs`).
 
 ---
 
@@ -222,19 +220,17 @@ FFmpeg arguments are built entirely in TypeScript (`FFmpegArgsBuilder`) as a `st
 - `job_complete` — Success
 - `job_failed` — Generic failure
 - `job_cancelled` — User cancelled
+- `validation_*` — Output validation failures
 
-**No mapping** from FFmpeg stderr patterns to user-friendly categories.
+**Classification:** `ffmpeg_errors.rs` parses stderr patterns into categories and user-facing messages.
 
 ---
 
 ## Known Gaps
 
-1. **No input validation** — Probe doesn't reject zero-byte files or files with no streams
-2. **No timeout** — Long-running encodes can hang indefinitely
-3. **No output validation** — Success based solely on exit code
-4. **No error classification** — stderr content not analyzed for user-friendly messages
-5. **No concurrency tiers** — All jobs treated equally regardless of encoding cost
-6. **No test corpus** — No automated regression tests for the pipeline
+1. **Subtitle burn-in not implemented** — Planner warns but filters are not injected yet.
+2. **No user-controlled stream selection** — Default streams are used for all jobs.
+3. **No job persistence** — Queue does not survive restarts.
 
 ---
 

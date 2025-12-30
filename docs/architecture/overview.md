@@ -115,7 +115,9 @@ sequenceDiagram
     participant FFmpeg as FFmpeg Process
 
     UI->>Store: Add Job
-    Store->>Backend: invoke('start_conversion')
+    Store->>Backend: invoke('probe_media')
+    Store->>Store: planJob()
+    Store->>Backend: invoke('start_job')
     Backend->>FFmpeg: Spawn Process
     loop Progress Updates
         FFmpeg-->>Backend: stderr output
@@ -213,7 +215,6 @@ honeymelon/
 │   └── Cargo.toml               # Rust dependencies
 │
 ├── docs/                         # VitePress documentation
-├── e2e/                          # Playwright tests
 ├── public/                       # Static assets served as-is
 └── src-tauri/bin/                # Bundled FFmpeg binaries (ffmpeg/ffprobe)
 
@@ -261,14 +262,14 @@ graph TD
 import { invoke } from '@tauri-apps/api/core';
 
 const result = await invoke('probe_media', {
-  filePath: '/path/to/video.mp4',
+  path: '/path/to/video.mp4',
 });
 ```
 
 ```rust
 // Backend
 #[tauri::command]
-async fn probe_media(file_path: String) -> Result<ProbeResult, String> {
+async fn probe_media(path: String) -> Result<ProbeSummary, String> {
     // Execute FFprobe and return results
 }
 
@@ -287,7 +288,7 @@ app.emit("ffmpeg://progress", ProgressPayload { ... })?;
 import { listen } from '@tauri-apps/api/event';
 
 listen('ffmpeg://progress', (event) => {
-  console.log('Progress:', event.payload);
+  console.log('Progress:', event.payload.progress);
 });
 ```
 
@@ -319,13 +320,19 @@ for line in reader.lines() {
 
 ```typescript
 type JobState =
-  | { status: 'queued'; sourceFile: string; presetId: string; tier: QualityTier }
-  | { status: 'probing'; probeStartedAt: number }
-  | { status: 'planning'; probe: ProbeSummary }
-  | { status: 'running'; progress: number; fps?: number; etaSeconds?: number }
-  | { status: 'completed'; outputFile: string; durationMs: number }
-  | { status: 'failed'; error: string; logs: string[] }
-  | { status: 'cancelled'; reason?: string };
+  | { status: 'queued'; enqueuedAt: number }
+  | { status: 'probing'; enqueuedAt: number; startedAt: number }
+  | { status: 'planning'; enqueuedAt: number; startedAt: number; probeSummary: ProbeSummary }
+  | { status: 'running'; enqueuedAt: number; startedAt: number; progress: JobProgress }
+  | {
+      status: 'completed';
+      enqueuedAt: number;
+      startedAt: number;
+      finishedAt: number;
+      outputPath: string;
+    }
+  | { status: 'failed'; enqueuedAt: number; startedAt: number; finishedAt: number; error: string }
+  | { status: 'cancelled'; enqueuedAt: number; startedAt: number; finishedAt: number };
 
 interface JobRecord {
   id: string;
@@ -405,15 +412,8 @@ Rust types are serialized to JSON and deserialized in TypeScript, maintaining ty
 
 ### Backend Tests (Cargo Test)
 
-- 106 Rust unit tests
-- Integration tests for FFmpeg interaction
+- Rust unit tests and pipeline validation coverage
 - Error handling tests
-
-### E2E Tests (Playwright)
-
-- Full workflow testing
-- UI interaction testing
-- Cross-platform compatibility
 
 ## Build & Deployment
 

@@ -44,30 +44,7 @@ Each stage has specific responsibilities and can fail independently, allowing fo
 
 ### Extracted Metadata
 
-```typescript
-interface ProbeResult {
-  duration: number; // Total duration in seconds
-  size: number; // File size in bytes
-  bitrate: number; // Overall bitrate
-
-  // Video stream
-  videoCodec?: string; // e.g., "h264", "hevc", "vp9"
-  width?: number; // Video width in pixels
-  height?: number; // Video height in pixels
-  fps?: number; // Frame rate
-  videoBitrate?: number; // Video stream bitrate
-  pixelFormat?: string; // e.g., "yuv420p"
-  colorSpace?: string; // e.g., "bt709"
-  colorPrimaries?: string;
-  colorTransfer?: string;
-
-  // Audio stream
-  audioCodec?: string; // e.g., "aac", "opus", "mp3"
-  audioChannels?: number; // Number of audio channels
-  audioSampleRate?: number; // Sample rate in Hz
-  audioBitrate?: number; // Audio stream bitrate
-}
-```
+`ProbeSummary` captures the normalized fields used for planning (duration, size, codecs, frame rate, channels, and color metadata when present). See `src-tauri/src/ffmpeg_probe.rs` and `src/lib/types.ts` for the current structure.
 
 ### Error Handling
 
@@ -91,31 +68,12 @@ Each error is caught and reported with a user-friendly message.
 **Process**:
 
 ```typescript
-function generatePlan(probe: ProbeResult, preset: Preset, quality: QualityTier): FFmpegPlan;
+function planJob(context: PlannerContext): PlannerDecision;
 ```
 
-### Container Compatibility Rules
+### Preset-Driven Planning
 
-**Location**: [src/lib/container-rules.ts](../../src/lib/container-rules.ts)
-
-Defines which codecs are compatible with which containers:
-
-```typescript
-const MP4_RULES = {
-  video: ['h264', 'hevc'],
-  audio: ['aac', 'mp3'],
-};
-
-const MKV_RULES = {
-  video: ['h264', 'hevc', 'vp9', 'av1', 'prores'],
-  audio: ['aac', 'opus', 'flac', 'mp3', 'pcm'],
-};
-
-const WEBM_RULES = {
-  video: ['vp8', 'vp9', 'av1'],
-  audio: ['opus', 'vorbis'],
-};
-```
+Presets define the target container and codecs. The planners decide copy vs transcode based on whether the source codecs already match the preset targets (or the preset is remux-only).
 
 ### Stream Action Determination
 
@@ -123,10 +81,10 @@ For each stream (video, audio), the planner determines one of three actions:
 
 #### Copy (Remux)
 
-**Condition**: Source codec is compatible with target container
+**Condition**: Source codec already matches the preset target (or preset is `copy`)
 
 ```typescript
-if (probe.videoCodec === 'h264' && targetContainer === 'mp4') {
+if (probe.videoCodec === 'h264' && preset.video.codec === 'h264') {
   videoAction = 'copy';
 }
 ```
@@ -141,10 +99,10 @@ if (probe.videoCodec === 'h264' && targetContainer === 'mp4') {
 
 #### Transcode
 
-**Condition**: Codec incompatible or quality tier requires it
+**Condition**: Source codec differs from the preset target and the preset is not `copy`
 
 ```typescript
-if (probe.videoCodec === 'vp9' && targetContainer === 'mp4') {
+if (probe.videoCodec === 'vp9' && preset.video.codec === 'h264') {
   videoAction = 'transcode';
   videoCodec = 'h264';
 }
@@ -153,44 +111,31 @@ if (probe.videoCodec === 'vp9' && targetContainer === 'mp4') {
 **FFmpeg Arguments** (example):
 
 ```bash
--c:v libx264 -preset medium -crf 23
+-c:v libx264
 
 ```
-
-**Parameters based on quality tier**:
-
-| Tier     | CRF | Preset | Bitrate   |
-| -------- | --- | ------ | --------- |
-| Fast     | 23  | fast   | N/A (CRF) |
-| Balanced | 23  | medium | N/A (CRF) |
-| High     | 18  | slow   | N/A (CRF) |
 
 #### Drop
 
-**Condition**: Stream not supported or unwanted
+**Condition**: No source stream or preset explicitly disables the stream
 
 ```typescript
-if (probe.subtitleStreams && !preset.includeSubtitles) {
-  subtitleAction = 'drop';
+if (!probe.videoCodec || preset.video.codec === 'none') {
+  videoAction = 'drop';
 }
 ```
 
-**FFmpeg Argument**: `-sn` (no subtitles)
+**FFmpeg Argument**: `-vn` (no video), `-an` (no audio), or `-sn` (no subtitles)
 
 ### Plan Output
 
 ```typescript
-interface FFmpegPlan {
-  videoAction: 'copy' | 'transcode' | 'drop';
-  videoCodec?: string;
-  videoOptions?: string[];
-
-  audioAction: 'copy' | 'transcode' | 'drop';
-  audioCodec?: string;
-  audioOptions?: string[];
-
-  containerOptions?: string[];
-  estimatedSpeed: 'fast' | 'moderate' | 'slow';
+interface PlannerDecision {
+  preset: Preset;
+  ffmpegArgs: string[];
+  remuxOnly: boolean;
+  notes: string[];
+  warnings: string[];
 }
 ```
 
@@ -206,7 +151,6 @@ Quality: Fast
 Plan:
   Video: H.264 > Copy (compatible)
   Audio: AAC > Copy (compatible)
-  Estimated Speed: Fast (remux)
 
 FFmpeg Command:
   ffmpeg -i video.mkv -c:v copy -c:a copy output.mp4
@@ -223,33 +167,25 @@ Quality: Balanced
 Plan:
   Video: VP9 > Transcode to H.264 (incompatible)
   Audio: Opus > Transcode to AAC (incompatible)
-  Estimated Speed: Moderate (transcode)
 
 FFmpeg Command:
-  ffmpeg -i video.mkv \
-    -c:v libx264 -preset medium -crf 23 \
-    -c:a aac -b:a 192k \
-    output.mp4
+  ffmpeg -i video.mkv -c:v libx264 -c:a aac output.mp4
 
 ```
 
-#### Example 3: High Quality Archive
+#### Example 3: MKV Remux
 
 ```text
-Input: video.mov (ProRes + PCM)
+Input: video.mov (H.264 + AAC)
 Preset: video-to-mkv
-Quality: High
+Quality: Fast
 
 Plan:
-  Video: ProRes > Transcode to H.265 (user wants compression)
-  Audio: PCM > Transcode to FLAC (lossless compression)
-  Estimated Speed: Slow (high quality encode)
+  Video: H.264 > Copy
+  Audio: AAC > Copy
 
 FFmpeg Command:
-  ffmpeg -i video.mov \
-    -c:v libx265 -preset slow -crf 18 \
-    -c:a flac \
-    output.mkv
+  ffmpeg -i video.mov -c:v copy -c:a copy output.mkv
 
 ```
 
@@ -272,27 +208,11 @@ FFmpeg Command:
 
 ### Progress Parsing
 
-FFmpeg outputs progress to stderr:
+FFmpeg progress is read from stderr. The monitor accepts both key-value progress lines (`out_time=...`) and inline status lines (`time=...`), extracting:
 
-```text
-frame= 150 fps= 30 q=28.0 size= 1024kB time=00:00:05.00 bitrate=1677.7kbits/s speed=1.0x
-
-```
-
-**Parsed Fields**:
-
-- `frame`: Current frame number
-- `fps`: Encoding speed (frames per second)
-- `time`: Current position in media file
-- `speed`: Encoding speed relative to playback
-
-**Progress Calculation**:
-
-```rust
-let percentage = (current_time / total_duration) * 100.0;
-let eta = (total_duration - current_time) / speed;
-
-```
+- `processed_seconds`
+- `fps`
+- `speed`
 
 ### Event Emission
 
@@ -301,11 +221,12 @@ As FFmpeg runs, the backend emits events to the frontend:
 ```rust
 app.emit("ffmpeg://progress", ProgressPayload {
     job_id: job.id.clone(),
-    frame: 150,
-    fps: 30.0,
-    percentage: 25.0,
-    eta_seconds: 15.0,
-    speed: "1.0x".to_string(),
+    progress: ProgressMetrics {
+        processed_seconds: Some(5.0),
+        fps: Some(30.0),
+        speed: Some(1.0),
+    },
+    raw: line,
 })?;
 
 ```
@@ -314,10 +235,8 @@ Frontend listens and updates UI:
 
 ```typescript
 listen<ProgressPayload>('ffmpeg://progress', (event) => {
-  const job = findJob(event.payload.job_id);
-  job.progress = event.payload.percentage;
-  job.fps = event.payload.fps;
-  job.eta = event.payload.eta_seconds;
+  const job = findJob(event.payload.jobId);
+  job.progress = event.payload.progress;
 });
 ```
 
@@ -330,17 +249,17 @@ FFmpeg exits with a status code:
 
 **Success Path**:
 
-1. Verify output file exists
-2. Atomic move to final location (prevents partial files)
+1. Validate the temp output file (exists, non-zero size, expected streams)
+2. Atomically move temp file (`<stem>.tmp.<ext>`) to the final location
 3. Emit `ffmpeg://completion` event
 4. Update job state to `completed`
 
 **Error Path**:
 
-1. Capture stderr output (error message)
+1. Classify stderr output into an error category
 2. Clean up partial output file
-3. Emit `ffmpeg://completion` with error
-4. Update job state to `failed` with error message
+3. Emit `ffmpeg://completion` with error details
+4. Update job state to `failed` with a user-facing message
 
 ### Cancellation
 
@@ -355,22 +274,7 @@ User can cancel a running job:
 
 ### Hardware Acceleration
 
-When encoding H.264/H.265 on Apple Silicon:
-
-```bash
-# Software encoder (slower, higher quality)
--c:v libx264
-
-# Hardware encoder (faster, good quality)
--c:v h264_videotoolbox
-
-```
-
-Automatically selected based on:
-
-- Processor type (Apple Silicon)
-- Target codec (H.264 or H.265)
-- User preference (can be disabled)
+When encoding to H.264, the planner prefers hardware encoders (such as `h264_videotoolbox`) if they are available in the detected FFmpeg capabilities. Otherwise it falls back to software encoders (for example `libx264`).
 
 ### Two-Pass Encoding (Future Feature)
 
@@ -389,24 +293,6 @@ ffmpeg -i input.mp4 -c:v libx264 -b:v 2M -pass 1 -f null /dev/null
 ffmpeg -i input.mp4 -c:v libx264 -b:v 2M -pass 2 output.mp4
 ```
 
-### Quality Presets
-
-FFmpeg's `-preset` option balances speed vs. compression:
-
-| Preset    | Encode Speed | File Size | Quality   |
-| --------- | ------------ | --------- | --------- |
-| ultrafast | Fastest      | Largest   | Lowest    |
-| fast      | Fast         | Large     | Good      |
-| medium    | Moderate     | Medium    | Good      |
-| slow      | Slow         | Small     | Excellent |
-| veryslow  | Very Slow    | Smallest  | Best      |
-
-Honeymelon uses:
-
-- **Fast tier**: `fast`
-- **Balanced tier**: `medium`
-- **High tier**: `slow`
-
 ## Error Recovery
 
 ### Retryable Errors
@@ -424,22 +310,6 @@ Some errors require user intervention:
 - **Corrupted file**: Cannot be fixed automatically
 - **Insufficient permissions**: User must grant access
 - **Unsupported codec**: Cannot be encoded
-
-## Performance Metrics
-
-Typical performance by operation:
-
-| Operation | FPS       | Real-Time Speed | Use Case         |
-| --------- | --------- | --------------- | ---------------- |
-| Remux     | 500-1000+ | 20-40x          | Format change    |
-| H.264 HW  | 60-150    | 2-6x            | Fast encode      |
-| H.265 HW  | 30-80     | 1-3x            | Efficient encode |
-| H.264 SW  | 20-60     | 0.8-2x          | Quality encode   |
-| H.265 SW  | 5-25      | 0.2-1x          | High quality     |
-| VP9       | 3-10      | 0.1-0.4x        | Web streaming    |
-| AV1       | 1-5       | 0.04-0.2x       | Next-gen web     |
-
-### FPS values for 1080p content on M1 Mac
 
 ## Next Steps
 

@@ -238,7 +238,6 @@ async fn convert_file(input: String, output: String) -> Result<(), String> {
 
 - IPC between frontend and backend
 - Native file dialogs
-- System tray integration
 - Auto-updates (future)
 
 ### Tokio
@@ -320,18 +319,12 @@ let json = serde_json::to_string(&probe_result)?;
 **Frontend**:
 
 - **Vitest**: Fast, Vite-native test runner
-- **@vue/test-utils**: Vue component testing
 - **happy-dom**: Lightweight DOM for tests
 
 **Backend**:
 
 - **Cargo Test**: Built-in Rust testing
-- **106 unit tests**: Comprehensive coverage
-
-**E2E**:
-
-- **Playwright**: Cross-browser testing
-- **TypeScript**: Type-safe test scripts
+- Rust unit tests and pipeline validation coverage
 
 ### Linting & Formatting
 
@@ -383,36 +376,6 @@ npm run tauri:build
 - **Notarization**: macOS notarization
 - **Auto-Updates**: Tauri updater
 - **CI/CD**: GitHub Actions
-
-## Performance Characteristics
-
-### Bundle Size
-
-| Component          | Size    |
-| ------------------ | ------- |
-| Tauri Runtime      | ~5 MB   |
-| Vue + Dependencies | ~500 KB |
-| Rust Binary        | ~2 MB   |
-| **Total App**      | ~8 MB   |
-
-Compare to Electron: ~100-150 MB
-
-### Memory Usage
-
-| State         | RAM        |
-| ------------- | ---------- |
-| Idle          | 60-80 MB   |
-| 1 Conversion  | 100-150 MB |
-| 4 Conversions | 200-300 MB |
-
-Compare to Electron: 200-400 MB idle
-
-### Startup Time
-
-- **Cold Start**: ~500ms
-- **Warm Start**: ~200ms
-
-Compare to Electron: 1-3 seconds
 
 ## Decision Trade-offs
 

@@ -22,30 +22,15 @@ Honeymelon uses Pinia for reactive state management with discriminated union typ
 const jobs = useJobsStore();
 
 // Enqueue a file
-const id = jobs.enqueue('/path/to/file.mp4', 'preset-id', 'balanced');
+const id = jobs.enqueue('/path/to/file.mp4', 'video-to-mp4', 'balanced');
 
-// Start next job (facade delegates to underlying composables)
-jobs.startNext();
-
-// Subscribe to progress via computed store values
+// Inspect queue state
 const running = jobs.activeJobs;
 ```
 
 ### Preferences Store
 
-**Location**: `src/stores/prefs.ts` (persists via `@tauri-apps/plugin-store` in desktop builds and falls back to local storage in browser/unit-test contexts)
-
-```typescript
-// Example usage inside a composable
-import { Store } from '@tauri-apps/plugin-store';
-
-const store = new Store('.settings.dat');
-
-export function usePrefs() {
-  const outputDirectory = ref<string | null>(null);
-  // ... implementation omitted
-}
-```
+**Location**: `src/stores/prefs.ts` (persists via `src/lib/store.ts`, which uses `@tauri-apps/plugin-store` in desktop builds and falls back to in-memory/local storage in tests)
 
 ### Job State Representation
 
@@ -53,18 +38,25 @@ Job records wrap the discriminated union state along with metadata used by store
 
 ```typescript
 type JobState =
-  | { status: 'queued'; source: MediaFile; presetId: string; tier: QualityTier }
-  | { status: 'probing'; probeStartedAt: number }
-  | { status: 'planning'; probe: ProbeSummary }
-  | { status: 'running'; progress: number; fps?: number; etaSeconds?: number }
-  | { status: 'completed'; outputFile: string; durationMs: number }
-  | { status: 'failed'; error: string; logs: string[] }
-  | { status: 'cancelled'; reason?: string };
+  | { status: 'queued'; enqueuedAt: number }
+  | { status: 'probing'; enqueuedAt: number; startedAt: number }
+  | { status: 'planning'; enqueuedAt: number; startedAt: number; probeSummary: ProbeSummary }
+  | { status: 'running'; enqueuedAt: number; startedAt: number; progress: JobProgress }
+  | {
+      status: 'completed';
+      enqueuedAt: number;
+      startedAt: number;
+      finishedAt: number;
+      outputPath: string;
+    }
+  | { status: 'failed'; enqueuedAt: number; startedAt: number; finishedAt: number; error: string }
+  | { status: 'cancelled'; enqueuedAt: number; startedAt: number; finishedAt: number };
 
 interface JobRecord {
   id: string;
   path: string;
   presetId: string;
+  tier: QualityTier;
   exclusive: boolean;
   state: JobState;
   createdAt: number;
@@ -103,7 +95,7 @@ import { jobLifecycle } from '@/lib/job-lifecycle';
 
 jobService.update(jobId, (current) => {
   const nextState = reducer(current.state);
-  jobLifecycle.ensureTransition(current.state.status, nextState.status);
+  jobLifecycle.ensureTransition(current.state, nextState);
   return {
     ...current,
     state: nextState,
@@ -121,17 +113,19 @@ The Rust backend mirrors this check inside `can_transition_status` so commands a
 Derive state from the store:
 
 ```typescript
-const runningJobs = computed(() => jobs.value.filter((j) => j.status === 'running'));
+const runningJobs = computed(() => jobs.value.filter((j) => j.state.status === 'running'));
 
-const queuedJobs = computed(() => jobs.value.filter((j) => j.status === 'queued'));
+const queuedJobs = computed(() => jobs.value.filter((j) => j.state.status === 'queued'));
 
-const completedCount = computed(() => jobs.value.filter((j) => j.status === 'completed').length);
+const completedCount = computed(
+  () => jobs.value.filter((j) => j.state.status === 'completed').length,
+);
 
 const totalProgress = computed(() => {
   const running = runningJobs.value;
   if (running.length === 0) return 0;
 
-  const sum = running.reduce((acc, job) => acc + job.progress, 0);
+  const sum = running.reduce((acc, job) => acc + (job.state.progress?.ratio ?? 0), 0);
   return sum / running.length;
 });
 ```
@@ -152,10 +146,9 @@ watch(
 );
 
 watch(
-  () => prefs.concurrentJobs,
-  (newLimit) => {
-    // Adjust concurrency
-    adjustConcurrency(newLimit);
+  () => prefsStore.maxConcurrency,
+  () => {
+    // Adjust concurrency if needed
   },
 );
 ```
@@ -205,33 +198,7 @@ onBeforeUnmount(() => {
 
 ### Preferences Persistence
 
-Preferences are persisted to local storage:
-
-```typescript
-// Save preferences
-function savePreferences() {
-  const prefs = {
-    outputDirectory: outputDirectory.value,
-    filenameSuffix: filenameSuffix.value,
-    concurrentJobs: concurrentJobs.value,
-    defaultQuality: defaultQuality.value,
-    hwAccelEnabled: hwAccelEnabled.value,
-  };
-
-  localStorage.setItem('honeymelon-prefs', JSON.stringify(prefs));
-}
-
-// Load preferences
-function loadPreferences() {
-  const stored = localStorage.getItem('honeymelon-prefs');
-  if (!stored) return;
-
-  const prefs = JSON.parse(stored);
-  outputDirectory.value = prefs.outputDirectory;
-  filenameSuffix.value = prefs.filenameSuffix;
-  // ... load other fields
-}
-```
+Preferences are persisted via `src/lib/store.ts` to `settings.json` in the app support directory, with in-memory/local storage fallback in test contexts.
 
 ### Job State Persistence (Future Feature)
 
@@ -272,9 +239,7 @@ Process multiple jobs efficiently:
 
 ```typescript
 async function cancelAllJobs() {
-  const { running, queued } = jobService.partitionByStatus(['running', 'queued']);
-  await runner.cancelMany(running.map((job) => job.id));
-  jobService.markCancelled([...running, ...queued]);
+  await app.cancelAll();
 }
 ```
 
@@ -299,7 +264,7 @@ describe('Jobs Store', () => {
 
   it('adds a job to the queue', () => {
     const store = useJobsStore();
-    store.addJob('/path/to/file.mp4', 'video-to-mp4', 'balanced');
+    store.enqueue('/path/to/file.mp4', 'video-to-mp4', 'balanced');
 
     expect(store.jobs).toHaveLength(1);
     expect(store.jobs[0].status).toBe('queued');
@@ -307,7 +272,7 @@ describe('Jobs Store', () => {
 
   it('transitions job from queued to probing', async () => {
     const store = useJobsStore();
-    store.addJob('/path/to/file.mp4', 'video-to-mp4', 'balanced');
+    store.enqueue('/path/to/file.mp4', 'video-to-mp4', 'balanced');
 
     await store.startJob(store.jobs[0].id);
 
@@ -316,12 +281,12 @@ describe('Jobs Store', () => {
 
   it('respects concurrency limit', async () => {
     const store = useJobsStore();
-    store.concurrencyLimit = 2;
+    store.setConcurrency(2);
 
     // Add 3 jobs
-    store.addJob('/file1.mp4', 'video-to-mp4', 'balanced');
-    store.addJob('/file2.mp4', 'video-to-mp4', 'balanced');
-    store.addJob('/file3.mp4', 'video-to-mp4', 'balanced');
+    store.enqueue('/file1.mp4', 'video-to-mp4', 'balanced');
+    store.enqueue('/file2.mp4', 'video-to-mp4', 'balanced');
+    store.enqueue('/file3.mp4', 'video-to-mp4', 'balanced');
 
     // Start all
     await Promise.all(store.jobs.map((j) => store.startJob(j.id)));
