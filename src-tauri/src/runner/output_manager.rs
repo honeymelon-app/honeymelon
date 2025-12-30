@@ -98,23 +98,21 @@ impl OutputManager {
 mod tests {
     use super::*;
     use std::fs::File;
+    use tempfile::tempdir;
 
     #[test]
     fn test_prepare_creates_directories() {
-        let temp_dir = std::env::temp_dir();
-        let test_path = temp_dir.join("test_honeymelon_output/file.mp4");
+        let temp_dir = tempdir().expect("temp dir");
+        let test_path = temp_dir.path().join("test_honeymelon_output/file.mp4");
 
         let result = OutputManager::prepare(test_path.to_str().unwrap(), false);
         assert!(result.is_ok());
-
-        // Cleanup
-        let _ = fs::remove_dir_all(temp_dir.join("test_honeymelon_output"));
     }
 
     #[test]
     fn test_prepare_preserves_extension_in_temp_name() {
-        let temp_dir = std::env::temp_dir();
-        let test_path = temp_dir.join("test_honeymelon_output/image.bmp");
+        let temp_dir = tempdir().expect("temp dir");
+        let test_path = temp_dir.path().join("test_honeymelon_output/image.bmp");
 
         let result = OutputManager::prepare(test_path.to_str().unwrap(), false);
         assert!(result.is_ok());
@@ -124,15 +122,13 @@ mod tests {
             temp_path.file_name().and_then(|name| name.to_str()),
             Some("image.tmp.bmp")
         );
-
-        let _ = fs::remove_dir_all(temp_dir.join("test_honeymelon_output"));
     }
 
     #[test]
     fn test_finalize_moves_file() {
-        let temp_dir = std::env::temp_dir();
-        let temp_file = temp_dir.join("test_temp.txt");
-        let final_file = temp_dir.join("test_final.txt");
+        let temp_dir = tempdir().expect("temp dir");
+        let temp_file = temp_dir.path().join("test_temp.txt");
+        let final_file = temp_dir.path().join("test_final.txt");
 
         // Create temp file
         File::create(&temp_file).unwrap();
@@ -142,8 +138,5 @@ mod tests {
         assert!(result.is_ok());
         assert!(!temp_file.exists());
         assert!(final_file.exists());
-
-        // Cleanup
-        let _ = fs::remove_file(&final_file);
     }
 }
