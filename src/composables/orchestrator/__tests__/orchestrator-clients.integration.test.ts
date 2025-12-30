@@ -4,6 +4,7 @@ import { ref } from 'vue';
 import { createRunnerEventSubscriber } from '@/composables/orchestrator/event-subscriber';
 import { createPlannerClient } from '@/composables/orchestrator/planner-client';
 import { createRunnerClient } from '@/composables/orchestrator/runner-client';
+import { planJob } from '@/lib/ffmpeg-plan';
 import { ExecutionService } from '@/services/execution-service';
 import type { CapabilitySnapshot } from '@/lib/types';
 import type { useJobsStore } from '@/stores/jobs';
@@ -43,17 +44,26 @@ type JobsStoreStub = {
 };
 
 type JobsStoreInstance = ReturnType<typeof useJobsStore>;
+type JobStub = {
+  id: string;
+  path: string;
+  presetId: string;
+  tier: 'balanced' | 'fast' | 'high';
+  exclusive: boolean;
+  summary?: { durationSec?: number };
+};
 
-function createJobsStoreStub() {
-  const job = {
+function createJobsStoreStub(overrides: Partial<JobStub> = {}) {
+  const job: JobStub = {
     id: 'job-42',
     path: '/media/input.mov',
     presetId: 'video-to-mp4',
-    tier: 'balanced' as const,
+    tier: 'balanced',
     exclusive: false,
     summary: {
       durationSec: 64,
     },
+    ...overrides,
   };
 
   const stub: JobsStoreStub = {
@@ -76,7 +86,12 @@ describe('orchestrator planner/runner integration', () => {
   });
 
   it('plans a preset and starts a job via the runner client (tauri invoke mocked)', async () => {
-    invokeMock.mockResolvedValue(undefined);
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'file_exists') {
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(undefined);
+    });
 
     const capabilities = ref<CapabilitySnapshot | undefined>(undefined);
     const planner = createPlannerClient({
@@ -116,6 +131,153 @@ describe('orchestrator planner/runner integration', () => {
         exclusive: false,
       }),
     );
+  });
+
+  it('builds output paths with preset/tier and custom separator', async () => {
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'file_exists') {
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const planner = createPlannerClient({
+      simulate: true,
+      capabilities: ref<CapabilitySnapshot | undefined>(undefined),
+      requirePresetBeforeStart: false,
+    });
+
+    const decision = planner.ensureDecisionHasInput(
+      planJob({
+        presetId: 'video-to-mp4',
+        summary: {
+          durationSec: 64,
+          width: 1920,
+          height: 1080,
+          fps: 30,
+          vcodec: 'h264',
+          acodec: 'aac',
+        },
+      }),
+      '/media/input.mov',
+    );
+
+    const { job, stub } = createJobsStoreStub();
+    const runner = createRunnerClient({
+      jobs: stub as unknown as JobsStoreInstance,
+      outputDirectory: ref('/tmp/output'),
+      includePresetInName: ref(true),
+      includeTierInName: ref(true),
+      filenameSeparator: ref('--'),
+      simulate: false,
+      execution: new ExecutionService(),
+    });
+
+    await runner.run(job.id, decision);
+
+    expect(stub.setOutputPath).toHaveBeenCalledWith(
+      job.id,
+      '/tmp/output/input--video-to-mp4--balanced.mp4',
+    );
+  });
+
+  it('falls back to the source directory when output directory is empty', async () => {
+    invokeMock.mockImplementation((command: string) => {
+      if (command === 'file_exists') {
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const planner = createPlannerClient({
+      simulate: true,
+      capabilities: ref<CapabilitySnapshot | undefined>(undefined),
+      requirePresetBeforeStart: false,
+    });
+
+    const decision = planner.ensureDecisionHasInput(
+      planJob({
+        presetId: 'video-to-mp4',
+        summary: {
+          durationSec: 64,
+          width: 1920,
+          height: 1080,
+          fps: 30,
+          vcodec: 'h264',
+          acodec: 'aac',
+        },
+      }),
+      '/media/input.mov',
+    );
+
+    const { job, stub } = createJobsStoreStub({ path: '/media/input.mov' });
+    const runner = createRunnerClient({
+      jobs: stub as unknown as JobsStoreInstance,
+      outputDirectory: ref(''),
+      includePresetInName: ref(false),
+      includeTierInName: ref(false),
+      filenameSeparator: ref('-'),
+      simulate: false,
+      execution: new ExecutionService(),
+    });
+
+    await runner.run(job.id, decision);
+
+    expect(stub.setOutputPath).toHaveBeenCalledWith(job.id, '/media/input.mp4');
+  });
+
+  it('appends a numeric suffix when output already exists', async () => {
+    invokeMock.mockImplementation((command: string, payload?: { path?: string }) => {
+      if (command === 'file_exists' && payload?.path) {
+        if (payload.path === '/tmp/output/input.mp4') {
+          return Promise.resolve(true);
+        }
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const planner = createPlannerClient({
+      simulate: true,
+      capabilities: ref<CapabilitySnapshot | undefined>(undefined),
+      requirePresetBeforeStart: false,
+    });
+
+    const decision = planner.ensureDecisionHasInput(
+      planJob({
+        presetId: 'video-to-mp4',
+        summary: {
+          durationSec: 64,
+          width: 1920,
+          height: 1080,
+          fps: 30,
+          vcodec: 'h264',
+          acodec: 'aac',
+        },
+      }),
+      '/media/input.mov',
+    );
+
+    const { job, stub } = createJobsStoreStub();
+    const runner = createRunnerClient({
+      jobs: stub as unknown as JobsStoreInstance,
+      outputDirectory: ref('/tmp/output'),
+      includePresetInName: ref(false),
+      includeTierInName: ref(false),
+      filenameSeparator: ref('-'),
+      simulate: false,
+      execution: new ExecutionService(),
+    });
+
+    await runner.run(job.id, decision);
+
+    expect(stub.setOutputPath).toHaveBeenCalledWith(job.id, '/tmp/output/input (1).mp4');
+    expect(invokeMock).toHaveBeenCalledWith('file_exists', {
+      path: '/tmp/output/input.mp4',
+    });
+    expect(invokeMock).toHaveBeenCalledWith('file_exists', {
+      path: '/tmp/output/input (1).mp4',
+    });
   });
 
   it('cancels a running job via the runner client (tauri cancel mocked)', async () => {

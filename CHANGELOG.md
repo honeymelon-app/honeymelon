@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2025-12-30
+
+### Added
+
+- Expanded FFmpeg pipeline coverage with additional test media formats and representative conversion outputs.
+- Added planner/runner contract tests for output paths and filename collision handling.
+- Added capability regression tests for missing encoders and formats.
+
+### Changed
+
+- Refined DMG installer layout with a custom background and adjusted icon placement.
+
+### Fixed
+
+- Ensured BMP/TIFF image conversions use an FFmpeg-compatible output format mapping.
+
 ## [0.0.7] - 2025-12-26
 
 ### Added

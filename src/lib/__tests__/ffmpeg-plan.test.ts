@@ -122,6 +122,105 @@ describe('ffmpeg-plan', () => {
     expect(decision.ffmpegArgs).toContain('1');
   });
 
+  it('sets explicit output formats for bmp and tiff images', () => {
+    const bmpDecision = planJob({
+      presetId: 'image-to-bmp',
+      summary: { ...baseSummary, vcodec: 'png', acodec: undefined },
+      capabilities: {
+        ...emptyCapabilities,
+        videoEncoders: new Set(['bmp']),
+      },
+    });
+
+    expect(bmpDecision.ffmpegArgs).toContain('-f');
+    expect(bmpDecision.ffmpegArgs).toContain('image2');
+
+    const tiffDecision = planJob({
+      presetId: 'image-to-tiff',
+      summary: { ...baseSummary, vcodec: 'png', acodec: undefined },
+      capabilities: {
+        ...emptyCapabilities,
+        videoEncoders: new Set(['tiff']),
+      },
+    });
+
+    expect(tiffDecision.ffmpegArgs).toContain('-f');
+    expect(tiffDecision.ffmpegArgs).toContain('image2');
+  });
+
+  it('builds invariant args for every preset', () => {
+    const muxerMap: Record<string, string> = {
+      mp4: 'mp4',
+      mov: 'mp4',
+      m4v: 'mp4',
+      mkv: 'matroska',
+      webm: 'webm',
+      gif: 'gif',
+      avi: 'avi',
+      flv: 'flv',
+      ts: 'mpegts',
+      ogv: 'ogg',
+      mpeg: 'mpeg',
+      m4a: 'mp4',
+      mp3: 'mp3',
+      flac: 'flac',
+      wav: 'wav',
+      ogg: 'ogg',
+      aac: 'adts',
+      aiff: 'aiff',
+      opus: 'ogg',
+    };
+
+    const imageFormatMap: Record<string, string> = {
+      png: 'image2',
+      jpg: 'image2',
+      webp: 'image2',
+      bmp: 'bmp',
+      tiff: 'tiff',
+    };
+
+    for (const preset of PRESETS) {
+      const decision = planJob({ presetId: preset.id, summary: baseSummary });
+      const args = decision.ffmpegArgs;
+
+      if (preset.mediaKind === 'image') {
+        expect(args).not.toContain('-progress');
+        expect(args).toContain('-frames:v');
+        expect(args).toContain('1');
+        expect(args).toContain('-f');
+        expect(args).toContain(imageFormatMap[preset.container]);
+      } else {
+        expect(args).toContain('-progress');
+        expect(args).toContain('pipe:2');
+      }
+
+      const expectedMuxer = muxerMap[preset.container];
+      if (expectedMuxer) {
+        expect(args).toContain('-f');
+        expect(args).toContain(expectedMuxer);
+      }
+
+      if (preset.mediaKind === 'audio') {
+        expect(args).toContain('-vn');
+        expect(args).toContain('-c:a');
+      }
+
+      if (preset.mediaKind === 'video' && preset.container !== 'gif') {
+        expect(args).toContain('-c:v');
+        expect(args).toContain('-c:a');
+      }
+
+      if (preset.container === 'gif') {
+        expect(args).toContain('-filter_complex');
+        expect(args.some((arg) => arg.includes('palettegen'))).toBe(true);
+        expect(args).toContain('-loop');
+        expect(args).toContain('0');
+        expect(args).toContain('-an');
+        expect(args).toContain('-sn');
+      }
+    }
+  });
+
   it('warns when expected video streams are missing', () => {
     const decision = planJob({
       presetId: 'video-to-mp4',

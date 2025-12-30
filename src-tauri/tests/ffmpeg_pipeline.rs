@@ -295,6 +295,231 @@ fn execute_conversion(input_path: &Path, output_path: &Path, transcode: bool) ->
     }
 }
 
+/// Execute a simple video conversion with explicit codecs and format.
+fn execute_video_conversion(
+    input_path: &Path,
+    output_path: &Path,
+    format: Option<&str>,
+    video_codec: &str,
+    audio_codec: Option<&str>,
+) -> ConversionResult {
+    let ffmpeg = ffmpeg_path();
+
+    let mut args = vec![
+        "-y".to_string(),
+        "-i".to_string(),
+        input_path.to_str().unwrap().to_string(),
+        "-t".to_string(),
+        "0.5".to_string(),
+        "-c:v".to_string(),
+        video_codec.to_string(),
+    ];
+
+    match audio_codec {
+        Some(codec) => {
+            args.push("-c:a".to_string());
+            args.push(codec.to_string());
+        },
+        None => {
+            args.push("-an".to_string());
+        },
+    }
+
+    if let Some(format) = format {
+        args.push("-f".to_string());
+        args.push(format.to_string());
+    }
+
+    let output = Command::new(&ffmpeg).args(&args).arg(output_path).output();
+
+    match output {
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            if output.status.success() {
+                let output_exists = output_path.exists();
+                let output_size = if output_exists {
+                    fs::metadata(output_path).map(|m| m.len()).unwrap_or(0)
+                } else {
+                    0
+                };
+
+                ConversionResult {
+                    success: output_exists && output_size > 0,
+                    exit_code: output.status.code(),
+                    output_exists,
+                    output_size,
+                    stderr: if stderr.is_empty() {
+                        None
+                    } else {
+                        Some(stderr)
+                    },
+                    error_category: None,
+                }
+            } else {
+                let category = classify_ffmpeg_error(&stderr, output.status.code());
+                ConversionResult {
+                    success: false,
+                    exit_code: output.status.code(),
+                    output_exists: output_path.exists(),
+                    output_size: 0,
+                    stderr: Some(stderr),
+                    error_category: Some(category),
+                }
+            }
+        },
+        Err(e) => ConversionResult {
+            success: false,
+            exit_code: None,
+            output_exists: false,
+            output_size: 0,
+            stderr: Some(e.to_string()),
+            error_category: Some(ErrorCategory::InternalPipelineError),
+        },
+    }
+}
+
+/// Execute a simple audio conversion with explicit codec and format.
+fn execute_audio_conversion(
+    input_path: &Path,
+    output_path: &Path,
+    format: Option<&str>,
+    audio_codec: &str,
+) -> ConversionResult {
+    let ffmpeg = ffmpeg_path();
+
+    let mut args = vec![
+        "-y".to_string(),
+        "-i".to_string(),
+        input_path.to_str().unwrap().to_string(),
+        "-t".to_string(),
+        "0.5".to_string(),
+        "-vn".to_string(),
+        "-c:a".to_string(),
+        audio_codec.to_string(),
+    ];
+
+    if let Some(format) = format {
+        args.push("-f".to_string());
+        args.push(format.to_string());
+    }
+
+    let output = Command::new(&ffmpeg).args(&args).arg(output_path).output();
+
+    match output {
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            if output.status.success() {
+                let output_exists = output_path.exists();
+                let output_size = if output_exists {
+                    fs::metadata(output_path).map(|m| m.len()).unwrap_or(0)
+                } else {
+                    0
+                };
+
+                ConversionResult {
+                    success: output_exists && output_size > 0,
+                    exit_code: output.status.code(),
+                    output_exists,
+                    output_size,
+                    stderr: if stderr.is_empty() {
+                        None
+                    } else {
+                        Some(stderr)
+                    },
+                    error_category: None,
+                }
+            } else {
+                let category = classify_ffmpeg_error(&stderr, output.status.code());
+                ConversionResult {
+                    success: false,
+                    exit_code: output.status.code(),
+                    output_exists: output_path.exists(),
+                    output_size: 0,
+                    stderr: Some(stderr),
+                    error_category: Some(category),
+                }
+            }
+        },
+        Err(e) => ConversionResult {
+            success: false,
+            exit_code: None,
+            output_exists: false,
+            output_size: 0,
+            stderr: Some(e.to_string()),
+            error_category: Some(ErrorCategory::InternalPipelineError),
+        },
+    }
+}
+
+/// Execute a simple image conversion to a single-frame output.
+fn execute_image_conversion(
+    input_path: &Path,
+    output_path: &Path,
+    format: &str,
+    codec: &str,
+) -> ConversionResult {
+    let ffmpeg = ffmpeg_path();
+
+    let args = vec![
+        "-y".to_string(),
+        "-i".to_string(),
+        input_path.to_str().unwrap().to_string(),
+        "-f".to_string(),
+        format.to_string(),
+        "-c:v".to_string(),
+        codec.to_string(),
+        "-frames:v".to_string(),
+        "1".to_string(),
+    ];
+
+    let output = Command::new(&ffmpeg).args(&args).arg(output_path).output();
+
+    match output {
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            if output.status.success() {
+                let output_exists = output_path.exists();
+                let output_size = if output_exists {
+                    fs::metadata(output_path).map(|m| m.len()).unwrap_or(0)
+                } else {
+                    0
+                };
+
+                ConversionResult {
+                    success: output_exists && output_size > 0,
+                    exit_code: output.status.code(),
+                    output_exists,
+                    output_size,
+                    stderr: if stderr.is_empty() {
+                        None
+                    } else {
+                        Some(stderr)
+                    },
+                    error_category: None,
+                }
+            } else {
+                let category = classify_ffmpeg_error(&stderr, output.status.code());
+                ConversionResult {
+                    success: false,
+                    exit_code: output.status.code(),
+                    output_exists: output_path.exists(),
+                    output_size: 0,
+                    stderr: Some(stderr),
+                    error_category: Some(category),
+                }
+            }
+        },
+        Err(e) => ConversionResult {
+            success: false,
+            exit_code: None,
+            output_exists: false,
+            output_size: 0,
+            stderr: Some(e.to_string()),
+            error_category: Some(ErrorCategory::InternalPipelineError),
+        },
+    }
+}
+
 /// Result of a conversion attempt
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -444,6 +669,8 @@ fn normal_video_files_probe_successfully() {
         ("normal/h264_aac_4k.mp4", true, true),
         ("normal/hevc_720p.mp4", true, true),
         ("normal/vp9_opus.webm", true, true),
+        ("normal/h264_aac_mkv.mkv", true, true),
+        ("normal/h264_aac_mov.mov", true, true),
     ];
 
     let media_dir = test_media_dir();
@@ -499,6 +726,10 @@ fn normal_audio_files_probe_successfully() {
         "normal/audio_stereo.mp3",
         "normal/audio_lossless.flac",
         "normal/audio_pcm.wav",
+        "normal/audio_vorbis.ogg",
+        "normal/audio_opus.opus",
+        "normal/audio_aac.aac",
+        "normal/audio_aiff.aiff",
     ];
 
     let media_dir = test_media_dir();
@@ -543,6 +774,8 @@ fn normal_image_files_probe_successfully() {
         "normal/image_test.png",
         "normal/image_photo.jpg",
         "normal/image_web.webp",
+        "normal/image_bitmap.bmp",
+        "normal/image_scan.tiff",
     ];
 
     let media_dir = test_media_dir();
@@ -576,6 +809,173 @@ fn normal_image_files_probe_successfully() {
             result.width.unwrap_or(0),
             result.height.unwrap_or(0)
         );
+    }
+}
+
+/// Test that image files can be converted to BMP/TIFF even with temp extensions
+#[test]
+fn normal_image_files_convert_successfully() {
+    if !check_ffmpeg_available() || !check_test_media_available() {
+        eprintln!("[WARN] Skipping test: Dependencies not available");
+        return;
+    }
+
+    let media_dir = test_media_dir();
+    let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+
+    let input_path = media_dir.join("normal/image_test.png");
+    if !input_path.exists() {
+        eprintln!("  [WARN] File not found, skipping");
+        return;
+    }
+
+    let conversions = [
+        ("image2", "bmp", "image_to_bmp.bmp.tmp"),
+        ("image2", "tiff", "image_to_tiff.tiff.tmp"),
+    ];
+
+    for (format, codec, file_name) in conversions {
+        let output_path = temp_dir.path().join(file_name);
+        println!("\n Converting image_test.png -> {}", file_name);
+
+        let result = execute_image_conversion(&input_path, &output_path, format, codec);
+
+        assert!(
+            result.success,
+            "Image conversion failed for {}: {:?}",
+            file_name, result.stderr
+        );
+        assert!(result.output_exists, "{} output not created", file_name);
+        assert!(result.output_size > 0, "{} output is empty", file_name);
+
+        let validation = validate_output(&output_path, true, false);
+        assert!(
+            validation.valid,
+            "Output validation failed for {}: {:?}",
+            file_name, validation.error
+        );
+
+        println!("  [OK] Image conversion OK: {} bytes", result.output_size);
+
+        let _ = fs::remove_file(&output_path);
+    }
+}
+
+/// Test representative video outputs across containers/codecs
+#[test]
+fn normal_video_outputs_convert_successfully() {
+    if !check_ffmpeg_available() || !check_test_media_available() {
+        eprintln!("[WARN] Skipping test: Dependencies not available");
+        return;
+    }
+
+    let media_dir = test_media_dir();
+    let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let input_path = media_dir.join("normal/h264_aac_1080p.mp4");
+
+    if !input_path.exists() {
+        eprintln!("  [WARN] File not found, skipping");
+        return;
+    }
+
+    let conversions = [
+        ("output_mp4.mp4", Some("mp4"), "libx264", Some("aac")),
+        ("output_mov.mov", Some("mp4"), "libx264", Some("aac")),
+        ("output_mkv.mkv", Some("matroska"), "libx264", Some("aac")),
+        (
+            "output_webm.webm",
+            Some("webm"),
+            "libvpx-vp9",
+            Some("libopus"),
+        ),
+        ("output_avi.avi", Some("avi"), "mpeg4", Some("libmp3lame")),
+        ("output_flv.flv", Some("flv"), "libx264", Some("aac")),
+        ("output_ts.ts", Some("mpegts"), "libx264", Some("aac")),
+        (
+            "output_ogv.ogv",
+            Some("ogg"),
+            "libtheora",
+            Some("libvorbis"),
+        ),
+        ("output_mpeg.mpeg", Some("mpeg"), "mpeg2video", Some("mp2")),
+    ];
+
+    for (file_name, format, vcodec, acodec) in conversions {
+        let output_path = temp_dir.path().join(file_name);
+        println!("\n Converting video -> {}", file_name);
+
+        let result = execute_video_conversion(&input_path, &output_path, format, vcodec, acodec);
+
+        assert!(
+            result.success,
+            "Video conversion failed for {}: {:?}",
+            file_name, result.stderr
+        );
+        assert!(result.output_exists, "{} output not created", file_name);
+        assert!(result.output_size > 0, "{} output is empty", file_name);
+
+        let validation = validate_output(&output_path, true, true);
+        assert!(
+            validation.valid,
+            "Output validation failed for {}: {:?}",
+            file_name, validation.error
+        );
+
+        println!("  [OK] Video conversion OK: {} bytes", result.output_size);
+
+        let _ = fs::remove_file(&output_path);
+    }
+}
+
+/// Test representative audio outputs across containers/codecs
+#[test]
+fn normal_audio_outputs_convert_successfully() {
+    if !check_ffmpeg_available() || !check_test_media_available() {
+        eprintln!("[WARN] Skipping test: Dependencies not available");
+        return;
+    }
+
+    let media_dir = test_media_dir();
+    let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let input_path = media_dir.join("normal/audio_stereo.mp3");
+
+    if !input_path.exists() {
+        eprintln!("  [WARN] File not found, skipping");
+        return;
+    }
+
+    let conversions = [
+        ("output_m4a.m4a", Some("mp4"), "aac"),
+        ("output_ogg.ogg", Some("ogg"), "libvorbis"),
+        ("output_opus.opus", Some("ogg"), "libopus"),
+        ("output_aiff.aiff", Some("aiff"), "pcm_s16le"),
+        ("output_aac.aac", Some("adts"), "aac"),
+    ];
+
+    for (file_name, format, codec) in conversions {
+        let output_path = temp_dir.path().join(file_name);
+        println!("\n Converting audio -> {}", file_name);
+
+        let result = execute_audio_conversion(&input_path, &output_path, format, codec);
+
+        assert!(
+            result.success,
+            "Audio conversion failed for {}: {:?}",
+            file_name, result.stderr
+        );
+        assert!(result.output_exists, "{} output not created", file_name);
+        assert!(result.output_size > 0, "{} output is empty", file_name);
+
+        let validation = validate_output(&output_path, false, true);
+        assert!(
+            validation.valid,
+            "Output validation failed for {}: {:?}",
+            file_name, validation.error
+        );
+
+        println!("  [OK] Audio conversion OK: {} bytes", result.output_size);
+
+        let _ = fs::remove_file(&output_path);
     }
 }
 

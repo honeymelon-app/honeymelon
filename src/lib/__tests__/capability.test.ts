@@ -76,6 +76,36 @@ describe('presetIsAvailable', () => {
     expect(presetIsAvailable(baseAudioPreset, capabilities)).toBe(true);
     expect(presetIsAvailable(baseAudioPreset, emptyCapabilities)).toBe(true);
   });
+
+  it('returns false when container format is not supported', () => {
+    const capabilities: CapabilitySnapshot = {
+      ...emptyCapabilities,
+      audioEncoders: new Set(['aac']),
+      videoEncoders: new Set(['h264']),
+      formats: new Set(['webm']),
+    };
+    expect(presetIsAvailable(baseVideoPreset, capabilities)).toBe(false);
+  });
+
+  it('returns false when video encoder is missing', () => {
+    const capabilities: CapabilitySnapshot = {
+      ...emptyCapabilities,
+      audioEncoders: new Set(['aac']),
+      videoEncoders: new Set(['vp9']),
+      formats: new Set(['mp4']),
+    };
+    expect(presetIsAvailable(baseVideoPreset, capabilities)).toBe(false);
+  });
+
+  it('returns false when audio encoder is missing', () => {
+    const capabilities: CapabilitySnapshot = {
+      ...emptyCapabilities,
+      audioEncoders: new Set(['opus']),
+      videoEncoders: new Set(['h264']),
+      formats: new Set(['mp4']),
+    };
+    expect(presetIsAvailable(baseVideoPreset, capabilities)).toBe(false);
+  });
 });
 
 describe('availablePresets', () => {
@@ -98,6 +128,21 @@ describe('availablePresets', () => {
     };
     const presets = availablePresets(capabilities);
     expect(presets.length).toBeGreaterThan(0);
+  });
+
+  it('filters presets based on missing encoders and formats', () => {
+    const capabilities: CapabilitySnapshot = {
+      ...emptyCapabilities,
+      videoEncoders: new Set(['h264']),
+      audioEncoders: new Set(['mp3']),
+      formats: new Set(['mp3']),
+    };
+
+    const presets = availablePresets(capabilities);
+    const presetIds = presets.map((preset) => preset.id);
+
+    expect(presetIds).toContain('audio-to-mp3');
+    expect(presetIds).not.toContain('video-to-mp4');
   });
 });
 
