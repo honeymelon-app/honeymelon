@@ -44,7 +44,7 @@ Result: 4 video files added to the queue, text file ignored.
 
 Use the native file picker for organized selection:
 
-1. Click "Add Files" or press `Cmd + O`
+1. Click **Browse** in the upload area or press `Cmd + O`
 2. Hold `Cmd` and click multiple files
 3. Click "Open" to add them all
 
@@ -55,7 +55,7 @@ Use the native file picker for organized selection:
 Honeymelon processes multiple jobs simultaneously using a **concurrency limit**:
 
 - Default: **2 concurrent jobs**
-- Configurable: 1-8+ jobs (see [Preferences](/guide/preferences))
+- Configurable via advanced settings (see [Preferences](/guide/preferences))
 - Queue system: Jobs start automatically as slots become available
 
 ```mermaid
@@ -69,21 +69,20 @@ graph LR
 
 ### Concurrency Configuration
 
-In Preferences, you can adjust the concurrent job limit:
+Adjust the concurrent job limit in advanced settings:
 
-| Setting  | Best For                                           |
-| -------- | -------------------------------------------------- |
-| 1 job    | 4K/8K content, complex encoding, limited resources |
-| 2 jobs   | Default, balanced for most use cases               |
-| 3-4 jobs | Powerful Macs, simple remux operations             |
-| 5+ jobs  | Batch remuxing, minimal transcoding                |
+| Setting  | Best For                                        |
+| -------- | ----------------------------------------------- |
+| 1 job    | 4K content, complex encoding, limited resources |
+| 2 jobs   | Default, balanced for most use cases            |
+| 3-4 jobs | Powerful Macs, simple remux operations          |
 
 ### Resource Considerations
 
 **CPU Usage**
 
 - Each FFmpeg process consumes CPU cores
-- Hardware acceleration reduces CPU load
+- Hardware acceleration may reduce CPU load when available
 - Monitor Activity Monitor during heavy batches
 
 **Memory Usage**
@@ -111,9 +110,8 @@ In Preferences, you can adjust the concurrent job limit:
 Convert all files to the same format:
 
 1. Add all files to the queue
-2. Select the first job and choose a preset
-3. Apply the same preset to all jobs (manual for now)
-4. Start all conversions
+2. Select a preset per job as needed
+3. Start all conversions
 
 **Use Case**: Converting a folder of MKV files to MP4 for compatibility.
 
@@ -178,22 +176,7 @@ The main window shows all jobs with their current state:
 For each running job:
 
 - **Percentage**: Overall progress (0-100%)
-- **FPS**: Encoding speed in frames per second
 - **ETA**: Estimated time remaining
-- **Speed**: Encoding speed relative to playback (e.g., "2.5x")
-
-### Batch Statistics
-
-**Total Progress**:
-
-- Completed: 5 / 20 jobs
-- Running: 2 jobs
-- Queued: 13 jobs
-
-**Estimated Total Time**:
-
-- Based on current encoding speeds
-- Adjusts dynamically as jobs complete
 
 ## Handling Errors in Batches
 
@@ -203,7 +186,7 @@ If a job fails:
 
 1. The job is marked as **Failed**
 2. Other jobs continue processing
-3. Check the failed job's logs for details
+3. Review the error state on the job card
 4. Fix the issue and re-add the file if needed
 
 ### Common Batch Errors
@@ -223,7 +206,7 @@ If a job fails:
 **Resource Exhaustion**
 
 - Too many concurrent jobs may cause system slowdown
-- Reduce concurrency limit in Preferences
+- Reduce concurrency limit in advanced settings
 - Close other resource-intensive applications
 
 ## Advanced Batch Techniques
@@ -235,7 +218,7 @@ If a job fails:
 ```
 
 Input:  ~/Videos/movie1.mkv
-Output: ~/Videos/movie1-converted.mp4
+Output: ~/Videos/movie1-video-to-mp4.mp4
 
 ```
 
@@ -244,7 +227,7 @@ Output: ~/Videos/movie1-converted.mp4
 ```
 
 Input:  ~/Videos/movie1.mkv
-Output: ~/Converted/movie1-converted.mp4
+Output: ~/Converted/movie1-video-to-mp4.mp4
 ```
 
 Configure in [Preferences](/guide/preferences).
@@ -253,9 +236,8 @@ Configure in [Preferences](/guide/preferences).
 
 For batch processing, consider consistent naming:
 
-- **Default**: `filename-converted.ext`
-- **Custom Suffix**: `filename-h264.ext`
-- **No Suffix**: `filename.ext` (careful with overwriting!)
+- **Default**: `filename-video-to-mp4.ext`
+- **Include tier**: `filename-video-to-mp4-balanced.ext`
 
 ### Processing During Off-Hours
 
@@ -276,13 +258,13 @@ Honeymelon will process the entire queue automatically.
 1. **Use Fast Quality Tier**: Prioritizes remuxing
 2. **Increase Concurrency**: More simultaneous jobs
 3. **Avoid Transcoding**: Choose compatible target formats
-4. **Use Hardware Acceleration**: Automatic for H.264/H.265
+4. **Use Hardware Acceleration**: Automatic for H.264 outputs when available
 
 ### Optimizing for Quality
 
 1. **Use High Quality Tier**: Maximum quality settings
 2. **Reduce Concurrency**: More resources per job
-3. **Choose Efficient Codecs**: H.265 for better compression
+3. **Choose Efficient Codecs**: VP9/WebM for smaller web-friendly output when acceptable
 4. **Monitor Resource Usage**: Prevent throttling
 
 ### Optimizing for Balance
@@ -309,17 +291,17 @@ Honeymelon will process the entire queue automatically.
 
 ### Scenario 2: Optimize Project Footage
 
-**Context**: 100 large MKV files, need smaller H.265 versions
+**Context**: 100 large MKV files, need smaller web-friendly versions
 
 **Strategy**:
 
 1. Add all files
-2. Use `video-to-mkv` preset
+2. Use `video-to-webm` preset
 3. Use **Balanced** quality tier
 4. Set concurrency to 2
 5. Start batch, let run overnight
 
-**Expected Result**: Significantly smaller files, several hours processing
+**Expected Result**: Smaller files suited for web sharing, several hours processing
 
 ### Scenario 3: Archive Audio Collection
 
@@ -356,7 +338,7 @@ Honeymelon will process the entire queue automatically.
 2. **Test First**: Try one file before committing to a large batch
 3. **Monitor Initially**: Watch the first few jobs to ensure settings are correct
 4. **Check Disk Space**: Ensure adequate space for all output files
-5. **Use Descriptive Suffixes**: Help identify batch-processed files later
+5. **Use Preset/Tier Naming**: Helps identify batch-processed files later
 6. **Clear Completed Jobs**: Remove finished jobs to keep the queue clean
 7. **Save Resources**: Close unnecessary applications during heavy processing
 

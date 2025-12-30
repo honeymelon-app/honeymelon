@@ -11,43 +11,48 @@ Honeymelon supports a wide variety of media formats through FFmpeg. This referen
 
 ### Input Containers
 
-Honeymelon can read virtually any video container that FFmpeg supports:
+Honeymelon can read the following video containers by default:
 
-| Container | Extension       | Common Use                          |
-| --------- | --------------- | ----------------------------------- |
-| MP4       | `.mp4`          | Universal compatibility             |
-| QuickTime | `.mov`          | Apple ecosystem, professional video |
-| Matroska  | `.mkv`          | Flexible, open format               |
-| AVI       | `.avi`          | Legacy Windows format               |
-| WebM      | `.webm`         | Web streaming                       |
-| MPEG      | `.mpg`, `.mpeg` | Legacy broadcast format             |
-| FLV       | `.flv`          | Legacy Flash video                  |
-| MXF       | `.mxf`          | Professional broadcast              |
-| OGG       | `.ogv`, `.ogg`  | Open source format                  |
+| Container      | Extension                 | Common Use                          |
+| -------------- | ------------------------- | ----------------------------------- |
+| MP4            | `.mp4`                    | Universal compatibility             |
+| M4V            | `.m4v`                    | Apple ecosystem                     |
+| QuickTime      | `.mov`                    | Apple ecosystem, professional video |
+| Matroska       | `.mkv`                    | Flexible, open format               |
+| AVI            | `.avi`                    | Legacy Windows format               |
+| WebM           | `.webm`                   | Web streaming                       |
+| MPEG           | `.mpg`, `.mpeg`           | Legacy broadcast format             |
+| Transport      | `.ts`, `.m2ts`            | Broadcast streams                   |
+| MXF            | `.mxf`                    | Professional broadcast              |
+| FLV            | `.flv`                    | Legacy Flash video                  |
+| OGG Video      | `.ogv`                    | Open source format                  |
+| WMV            | `.wmv`                    | Windows Media Video                 |
+| GIF (animated) | `.gif`                    | Short animations                    |
+| Raw H.264/HEVC | `.h264`, `.h265`, `.hevc` | Elementary video streams            |
 
 ### Output Containers
 
 Honeymelon provides presets for these output containers:
 
-| Container | Extension | Video Codecs           | Audio Codecs    |
-| --------- | --------- | ---------------------- | --------------- |
-| **MP4**   | `.mp4`    | H.264, H.265           | AAC, MP3        |
-| **MOV**   | `.mov`    | H.264, H.265, ProRes   | AAC, PCM        |
-| **MKV**   | `.mkv`    | H.264, H.265, VP9, AV1 | AAC, Opus, FLAC |
-| **WebM**  | `.webm`   | VP8, VP9, AV1          | Opus, Vorbis    |
-| **AVI**   | `.avi`    | H.264, MPEG-4, Theora  | MP3, PCM, AC3   |
-| **FLV**   | `.flv`    | H.264, FLV1            | AAC, MP3        |
-| **M4V**   | `.m4v`    | H.264, H.265           | AAC             |
-| **TS**    | `.ts`     | H.264, H.265, MPEG-2   | AAC, MP3, AC3   |
-| **OGV**   | `.ogv`    | Theora, VP8            | Vorbis, Opus    |
-| **MPEG**  | `.mpeg`   | MPEG-2                 | MP2, AC3        |
-| **GIF**   | `.gif`    | GIF                    | None            |
+| Container | Extension | Video Codec | Audio Codec |
+| --------- | --------- | ----------- | ----------- |
+| **MP4**   | `.mp4`    | H.264       | AAC         |
+| **MOV**   | `.mov`    | H.264       | AAC         |
+| **MKV**   | `.mkv`    | Copy        | Copy        |
+| **WebM**  | `.webm`   | VP9         | Opus        |
+| **AVI**   | `.avi`    | MPEG-4      | MP3         |
+| **FLV**   | `.flv`    | H.264       | AAC         |
+| **M4V**   | `.m4v`    | H.264       | AAC         |
+| **TS**    | `.ts`     | H.264       | AAC         |
+| **OGV**   | `.ogv`    | Theora      | Vorbis      |
+| **MPEG**  | `.mpeg`   | MPEG-2      | MP2         |
+| **GIF**   | `.gif`    | GIF         | None        |
 
 ## Video Codecs
 
 ### Input Codecs
 
-Honeymelon can decode:
+Honeymelon can decode (depending on your FFmpeg build):
 
 | Codec             | Description                | Common Containers |
 | ----------------- | -------------------------- | ----------------- |
@@ -65,23 +70,27 @@ Honeymelon can decode:
 
 ### Output Codecs
 
-Honeymelon can encode to:
+Honeymelon can encode (or copy) to:
 
-| Codec      | Quality     | Speed     | Use Case                |
-| ---------- | ----------- | --------- | ----------------------- |
-| **H.264**  | Good        | Fast      | Universal compatibility |
-| **H.265**  | Excellent   | Moderate  | 4K, efficient storage   |
-| **VP8**    | Good        | Fast      | Legacy web streaming    |
-| **VP9**    | Excellent   | Slow      | Web streaming           |
-| **AV1**    | Outstanding | Very Slow | Next-gen web            |
-| **ProRes** | Lossless    | Fast      | Professional editing    |
-| **Theora** | Good        | Moderate  | Open source video       |
-| **MPEG-4** | Acceptable  | Fast      | Legacy compatibility    |
-| **FLV1**   | Acceptable  | Fast      | Flash video             |
-| **MPEG-2** | Acceptable  | Fast      | Broadcast/DVD           |
-| **GIF**    | Low         | Fast      | Animations, memes       |
+| Codec      | Quality    | Speed    | Use Case                |
+| ---------- | ---------- | -------- | ----------------------- |
+| **H.264**  | Good       | Fast     | Universal compatibility |
+| **VP9**    | Excellent  | Slow     | Web streaming           |
+| **Theora** | Good       | Moderate | Open source video       |
+| **MPEG-4** | Acceptable | Fast     | Legacy compatibility    |
+| **MPEG-2** | Acceptable | Fast     | Broadcast/DVD           |
+| **GIF**    | Low        | Fast     | Animations, memes       |
+| **Copy**   | Preserved  | Fastest  | Remux without re-encode |
 
 ## Image Formats
+
+### Input Containers
+
+| Container | Extension       | Common Use        |
+| --------- | --------------- | ----------------- |
+| PNG       | `.png`          | Lossless graphics |
+| JPEG      | `.jpg`, `.jpeg` | Photos            |
+| WebP      | `.webp`         | Modern web images |
 
 ### Output Containers
 
@@ -97,15 +106,18 @@ Honeymelon can encode to:
 
 ### Input Containers
 
-| Container | Extension | Common Use          |
-| --------- | --------- | ------------------- |
-| M4A       | `.m4a`    | Apple audio         |
-| MP3       | `.mp3`    | Universal audio     |
-| FLAC      | `.flac`   | Lossless audio      |
-| WAV       | `.wav`    | Uncompressed audio  |
-| OGG       | `.ogg`    | Open audio format   |
-| WMA       | `.wma`    | Windows Media Audio |
-| AAC       | `.aac`    | Raw AAC audio       |
+| Container | Extension       | Common Use          |
+| --------- | --------------- | ------------------- |
+| M4A       | `.m4a`          | Apple audio         |
+| MP3       | `.mp3`          | Universal audio     |
+| FLAC      | `.flac`         | Lossless audio      |
+| WAV       | `.wav`          | Uncompressed audio  |
+| AIFF      | `.aiff`, `.aif` | Uncompressed audio  |
+| OGG       | `.ogg`          | Open audio format   |
+| Opus      | `.opus`         | Efficient web audio |
+| AAC       | `.aac`          | Raw AAC audio       |
+| WMA       | `.wma`          | Windows Media Audio |
+| ALAC      | `.alac`         | Apple Lossless      |
 
 ### Output Containers
 
@@ -124,7 +136,7 @@ Honeymelon can encode to:
 
 ### Input Codecs
 
-Honeymelon can decode:
+Honeymelon can decode (depending on your FFmpeg build):
 
 | Codec      | Type         | Description             |
 | ---------- | ------------ | ----------------------- |
@@ -153,111 +165,24 @@ Honeymelon can encode to:
 | **PCM**    | Uncompressed | Fixed        | Professional audio      |
 | **Vorbis** | Lossy        | 96-320 kbps  | Open source audio       |
 | **MP2**    | Lossy        | 128-384 kbps | Broadcast audio         |
-| **AC3**    | Lossy        | 192-640 kbps | Surround sound          |
 
-## Codec Compatibility Matrix
+## Preset Compatibility Summary
 
-### MP4 Container
+Honeymelon presets target a single codec pair per container. If the source streams do not match, the app transcodes to the preset codecs.
 
-| Codec  | Compatible | Notes                |
-| ------ | ---------- | -------------------- |
-| H.264  |            | Fully supported      |
-| H.265  |            | Fully supported      |
-| VP9    |            | Not supported in MP4 |
-| AV1    |            | Limited support      |
-| ProRes |            | Use MOV instead      |
-| AAC    |            | Recommended audio    |
-| MP3    |            | Widely supported     |
-| Opus   |            | Use WebM instead     |
-
-### MKV Container
-
-| Codec  | Compatible | Notes           |
-| ------ | ---------- | --------------- |
-| H.264  |            | Fully supported |
-| H.265  |            | Fully supported |
-| VP9    |            | Fully supported |
-| AV1    |            | Fully supported |
-| ProRes |            | Supported       |
-| AAC    |            | Supported       |
-| Opus   |            | Recommended     |
-| FLAC   |            | Lossless audio  |
-
-### WebM Container
-
-| Codec  | Compatible | Notes             |
-| ------ | ---------- | ----------------- |
-| VP8    |            | Older web codec   |
-| VP9    |            | Recommended       |
-| AV1    |            | Next-gen web      |
-| H.264  |            | Not supported     |
-| Opus   |            | Recommended audio |
-| Vorbis |            | Older audio codec |
-| AAC    |            | Not supported     |
-
-### MOV Container
-
-| Codec  | Compatible | Notes              |
-| ------ | ---------- | ------------------ |
-| H.264  |            | Widely supported   |
-| H.265  |            | Fully supported    |
-| ProRes |            | Professional codec |
-| VP9    |            | Use MKV/WebM       |
-| AAC    |            | Recommended        |
-| PCM    |            | Uncompressed       |
-
-### AVI Container
-
-| Codec  | Compatible | Notes           |
-| ------ | ---------- | --------------- |
-| H.264  |            | Supported       |
-| MPEG-4 |            | Legacy codec    |
-| Theora |            | Open codec      |
-| H.265  |            | Limited support |
-| MP3    |            | Recommended     |
-| PCM    |            | Uncompressed    |
-| AC3    |            | Surround sound  |
-
-### FLV Container
-
-| Codec | Compatible | Notes         |
-| ----- | ---------- | ------------- |
-| H.264 |            | Recommended   |
-| FLV1  |            | Legacy codec  |
-| H.265 |            | Not supported |
-| AAC   |            | Recommended   |
-| MP3   |            | Supported     |
-
-### TS Container (Transport Stream)
-
-| Codec  | Compatible | Notes              |
-| ------ | ---------- | ------------------ |
-| H.264  |            | Common             |
-| H.265  |            | Supported          |
-| MPEG-2 |            | Broadcast standard |
-| VP9    |            | Not supported      |
-| AAC    |            | Supported          |
-| MP3    |            | Supported          |
-| AC3    |            | Broadcast audio    |
-
-### OGV Container
-
-| Codec  | Compatible | Notes         |
-| ------ | ---------- | ------------- |
-| Theora |            | Recommended   |
-| VP8    |            | Supported     |
-| H.264  |            | Not supported |
-| Vorbis |            | Recommended   |
-| Opus   |            | Supported     |
-
-### MPEG Container
-
-| Codec  | Compatible | Notes          |
-| ------ | ---------- | -------------- |
-| MPEG-2 |            | Standard codec |
-| H.264  |            | Not supported  |
-| MP2    |            | Standard audio |
-| AC3    |            | Surround sound |
+| Container | Preset Video Codec | Preset Audio Codec | Notes                     |
+| --------- | ------------------ | ------------------ | ------------------------- |
+| MP4       | H.264              | AAC                | Standard compatibility    |
+| MOV       | H.264              | AAC                | Apple-friendly            |
+| MKV       | Copy               | Copy               | Remux without re-encoding |
+| WebM      | VP9                | Opus               | Web streaming             |
+| AVI       | MPEG-4             | MP3                | Legacy playback           |
+| FLV       | H.264              | AAC                | Legacy Flash video        |
+| M4V       | H.264              | AAC                | Apple/iTunes              |
+| TS        | H.264              | AAC                | Broadcast streams         |
+| OGV       | Theora             | Vorbis             | Open source video         |
+| MPEG      | MPEG-2             | MP2                | DVD/Broadcast             |
+| GIF       | GIF                | None               | No audio                  |
 
 ## Special Formats
 
@@ -289,31 +214,26 @@ Subtitle support (future feature):
 
 ## Hardware Acceleration Support
 
-### Apple VideoToolbox
+Honeymelon prefers hardware-accelerated encoders when they are available for the target codec.
 
-**Encoders**:
+### Apple VideoToolbox (macOS)
 
-- H.264 (`h264_videotoolbox`)
-- H.265 (`hevc_videotoolbox`)
+**When used**:
 
-**Decoders**:
-
-- H.264
-- H.265
-- ProRes
+- H.264 targets (for example, MP4/MOV/M4V/TS/FLV presets)
 
 **Requirements**:
 
-- Apple Silicon Mac (M1+)
-- macOS 13.0+
+- macOS with VideoToolbox-enabled FFmpeg
+- Compatible GPU/SoC (Apple Silicon or supported Intel hardware)
 
-**Limitations**:
+**Notes**:
 
-- Slightly lower quality vs. software encoding
-- Limited advanced features (no custom tune settings)
+- If a hardware encoder is unavailable, Honeymelon falls back to software encoders.
+- Actual availability depends on your bundled FFmpeg build.
 
 ::: tip
-Hardware acceleration is automatically enabled for compatible codecs. No configuration required!
+Hardware acceleration is detected automatically. No configuration required!
 :::
 
 ## Resolution Support
@@ -333,7 +253,7 @@ Virtually unlimited through FFmpeg:
 
 ### Output Resolutions
 
-Currently, Honeymelon preserves the source resolution. Scaling/resizing is a planned future feature.
+Video outputs preserve the source resolution. GIF output may clamp width to keep file sizes manageable. General-purpose scaling/resizing is a planned future feature.
 
 ## Frame Rate Support
 
@@ -351,7 +271,7 @@ Currently, Honeymelon preserves the source resolution. Scaling/resizing is a pla
 | 60     | Smooth web video, gaming |
 | 120+   | High frame rate cinema   |
 
-Frame rate is preserved from source. Frame rate conversion is a planned future feature.
+Frame rate is preserved for standard video outputs. GIF output may clamp FPS to keep file sizes manageable. Frame rate conversion is a planned future feature.
 
 ## Color Space & HDR
 
@@ -428,15 +348,15 @@ Works everywhere: web, mobile, TVs, players.
 ### For Maximum Quality
 
 **Container**: MKV
-**Video**: H.265 (CRF 18)
-**Audio**: FLAC
+**Video**: Copy
+**Audio**: Copy
 
-Efficient compression with lossless audio.
+Remux to MKV to preserve the original streams without re-encoding.
 
 ### For Web Streaming
 
 **Container**: WebM
-**Video**: VP9 or AV1
+**Video**: VP9
 **Audio**: Opus
 
 Modern, efficient web codecs.
@@ -444,18 +364,18 @@ Modern, efficient web codecs.
 ### For Professional Editing
 
 **Container**: MOV
-**Video**: ProRes
-**Audio**: PCM
+**Video**: H.264
+**Audio**: AAC
 
-Editing-friendly formats.
+Editing-friendly for general workflows that accept H.264/AAC.
 
 ### For Archival
 
 **Container**: MKV
-**Video**: H.265 (CRF 18)
-**Audio**: FLAC
+**Video**: Copy
+**Audio**: Copy
 
-Long-term storage with excellent compression.
+Keeps the original streams intact while moving to a flexible container.
 
 ## Next Steps
 

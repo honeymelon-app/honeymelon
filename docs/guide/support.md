@@ -69,18 +69,11 @@ Before reaching out, try these troubleshooting steps:
 ### 1. Verify FFmpeg Installation
 
 ```bash
-# Check if FFmpeg is accessible
+# Check if FFmpeg is accessible on your system
 ffmpeg -version
-
-# Check Honeymelon's bundled FFmpeg
-ls -la ~/Library/Application\ Support/com.honeymelon.desktop/
 ```
 
-### 2. Check Logs
-
-Enable debug logging in Preferences to see detailed error messages.
-
-### 3. Test with Sample File
+### 2. Test with Sample File
 
 Try converting a simple test file to isolate the issue:
 
@@ -89,7 +82,7 @@ Try converting a simple test file to isolate the issue:
 ffmpeg -f lavfi -i testsrc=duration=5:size=640x480:rate=30 test.mp4
 ```
 
-### 4. Review Common Issues
+### 3. Review Common Issues
 
 Check our [Troubleshooting Guide](/guide/troubleshooting) for solutions to common problems.
 
@@ -103,7 +96,7 @@ When asking for help:
    - Honeymelon version
    - FFmpeg version
    - Steps to reproduce
-   - Error messages
+   - Error messages or screenshots
    - Sample files (if relevant)
 3. **Search first** – Check if your question has been answered
 4. **One issue per report** – Don't bundle multiple issues together

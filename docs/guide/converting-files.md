@@ -27,9 +27,9 @@ You can also drag entire folders. Honeymelon will recursively discover all suppo
 
 Alternatively, use the native file picker:
 
-1. Click the "Add Files" button or press `Cmd + O`
+1. Click **Browse** in the upload area or choose **File > Open Media Files...** (`Cmd + O`)
 2. Select one or more files in the dialog
-3. Click "Open" to add them to the queue
+3. Click **Open** to add them to the queue
 
 ## Understanding the Job Queue
 
@@ -81,7 +81,7 @@ For each stream (video, audio), the planner determines one of three actions:
 
 **Copy (Remux)**
 
-- Used when the source codec is compatible with the target container
+- Used when the source codec already matches the preset target
 - No re-encoding, preserves original quality
 - Extremely fast (typically 100-500+ fps)
 
@@ -120,23 +120,9 @@ Result: Full transcode required
 
 ### Step 3: Execution
 
-Honeymelon spawns an FFmpeg process with the generated command:
+Honeymelon spawns an FFmpeg process with arguments derived from the selected preset and quality tier.
 
-```bash
-ffmpeg -i input.mkv \
-  -c:v libx264 -preset medium -crf 23 \
-  -c:a aac -b:a 192k \
-  output.mp4
-
-```
-
-Progress is tracked by parsing FFmpeg's stderr output:
-
-- **Frame**: Current frame being encoded
-- **FPS**: Encoding speed in frames per second
-- **Time**: Current position in the media file
-- **Bitrate**: Output bitrate
-- **Speed**: Encoding speed relative to playback (e.g., "2.5x")
+Progress is shown as a percentage and estimated time remaining while the job runs.
 
 ## Managing Jobs
 
@@ -152,8 +138,7 @@ While a job is in the **Queued** state, you can:
 
 While a job is **Running**, you can:
 
-- **Monitor Progress**: Watch real-time encoding statistics
-- **View Logs**: Expand the job card to see detailed FFmpeg output
+- **Monitor Progress**: Watch percent complete and ETA
 - **Cancel**: Stop the conversion (source file remains unchanged)
 
 ::: warning Cancelling Jobs
@@ -164,8 +149,7 @@ Cancelling a running job will delete any partially-converted output file. The or
 
 Once a job reaches **Completed** or **Failed** state:
 
-- **View Output**: Click to reveal the output file in Finder
-- **Review Logs**: Check detailed conversion logs
+- **Reveal Source File**: Click to reveal the source file in Finder
 - **Remove from Queue**: Clear the completed job from the list
 
 ## Output Files
@@ -176,7 +160,7 @@ By default, converted files are saved:
 
 ```
 
-[source directory]/[filename]-converted.[extension]
+[source directory]/[filename]-[preset].[extension]
 
 ```
 
@@ -185,24 +169,20 @@ For example:
 ```
 
 Input:  ~/Videos/movie.mkv
-Output: ~/Videos/movie-converted.mp4
+Output: ~/Videos/movie-video-to-mp4.mp4
 ```
 
 You can configure the output directory in [Preferences](/guide/preferences).
 
 ### Output Naming
 
-The `-converted` suffix prevents overwriting source files. You can customize this behavior in preferences:
-
-- **Add Suffix**: Append `-converted` to filename (default)
-- **Custom Suffix**: Use your own suffix (e.g., `-h264`, `-optimized`)
-- **No Suffix**: Use original filename (risky - may overwrite!)
+By default, Honeymelon includes the preset ID in the output filename. You can optionally include the quality tier in advanced settings.
 
 ### Handling Name Conflicts
 
 If an output file already exists, Honeymelon will:
 
-1. Append a number to the filename (e.g., `-converted-1.mp4`)
+1. Append a number to the filename (e.g., `movie-video-to-mp4 (1).mp4`)
 2. Increment until a unique name is found
 3. Never overwrite existing files
 
@@ -210,7 +190,7 @@ If an output file already exists, Honeymelon will:
 
 ### Concurrent Conversions
 
-By default, Honeymelon processes 2 jobs simultaneously. This is configurable in [Preferences](/guide/preferences).
+By default, Honeymelon processes 2 jobs simultaneously. Advanced users can adjust this in the settings file.
 
 **Considerations:**
 
@@ -219,27 +199,11 @@ By default, Honeymelon processes 2 jobs simultaneously. This is configurable in 
 - **I/O**: Disk throughput may become a bottleneck
 - **Thermal**: Apple Silicon Macs handle heat well, but watch temperatures
 
-For 4K content or complex encoding, reduce concurrency to 1. For simple remux operations, you can safely increase to 4-6+.
+For 4K content or complex encoding, reduce concurrency to 1. For simple remux operations, you can safely increase within your hardware limits.
 
-### Stream Selection
+### Stream Selection (Planned)
 
-Some advanced presets allow stream selection:
-
-- **Video Track**: Choose primary video stream
-- **Audio Track**: Select audio language/track
-- **Subtitles**: Include or exclude subtitle streams
-
-Currently, Honeymelon uses the default streams. Custom stream selection is planned for a future release.
-
-### Metadata Preservation
-
-Honeymelon preserves metadata where possible:
-
-- **Container Metadata**: Title, creation date, etc.
-- **Color Metadata**: Color space, primaries, transfer characteristics
-- **HDR Metadata**: HDR10, Dolby Vision (when supported by codec)
-
-Some metadata may be lost during transcoding depending on codec support.
+Honeymelon currently uses the default video/audio streams. Manual stream selection is planned for a future release.
 
 ## Common Scenarios
 
@@ -267,15 +231,15 @@ Result: Near-instant remux with zero quality loss.
 
 ### Scenario 3: Batch Convert Folder
 
-**Goal**: Convert all videos in a folder to H.265
+**Goal**: Convert all videos in a folder to MP4 for compatibility
 
 1. Drag the entire folder into Honeymelon
 2. All video files are added to the queue
-3. Select `video-to-mkv` for each job
-4. Choose **High** quality tier
+3. Select `video-to-mp4` for each job
+4. Choose **Balanced** quality tier
 5. Start all conversions
 
-Result: Entire folder converted with maximum quality H.265 encoding.
+Result: Entire folder converted to MP4 with broad compatibility.
 
 ### Scenario 4: Extract Audio
 

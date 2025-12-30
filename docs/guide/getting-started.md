@@ -101,7 +101,7 @@ The application will automatically detect system FFmpeg if bundled binaries are 
 
 ### Option 3: Custom FFmpeg Path
 
-Set the `HONEYMELON_FFMPEG_PATH` and `HONEYMELON_FFPROBE_PATH` environment variables (or configure the path inside Preferences) to point to custom FFmpeg builds.
+Set the `HONEYMELON_FFMPEG_PATH` and `HONEYMELON_FFPROBE_PATH` environment variables to point to custom FFmpeg builds.
 
 ## First Launch
 
@@ -109,7 +109,7 @@ When you first launch Honeymelon:
 
 1. **Grant Permissions**: macOS may prompt you to allow the application to access files
 2. **Check FFmpeg**: The app will verify FFmpeg availability on startup
-3. **Set Preferences** (optional): Open Preferences to configure output directory and concurrency
+3. **Set Output Destination** (optional): Use the destination picker to choose a default output folder
 
 ::: tip
 If you see a message about FFmpeg not being found, run `npm run download-ffmpeg` to repopulate `src-tauri/bin/` or install FFmpeg via Homebrew and set `HONEYMELON_FFMPEG_PATH`.
@@ -148,13 +148,11 @@ Click the "Start" button (or use the keyboard shortcut). The job will enter the 
 Watch real-time progress with:
 
 - Percentage complete
-- Encoding speed (fps)
 - Estimated time remaining
-- Live log output
 
 ### Step 6: Access Output
 
-Once complete, the converted file will be saved to your configured output directory (default: same directory as source file with `-converted` suffix).
+Once complete, the converted file will be saved to your configured output directory (default: same directory as source file with the preset name appended, e.g. `movie-video-to-mp4.mp4`).
 
 ## Basic Workflow
 
@@ -169,7 +167,6 @@ graph LR
 
 ## Keyboard Shortcuts
 
-- `Cmd + ,` - Open Preferences
 - `Cmd + O` - Open file picker
 - `Cmd + Q` - Quit application
 

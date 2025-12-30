@@ -19,11 +19,11 @@ Honeymelon automatically generates presets for all valid source-to-target format
 // Example preset structure
 {
   id: "video-to-mp4",
-  label: "Video to MP4",
-  sourceType: "video",
-  targetContainer: "mp4",
-  videoCodec: "h264",
-  audioCodec: "aac"
+  label: "MP4 (H.264 + AAC)",
+  mediaKind: "video",
+  container: "mp4",
+  video: { codec: "h264" },
+  audio: { codec: "aac" }
 }
 
 ```
@@ -40,7 +40,7 @@ Convert video files to different container formats:
 | --------------- | ------ | ----------- | ----------- | ----------------------- |
 | `video-to-mp4`  | MP4    | H.264       | AAC         | Universal compatibility |
 | `video-to-mov`  | MOV    | H.264       | AAC         | Apple ecosystem         |
-| `video-to-mkv`  | MKV    | H.265       | AAC         | High efficiency         |
+| `video-to-mkv`  | MKV    | Copy        | Copy        | Remux without re-encode |
 | `video-to-webm` | WebM   | VP9         | Opus        | Web streaming           |
 | `video-to-avi`  | AVI    | MPEG-4      | MP3         | Legacy compatibility    |
 | `video-to-flv`  | FLV    | H.264       | AAC         | Flash video             |
@@ -79,7 +79,7 @@ Extract frames or convert images:
 
 ## Quality Tiers
 
-Each preset supports three quality tiers that control encoding parameters:
+Each preset supports three quality tiers that control encoding parameters. Tiers only affect transcoding; when a preset can remux (copy) streams, the tier has no impact.
 
 ### Fast (Copy-Prioritized)
 
@@ -89,12 +89,7 @@ Each preset supports three quality tiers that control encoding parameters:
 
 - Copies streams whenever possible (no re-encoding)
 - Only transcodes when absolutely necessary
-- Uses faster encoder presets when transcoding is required
-
-**Encoding Settings**:
-
-- Video: CRF 23, preset `fast`
-- Audio: 192 kbps
+- Uses faster encoding settings when transcoding is required
 
 **Best For**:
 
@@ -123,11 +118,6 @@ Result: Remux (copy both streams) - 500+ fps
 - Balances quality, size, and speed
 - Suitable for most general-purpose conversions
 
-**Encoding Settings**:
-
-- Video: CRF 23, preset `medium`
-- Audio: 192 kbps
-
 **Best For**:
 
 - General-purpose conversions
@@ -155,11 +145,6 @@ Result: Transcode to H.264/AAC - 30-60 fps
 - Prioritizes quality over all other factors
 - Produces larger files with longer encoding times
 
-**Encoding Settings**:
-
-- Video: CRF 18, preset `slow`
-- Audio: 256 kbps
-
 **Best For**:
 
 - Archival purposes
@@ -172,34 +157,20 @@ Result: Transcode to H.264/AAC - 30-60 fps
 ```
 
 Source: video.mov (4K ProRes)
-Target: video-to-mkv (High)
-Result: H.265 with high bitrate - 10-20 fps
+Target: video-to-mp4 (High)
+Result: Transcode to H.264/AAC with higher quality settings - 10-20 fps
 
 ```
 
-## Understanding CRF (Constant Rate Factor)
+## Encoding Controls (When Applicable)
 
-CRF is the quality control parameter for video encoding:
+Honeymelon applies tier-specific settings only when a preset transcodes. Depending on the codec, this may include:
 
-- **Lower CRF = Higher Quality = Larger Files**
-- **Higher CRF = Lower Quality = Smaller Files**
+- **CRF** (quality-based video encoding)
+- **Bitrate targets** (video or audio)
+- **Codec-specific quality knobs** (for example, VBR quality for MP3)
 
-| CRF Value | Quality    | Typical Use            |
-| --------- | ---------- | ---------------------- |
-| 15-18     | Excellent  | Archival, professional |
-| 19-23     | Good       | General purpose        |
-| 24-28     | Acceptable | Web streaming          |
-| 29+       | Poor       | Not recommended        |
-
-Honeymelon uses:
-
-- **Fast**: CRF 23
-- **Balanced**: CRF 23
-- **High**: CRF 18
-
-::: tip
-CRF 23 is FFmpeg's recommended default for H.264 encoding, providing good quality at reasonable file sizes.
-:::
+Exact values can vary by preset and may evolve over time as defaults are tuned.
 
 ## Preset Selection Logic
 
@@ -217,99 +188,31 @@ graph TD
 
 You can always change the preset before starting the conversion.
 
-## Codec Compatibility
+## Codec Compatibility (Preset Targets)
 
-Understanding codec compatibility helps predict whether Honeymelon will remux or transcode:
+Honeymelon presets target a specific codec pair per container. When input codecs do not match, the app transcodes to the preset targets.
 
-### MP4 Container
-
-**Compatible Codecs**:
-
-- Video: H.264, H.265 (HEVC)
-- Audio: AAC, MP3
-
-**Incompatible** (requires transcode):
-
-- Video: VP9, VP8, AV1, ProRes
-- Audio: Opus, Vorbis, FLAC, PCM
-
-### MKV Container
-
-**Compatible Codecs**:
-
-- Video: Almost all (H.264, H.265, VP9, AV1, ProRes)
-- Audio: Almost all (AAC, MP3, Opus, FLAC, PCM)
-
-MKV is the most flexible container and rarely requires transcoding.
-
-### WebM Container
-
-**Compatible Codecs**:
-
-- Video: VP8, VP9, AV1
-- Audio: Opus, Vorbis
-
-**Incompatible**:
-
-- Video: H.264, H.265, ProRes
-- Audio: AAC, MP3
-
-### MOV Container
-
-**Compatible Codecs**:
-
-- Video: H.264, H.265, ProRes
-- Audio: AAC, PCM
-
-Similar to MP4 but with better support for professional codecs like ProRes.
-
-### AVI Container
-
-**Compatible Codecs**:
-
-- Video: H.264, MPEG-4, Theora
-- Audio: MP3, PCM, AC3
-
-Legacy container with broad video support.
-
-### FLV Container
-
-**Compatible Codecs**:
-
-- Video: H.264, FLV1
-- Audio: AAC, MP3
-
-Flash video format, primarily for legacy systems.
-
-### TS Container
-
-**Compatible Codecs**:
-
-- Video: H.264, H.265, MPEG-2
-- Audio: AAC, MP3, AC3
-
-Transport stream for broadcast and streaming.
-
-### OGV Container
-
-**Compatible Codecs**:
-
-- Video: Theora, VP8
-- Audio: Vorbis, Opus
-
-Open source video container.
+| Container | Video Codec | Audio Codec | Notes                  |
+| --------- | ----------- | ----------- | ---------------------- |
+| MP4       | H.264       | AAC         | Standard compatibility |
+| MOV       | H.264       | AAC         | Apple-friendly         |
+| MKV       | Copy        | Copy        | Remux only             |
+| WebM      | VP9         | Opus        | Web streaming          |
+| AVI       | MPEG-4      | MP3         | Legacy playback        |
+| FLV       | H.264       | AAC         | Legacy Flash video     |
+| M4V       | H.264       | AAC         | Apple/iTunes           |
+| TS        | H.264       | AAC         | Broadcast streams      |
+| OGV       | Theora      | Vorbis      | Open source video      |
+| MPEG      | MPEG-2      | MP2         | DVD/Broadcast          |
+| GIF       | GIF         | None        | No audio               |
 
 ## Hardware Acceleration
 
-Honeymelon automatically uses Apple VideoToolbox for hardware-accelerated encoding when:
-
-- Target codec is H.264 or H.265
-- Running on Apple Silicon Mac
-- Software encoder is libx264 or libx265
+Honeymelon prefers hardware-accelerated encoders when available for the target codec (for example, H.264 presets). Availability depends on your FFmpeg build.
 
 **Benefits**:
 
-- 2-5x faster encoding on supported codecs
+- Faster encoding on supported codecs
 - Reduced CPU usage
 - Lower power consumption
 
@@ -371,7 +274,7 @@ graph TD
 
 - Preset: `video-to-mkv`
 - Quality: High
-- Reason: Flexible container with high-quality H.265
+- Reason: Remux to a flexible container without re-encoding
 
 **Scenario: Quick Container Change**
 

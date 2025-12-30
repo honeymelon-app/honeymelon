@@ -15,7 +15,7 @@ This guide helps you resolve common issues with Honeymelon.
 
 **Solutions**:
 
-1. **Check bundled binaries**:
+1. **Check bundled binaries (development builds)**:
 
    ```bash
    ls src-tauri/bin/ffmpeg
@@ -41,10 +41,12 @@ This guide helps you resolve common issues with Honeymelon.
    ffmpeg -version
    ```
 
-3. **Set custom path** in Preferences:
-   - Open Preferences (`Cmd + ,`)
-   - Navigate to FFmpeg Settings
-   - Enter full path to FFmpeg binary or set `HONEYMELON_FFMPEG_PATH`
+3. **Reinstall the app** (packaged builds):
+   - Re-download the DMG from Releases and reinstall
+
+4. **Set a custom path** (advanced):
+   - Export `HONEYMELON_FFMPEG_PATH` / `HONEYMELON_FFPROBE_PATH`
+   - Or launch the app from a shell with those variables set
 
 ### FFmpeg Version Issues
 
@@ -57,7 +59,6 @@ ffmpeg -version
 
 ```
 
-**Minimum required**: FFmpeg 4.4+
 **Recommended**: FFmpeg 6.0+
 
 **Update FFmpeg**:
@@ -69,7 +70,7 @@ brew upgrade ffmpeg
 
 ### Hardware Acceleration Not Working
 
-**Symptom**: Slow encoding despite hardware acceleration enabled
+**Symptom**: Slow encoding despite hardware acceleration availability
 
 **Check**:
 
@@ -93,8 +94,8 @@ brew upgrade ffmpeg
    hevc_videotoolbox
    ```
 
-3. **Disable and re-enable** in Preferences
-4. **Try software encoding**: Disable hardware acceleration to compare
+3. **Confirm preset target**: Hardware acceleration applies to H.264 outputs
+4. **Try a smaller sample** to compare performance
 
 ## Conversion Errors
 
@@ -120,11 +121,10 @@ brew upgrade ffmpeg
    - Ensure Honeymelon can read the source file
    - Check output directory is writable
 
-**Check logs**:
+**Check the job status**:
 
-- Expand the failed job card
-- Read the FFmpeg error output
-- Look for specific error messages
+- Note the error category shown in the job card
+- Look for permission prompts or unsupported format hints
 
 ### Job Fails During Conversion
 
@@ -137,7 +137,7 @@ brew upgrade ffmpeg
    - Output files may be larger than source
 
 2. **Resource exhaustion**:
-   - Reduce concurrent jobs in Preferences
+   - Reduce concurrent jobs in advanced settings
    - Close other resource-intensive apps
 
 3. **Corrupted stream**:
@@ -154,10 +154,7 @@ brew upgrade ffmpeg
 2. **Try different preset/quality**:
    - Use "Fast" quality for remux
    - Try different container format
-3. **Check FFmpeg logs** for warnings
-4. **Re-run with verbose logging**:
-   - Set log level to "Debug" in Preferences
-   - Check for stream mapping issues
+3. **Try a different preset** to isolate codec/container issues
 
 ## Performance Issues
 
@@ -165,28 +162,24 @@ brew upgrade ffmpeg
 
 **Expected speeds** (approximate):
 
-| Operation       | Speed         | FPS            |
-| --------------- | ------------- | -------------- |
-| Remux (copy)    | 500-1000+ fps | Very fast      |
-| H.264 HW encode | 60-150 fps    | Fast           |
-| H.265 HW encode | 30-80 fps     | Moderate       |
-| H.264 SW encode | 20-60 fps     | Moderate       |
-| H.265 SW encode | 5-25 fps      | Slow           |
-| VP9 encode      | 3-10 fps      | Very slow      |
-| AV1 encode      | 1-5 fps       | Extremely slow |
+| Operation         | Speed     | Notes               |
+| ----------------- | --------- | ------------------- |
+| Remux (copy)      | Very fast | Minimal CPU usage   |
+| H.264 HW encode   | Fast      | Depends on hardware |
+| H.264 SW encode   | Moderate  | CPU bound           |
+| VP9 encode (WebM) | Slow      | Heavier compression |
 
 **If encoding is slower than expected**:
 
-1. **Enable hardware acceleration**:
-   - Check Preferences > Hardware Acceleration
-   - Only works for H.264/H.265 on Apple Silicon
+1. **Confirm hardware acceleration availability**:
+   - Only works for H.264 outputs when VideoToolbox encoders are available
 
 2. **Use faster preset**:
    - Switch to "Fast" quality tier
    - Use remux-friendly formats
 
 3. **Reduce concurrent jobs**:
-   - Lower concurrency in Preferences
+   - Lower concurrency in advanced settings
    - Gives each job more resources
 
 4. **Check system resources**:
@@ -208,9 +201,8 @@ brew upgrade ffmpeg
    - Free up system resources
    - Disable background processes
 
-3. **Use hardware acceleration**:
-   - Reduces CPU load significantly
-   - Enable in Preferences if disabled
+3. **Use hardware acceleration when available**:
+   - Reduces CPU load for supported H.264 presets
 
 4. **Process in smaller batches**:
    - Don't queue 100+ files at once
@@ -261,14 +253,13 @@ brew upgrade ffmpeg
 **Honeymelon's behavior**:
 
 - Never overwrites existing files
-- Automatically appends number (e.g., `-converted-1.mp4`)
+- Automatically appends a number (e.g., `movie-video-to-mp4 (1).mp4`)
 
 **Solutions**:
 
 1. **Accept automatic numbering** (recommended)
 2. **Delete or move existing file**
-3. **Change output directory** in Preferences
-4. **Use custom suffix** to avoid conflicts
+3. **Change output directory** via the destination picker
 
 ### Output File Larger Than Expected
 
@@ -276,21 +267,17 @@ brew upgrade ffmpeg
 
 **Possible reasons**:
 
-1. **Transcoding to less efficient codec**:
-   - H.264 > ProRes will increase size
-   - Compressed > uncompressed increases size
+1. **Transcoding to a less efficient codec**:
+   - VP9/WebM to H.264/MP4 can increase size
+   - Lossless audio outputs are larger than lossy sources
 
 2. **High quality settings**:
-   - "High" quality tier uses higher bitrates
-   - CRF 18 produces larger files than CRF 23
-
-3. **Audio upsampling**:
-   - Converting to higher bitrate audio
+   - "High" quality tier favors quality over size
 
 **Solutions**:
 
 1. **Use "Balanced" quality** for smaller files
-2. **Choose efficient codec** (H.265 over H.264)
+2. **Choose efficient codec** (VP9/WebM for web delivery)
 3. **Remux instead of transcode** ("Fast" quality)
 
 ## UI Issues
@@ -302,8 +289,7 @@ brew upgrade ffmpeg
 **Possible causes**:
 
 1. **Very slow encoding**:
-   - AV1/VP9 can be extremely slow
-   - Check FPS indicator (should be > 0)
+   - VP9/WebM conversions can be slow
 
 2. **Actual freeze**:
    - Wait 30 seconds
@@ -311,17 +297,7 @@ brew upgrade ffmpeg
 
 3. **UI rendering issue**:
    - Minimize and restore window
-   - Check logs for actual progress
-
-### Logs Not Showing
-
-**Symptom**: Log section is empty or not updating
-
-**Solutions**:
-
-1. **Increase log level** to "Info" or "Debug" in Preferences
-2. **Restart the application**
-3. **Check console** for JavaScript errors
+   - Check Activity Monitor for FFmpeg activity
 
 ### Preferences Not Saving
 
@@ -332,17 +308,17 @@ brew upgrade ffmpeg
 1. **File permissions**:
 
    ```bash
-   ls -la ~/Library/Application\ Support/com.honeymelon.app/
+   ls -la ~/Library/Application\ Support/com.honeymelon.desktop/
    ```
 
 2. **Manually edit config**:
 
    ```bash
-   nano ~/Library/Application\ Support/com.honeymelon.app/settings.json
+   nano ~/Library/Application\ Support/com.honeymelon.desktop/settings.json
    ```
 
 3. **Reset preferences**:
-   - Delete settings file
+   - Delete the settings file
    - Restart app to regenerate
 
 ## macOS-Specific Issues
@@ -442,23 +418,6 @@ xattr -cr /Applications/Honeymelon.app
 
 ## Getting More Help
 
-### Check Logs
-
-Application logs are located at:
-
-```
-
-~/Library/Logs/com.honeymelon.app/
-
-```
-
-### Enable Debug Mode
-
-1. Open Preferences
-2. Set Log Level to "Debug"
-3. Reproduce the issue
-4. Check logs for detailed information
-
 ### Report an Issue
 
 If you can't resolve the issue:
@@ -467,7 +426,7 @@ If you can't resolve the issue:
    - macOS version: `sw_vers`
    - Honeymelon version: Check "About" dialog
    - FFmpeg version: `ffmpeg -version`
-   - Error logs from app
+   - Any error messages shown in the UI
 
 2. **Create a minimal reproduction**:
    - Single file that causes the issue
@@ -476,7 +435,7 @@ If you can't resolve the issue:
 3. **Report on GitHub**:
    - Go to https://github.com/honeymelon-app/honeymelon/issues
    - Provide all gathered information
-   - Include logs if applicable
+   - Include screenshots if applicable
 
 ### Community Support
 
