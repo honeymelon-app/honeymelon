@@ -60,4 +60,4 @@ Track doc updates to keep user-facing guides aligned with the current codebase.
 1. [x] Align supported formats and preset documentation with current presets and file discovery.
 2. [x] Audit user guide workflows (converting files, batch processing, preferences, troubleshooting, support).
 3. [x] Audit architecture and API references (pipeline, FFmpeg notes, API reference).
-4. [ ] Confirm docs index/changelog references remain consistent.
+4. [x] Confirm docs index/changelog references remain consistent.

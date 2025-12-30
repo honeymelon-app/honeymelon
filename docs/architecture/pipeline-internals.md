@@ -186,7 +186,7 @@ FFmpeg arguments are built entirely in TypeScript (`FFmpegArgsBuilder`) as a `st
 - `JobRegistry.register()` checks `active_jobs.len() < limit`
 - Exclusive jobs (`exclusive: true`) block all other jobs
 
-**No distinction** between heavy (AV1, ProRes) and light (remux, H.264) jobs.
+**No distinction** between remux and transcode jobs for scheduling.
 
 ---
 

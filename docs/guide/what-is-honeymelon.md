@@ -30,16 +30,16 @@ Only when necessary (incompatible codecs, quality requirements, or user preferen
 
 - **Automatic Detection**: Analyzes source files and determines the optimal conversion path
 - **Dynamic Presets**: All valid source-to-target container combinations automatically available
-- **Hardware Acceleration**: Leverages Apple VideoToolbox for H.264/HEVC encoding
-- **Modern Codec Support**: VP9, AV1, ProRes, H.264, HEVC, and more
+- **Hardware Acceleration**: Leverages Apple VideoToolbox for H.264 encoding when available
+- **Modern Codec Support**: H.264, VP9, Theora, MPEG-4, MPEG-2, and more
 - **Quality Tiers**: Fast (copy-prioritized), Balanced (optimized bitrates), High (maximum quality)
 
 ### User Experience
 
 - **Drag-and-Drop Interface**: Simply drop files or folders into the app
 - **Batch Processing**: Convert multiple files simultaneously with configurable concurrency
-- **Real-Time Progress**: Live encoding speed and ETA calculations
-- **Per-Job Management**: Cancel, view logs, or change presets for individual jobs
+- **Real-Time Progress**: Percent complete with ETA updates
+- **Per-Job Management**: Cancel or change presets for individual jobs
 - **Native macOS Integration**: Menu bar, keyboard shortcuts, and native file dialogs
 
 ### Technical Excellence
@@ -47,7 +47,7 @@ Only when necessary (incompatible codecs, quality requirements, or user preferen
 - **FFmpeg Process Isolation**: Ensures LGPL compliance for commercial distribution
 - **Type-Safe Architecture**: TypeScript and Rust provide compile-time safety
 - **Reactive State Management**: Pinia stores with discriminated union types
-- **Comprehensive Testing**: Unit tests, Rust tests, and E2E test coverage
+- **Comprehensive Testing**: Unit tests, Rust tests, and pipeline coverage
 - **Clean Codebase**: Modern best practices throughout
 
 ## System Requirements
@@ -73,7 +73,7 @@ PNG, JPEG, WebP, BMP, TIFF
 
 ### Video Codecs
 
-H.264, HEVC (H.265), VP8, VP9, AV1, ProRes, Theora, MPEG-4, FLV1, MPEG-2, and more
+H.264, VP8, VP9, Theora, MPEG-4, FLV1, MPEG-2, and more
 
 ### Audio Codecs
 
@@ -89,7 +89,7 @@ AAC, MP3, Opus, Vorbis, FLAC, PCM, MP2, AC3, and more
 
 ### Video Editors
 
-- Convert between editing formats (ProRes, DNxHD, etc.)
+- Convert between delivery formats for sharing and publishing
 - Prepare deliverables in specific codec/container combinations
 - Generate preview copies with reduced file sizes
 
