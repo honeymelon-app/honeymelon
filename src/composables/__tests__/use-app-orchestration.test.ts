@@ -20,6 +20,7 @@ const useTauriEventsMock = vi.fn();
 const availablePresetsMock = vi.fn();
 const loadCapabilitiesMock = vi.fn();
 const useJobsStoreMock = vi.fn();
+const useI18nMock = vi.fn();
 type MockFn = ReturnType<typeof vi.fn>;
 
 vi.mock('pinia', () => ({
@@ -29,6 +30,10 @@ vi.mock('pinia', () => ({
     activeJobs: store.activeJobs,
     queuedJobs: store.queuedJobs,
   }),
+}));
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => useI18nMock(),
 }));
 
 vi.mock('@/composables/use-file-handler', () => ({
@@ -133,6 +138,10 @@ describe('useAppOrchestration', () => {
 
     capturedFileHandlerOptions = undefined;
     useJobsStoreMock.mockReturnValue(jobsStore);
+    useI18nMock.mockReturnValue({
+      t: vi.fn((key: string) => key),
+      locale: ref('en'),
+    });
     useFileHandlerMock.mockImplementation((options: unknown) => {
       capturedFileHandlerOptions = options;
       return fileHandler;

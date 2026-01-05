@@ -31,7 +31,7 @@ const isTauriRuntime =
   '__TAURI_INTERNALS__' in window &&
   typeof getVersion === 'function';
 
-const version = ref<string>(import.meta.env?.PACKAGE_VERSION ?? '0.1.0');
+const version = ref<string>(import.meta.env?.PACKAGE_VERSION ?? '0.1.1');
 const buildDate = ref(new Date().toISOString().split('T')[0]);
 const showDeactivateDialog = ref(false);
 const isDeactivating = ref(false);

@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-01-06
+
+### Added
+
+- Multi-language support for window and quit confirmation dialogs (EN/ES/FR/DE/RU)
+- Dock badge showing active job count when window is hidden
+- System notifications when window is hidden with jobs running in background
+- Dynamic dock badge updates as jobs complete or new ones are queued
+
+### Changed
+
+- Window close button now hides window instead of quitting app (standard macOS behavior)
+- App continues running in background when window is closed with active jobs
+- Quit confirmation (Cmd+Q) now properly warns about running/queued jobs before exiting
+- Menu items "Show All" and "Bring All to Front" now restore hidden window
+
+### Fixed
+
+- Keyboard shortcuts (Cmd+C, Cmd+V, Cmd+A, etc.) now work in all dialogs including license activation
+- Edit menu now uses native predefined items that properly integrate with webview
+- Event emissions now log errors instead of silently failing
+- Window focus failures are now logged for debugging
+
 ## [0.1.0] - 2025-12-30
 
 ### Added
