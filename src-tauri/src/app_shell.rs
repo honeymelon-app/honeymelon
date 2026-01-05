@@ -88,34 +88,17 @@ fn build_desktop_menu(app: &App<AppRuntime>) -> tauri::Result<tauri::menu::Menu<
         .item(&close_window_item)
         .build()?;
 
-    let undo_item = MenuItemBuilder::with_id("undo", "Undo")
-        .accelerator("CmdOrCtrl+Z")
-        .build(app)?;
-    let redo_item = MenuItemBuilder::with_id("redo", "Redo")
-        .accelerator("CmdOrCtrl+Shift+Z")
-        .build(app)?;
-    let cut_item = MenuItemBuilder::with_id("cut", "Cut")
-        .accelerator("CmdOrCtrl+X")
-        .build(app)?;
-    let copy_item = MenuItemBuilder::with_id("copy", "Copy")
-        .accelerator("CmdOrCtrl+C")
-        .build(app)?;
-    let paste_item = MenuItemBuilder::with_id("paste", "Paste")
-        .accelerator("CmdOrCtrl+V")
-        .build(app)?;
-    let select_all_item = MenuItemBuilder::with_id("select_all", "Select All")
-        .accelerator("CmdOrCtrl+A")
-        .build(app)?;
-
+    // Use predefined menu items for standard edit operations
+    // These automatically work with the webview without custom handlers
     let edit_menu = SubmenuBuilder::new(app, "Edit")
-        .item(&undo_item)
-        .item(&redo_item)
+        .undo()
+        .redo()
         .separator()
-        .item(&cut_item)
-        .item(&copy_item)
-        .item(&paste_item)
+        .cut()
+        .copy()
+        .paste()
         .separator()
-        .item(&select_all_item)
+        .select_all()
         .build()?;
 
     #[cfg(debug_assertions)]
@@ -163,23 +146,43 @@ fn build_desktop_menu(app: &App<AppRuntime>) -> tauri::Result<tauri::menu::Menu<
 fn register_menu_handlers(app: &App<AppRuntime>) {
     app.on_menu_event(move |app, event| match event.id.as_ref() {
         "about" => {
-            let _ = app.emit("menu:about", ());
+            if let Err(e) = app.emit("menu:about", ()) {
+                eprintln!("Failed to emit menu:about event: {}", e);
+            }
         },
         "quit" => {
-            app.exit(0);
+            if let Err(e) = app.emit("menu:quit", ()) {
+                eprintln!("Failed to emit menu:quit event: {}", e);
+            }
         },
         "open" => {
-            let _ = app.emit("menu:open", ());
+            if let Err(e) = app.emit("menu:open", ()) {
+                eprintln!("Failed to emit menu:open event: {}", e);
+            }
         },
         "close" => {
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.close();
+                let _ = window.hide();
             }
         },
         "hide" => {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.hide();
             }
+        },
+        "show_all" | "bring_all_front" => {
+            if let Some(window) = app.get_webview_window("main") {
+                if let Err(e) = window.show() {
+                    eprintln!("Failed to show window: {}", e);
+                }
+                if let Err(e) = window.set_focus() {
+                    eprintln!("Failed to focus window: {}", e);
+                }
+            }
+        },
+        "hide_others" => {
+            // macOS handles hiding other apps at the system level
+            // We don't need to do anything here
         },
         "minimize" => {
             if let Some(window) = app.get_webview_window("main") {
@@ -195,13 +198,6 @@ fn register_menu_handlers(app: &App<AppRuntime>) {
         "toggle_devtools" => {
             eprintln!("DevTools: Right-click and choose 'Inspect Element'.");
         },
-        _ => {
-            if matches!(
-                event.id.as_ref(),
-                "cut" | "copy" | "paste" | "select_all" | "undo" | "redo"
-            ) {
-                let _ = app.emit(&format!("menu:{}", event.id.as_ref()), ());
-            }
-        },
+        _ => {},
     });
 }

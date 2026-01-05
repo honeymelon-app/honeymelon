@@ -11,6 +11,20 @@ export const messages = {
           'If you just purchased a license, copy the key from your email or the customer portal.',
         enterKey: 'Enter License Key',
       },
+      window: {
+        closeWithJobsRunning:
+          '{count} job(s) running. The app will continue running in the background. Close window anyway?',
+        closeWithJobsQueued:
+          '{count} job(s) queued. The app will continue running in the background. Close window anyway?',
+        hiddenWithJobs: 'Honeymelon is running in the background',
+        hiddenWithJobsBody: '{count} conversion(s) in progress',
+      },
+      quit: {
+        confirmWithRunning:
+          'You have {count} job(s) currently running. Are you sure you want to quit? This will cancel all active jobs.',
+        confirmWithQueued:
+          "You have {count} job(s) in the queue that haven't started yet. These will be lost if you quit. Are you sure?",
+      },
     },
     media: {
       video: 'Video',
@@ -109,6 +123,20 @@ export const messages = {
         instructions:
           "Si vous venez d'acheter une licence, copiez la clé depuis votre e-mail ou le portail client.",
         enterKey: 'Entrer la clé de licence',
+      },
+      window: {
+        closeWithJobsRunning:
+          "{count} tâche(s) en cours. L'application continuera à fonctionner en arrière-plan. Fermer la fenêtre quand même?",
+        closeWithJobsQueued:
+          "{count} tâche(s) en file d'attente. L'application continuera à fonctionner en arrière-plan. Fermer la fenêtre quand même?",
+        hiddenWithJobs: 'Honeymelon fonctionne en arrière-plan',
+        hiddenWithJobsBody: '{count} conversion(s) en cours',
+      },
+      quit: {
+        confirmWithRunning:
+          "Vous avez {count} tâche(s) en cours d'exécution. Êtes-vous sûr de vouloir quitter? Cela annulera toutes les tâches actives.",
+        confirmWithQueued:
+          "Vous avez {count} tâche(s) en file d'attente qui n'ont pas encore commencé. Elles seront perdues si vous quittez. Êtes-vous sûr?",
       },
     },
     media: {
@@ -212,6 +240,20 @@ export const messages = {
           'Si acabas de comprar una licencia, copia la clave desde tu correo electrónico o el portal del cliente.',
         enterKey: 'Ingresar clave de licencia',
       },
+      window: {
+        closeWithJobsRunning:
+          '{count} tarea(s) en ejecución. La aplicación continuará ejecutándose en segundo plano. ¿Cerrar ventana de todos modos?',
+        closeWithJobsQueued:
+          '{count} tarea(s) en cola. La aplicación continuará ejecutándose en segundo plano. ¿Cerrar ventana de todos modos?',
+        hiddenWithJobs: 'Honeymelon se está ejecutando en segundo plano',
+        hiddenWithJobsBody: '{count} conversión(es) en progreso',
+      },
+      quit: {
+        confirmWithRunning:
+          'Tienes {count} tarea(s) en ejecución actualmente. ¿Estás seguro de que quieres salir? Esto cancelará todas las tareas activas.',
+        confirmWithQueued:
+          'Tienes {count} tarea(s) en la cola que aún no han comenzado. Se perderán si sales. ¿Estás seguro?',
+      },
     },
     media: {
       video: 'Vídeo',
@@ -314,6 +356,20 @@ export const messages = {
           'Wenn Sie gerade eine Lizenz erworben haben, kopieren Sie den Schlüssel aus Ihrer E-Mail oder dem Kundenportal.',
         enterKey: 'Lizenzschlüssel eingeben',
       },
+      window: {
+        closeWithJobsRunning:
+          '{count} Aufgabe(n) läuft/laufen. Die App wird im Hintergrund weiterlaufen. Fenster trotzdem schließen?',
+        closeWithJobsQueued:
+          '{count} Aufgabe(n) in Warteschlange. Die App wird im Hintergrund weiterlaufen. Fenster trotzdem schließen?',
+        hiddenWithJobs: 'Honeymelon läuft im Hintergrund',
+        hiddenWithJobsBody: '{count} Konvertierung(en) in Bearbeitung',
+      },
+      quit: {
+        confirmWithRunning:
+          'Sie haben {count} Aufgabe(n) derzeit in Ausführung. Sind Sie sicher, dass Sie beenden möchten? Dies wird alle aktiven Aufgaben abbrechen.',
+        confirmWithQueued:
+          'Sie haben {count} Aufgabe(n) in der Warteschlange, die noch nicht gestartet wurden. Diese gehen verloren, wenn Sie beenden. Sind Sie sicher?',
+      },
     },
     media: {
       video: 'Video',
@@ -415,6 +471,20 @@ export const messages = {
         instructions:
           'Если вы только что приобрели лицензию, скопируйте ключ из электронной почты или личного кабинета.',
         enterKey: 'Ввести лицензионный ключ',
+      },
+      window: {
+        closeWithJobsRunning:
+          'Выполняется {count} задач(и). Приложение продолжит работу в фоновом режиме. Закрыть окно в любом случае?',
+        closeWithJobsQueued:
+          '{count} задач(и) в очереди. Приложение продолжит работу в фоновом режиме. Закрыть окно в любом случае?',
+        hiddenWithJobs: 'Honeymelon работает в фоновом режиме',
+        hiddenWithJobsBody: '{count} конверсий в процессе',
+      },
+      quit: {
+        confirmWithRunning:
+          'У вас сейчас выполняется {count} задач(и). Вы уверены, что хотите выйти? Это отменит все активные задачи.',
+        confirmWithQueued:
+          'У вас {count} задач(и) в очереди, которые ещё не начались. Они будут потеряны при выходе. Вы уверены?',
       },
     },
     media: {

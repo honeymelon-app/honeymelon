@@ -40,6 +40,7 @@
 import type * as NotificationPlugin from '@tauri-apps/plugin-notification';
 import { storeToRefs } from 'pinia';
 import { computed, getCurrentInstance, onMounted, ref, watch, type Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { useCapabilityGate } from '@/composables/use-capability-gate';
 import { useDesktopBridge } from '@/composables/use-desktop-bridge';
@@ -82,6 +83,11 @@ const ACTIVE_STATUSES = new Set([
 const DONE_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
 export function useAppOrchestration() {
+  /**
+   * Internationalization for localized messages.
+   */
+  const { t } = useI18n();
+
   /**
    * Application capabilities snapshot.
    *
@@ -528,6 +534,41 @@ export function useAppOrchestration() {
   }
 
   /**
+   * Handles the quit menu action.
+   *
+   * Prompts the user if there are active or queued jobs, then exits the app.
+   */
+  async function handleQuit() {
+    // Warn about running jobs first (they will be cancelled)
+    if (hasActiveJobs.value) {
+      const confirmed = window.confirm(
+        t('app.quit.confirmWithRunning', { count: activeJobs.value.length }),
+      );
+      if (!confirmed) {
+        return;
+      }
+    } else if (hasQueuedJobs.value) {
+      // Warn about queued jobs (they will be lost)
+      const confirmed = window.confirm(
+        t('app.quit.confirmWithQueued', { count: queuedJobs.value.length }),
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    // Exit the app
+    if (fileHandler.isTauriRuntime()) {
+      try {
+        const { exit } = await import('@tauri-apps/plugin-process');
+        await exit(0);
+      } catch (error) {
+        console.error('[app] Failed to exit via plugin-process', error);
+      }
+    }
+  }
+
+  /**
    * Tauri event handlers for desktop-specific functionality.
    *
    * Sets up event listeners for drag-and-drop, menu actions, and other
@@ -537,6 +578,7 @@ export function useAppOrchestration() {
     onDrop: handleFileDrop,
     onBrowseFiles: () => handleBrowse(),
     onOpenAbout: openAbout,
+    onQuit: handleQuit,
   });
   dragStateRef = isDragOver;
 
@@ -554,43 +596,42 @@ export function useAppOrchestration() {
 
     if (fileHandler.isTauriRuntime()) {
       const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      const { exit } = await import('@tauri-apps/plugin-process');
       const currentWindow = getCurrentWindow();
       await currentWindow.onCloseRequested(async (event) => {
-        // Warn about running jobs first (they will be cancelled)
-        if (hasActiveJobs.value) {
-          const confirmed = window.confirm(
-            `You have ${activeJobs.value.length} job(s) currently running. Are you sure you want to quit? This will cancel all active jobs.`,
-          );
+        // On macOS, the close button should hide the window, not quit the app.
+        // The app continues running and can be reopened from the dock or menu.
+        // Cmd+Q will properly quit the app.
+        event.preventDefault();
+
+        // Warn if jobs are running - they'll continue in background
+        if (hasActiveJobs.value || hasQueuedJobs.value) {
+          const messageKey = hasActiveJobs.value
+            ? 'app.window.closeWithJobsRunning'
+            : 'app.window.closeWithJobsQueued';
+          const count = hasActiveJobs.value ? activeJobs.value.length : queuedJobs.value.length;
+          const confirmed = window.confirm(t(messageKey, { count }));
           if (!confirmed) {
-            event.preventDefault();
             return;
           }
-        } else if (hasQueuedJobs.value) {
-          // Warn about queued jobs (they will be lost)
-          const confirmed = window.confirm(
-            `You have ${queuedJobs.value.length} job(s) in the queue that haven't started yet. These will be lost if you quit. Are you sure?`,
+
+          // Show notification that app is running in background
+          await sendNotification(
+            t('app.window.hiddenWithJobs'),
+            t('app.window.hiddenWithJobsBody', { count }),
           );
-          if (!confirmed) {
-            event.preventDefault();
-            return;
+
+          // Update dock badge with job count
+          try {
+            await currentWindow.setBadgeCount(count);
+          } catch (error) {
+            console.warn('[app] Failed to set dock badge count', error);
           }
         }
 
-        // Explicitly exit the app when the window is closed; fall back to closing the window if
-        // the process plugin is unavailable (prevents a no-op close button).
         try {
-          await exit(0);
+          await currentWindow.hide();
         } catch (error) {
-          console.warn(
-            '[app] Failed to exit via plugin-process, falling back to window.close()',
-            error,
-          );
-          try {
-            await currentWindow.close();
-          } catch (fallbackError) {
-            console.error('[app] Fallback close failed', fallbackError);
-          }
+          console.error('[app] Failed to hide window', error);
         }
       });
     }
@@ -602,6 +643,33 @@ export function useAppOrchestration() {
     });
   } else {
     void initializeCapabilities();
+  }
+
+  /**
+   * Update dock badge count when jobs change (only when window is hidden).
+   */
+  if (fileHandler.isTauriRuntime()) {
+    watch(
+      [hasActiveJobs, hasQueuedJobs],
+      async ([hasActive, hasQueued]) => {
+        try {
+          const { getCurrentWindow } = await import('@tauri-apps/api/window');
+          const currentWindow = getCurrentWindow();
+          const isVisible = await currentWindow.isVisible();
+
+          if (!isVisible && (hasActive || hasQueued)) {
+            const count = hasActive ? activeJobs.value.length : queuedJobs.value.length;
+            await currentWindow.setBadgeCount(count);
+          } else if (!hasActive && !hasQueued) {
+            // Clear badge when no jobs
+            await currentWindow.setBadgeCount(0);
+          }
+        } catch {
+          // Silently fail - not critical
+        }
+      },
+      { immediate: false },
+    );
   }
 
   /**
