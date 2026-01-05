@@ -75,11 +75,22 @@ describe('useColourMode', () => {
     const { mode, toggleMode } = useColourMode();
     expect(mode.value).toBe('dark');
 
+    // dark -> system
+    toggleMode();
+    expect(mode.value).toBe('system');
+    expect(localStorage.getItem('color-mode')).toBe('system');
+
+    // system -> light (when system prefers light)
     toggleMode();
     expect(mode.value).toBe('light');
     expect(localStorage.getItem('color-mode')).toBe('light');
     expect(document.documentElement.classList.contains('dark')).toBe(false);
     expect(document.documentElement.classList.contains('light')).toBe(true);
+
+    // light -> dark
+    toggleMode();
+    expect(mode.value).toBe('dark');
+    expect(localStorage.getItem('color-mode')).toBe('dark');
   });
 
   it('listens for system preference changes when using system mode', async () => {

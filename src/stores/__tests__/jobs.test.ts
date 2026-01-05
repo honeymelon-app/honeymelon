@@ -44,9 +44,9 @@ describe('jobs store', () => {
       expect(store.jobs).toEqual([]);
     });
 
-    it('should have default maxConcurrency of 2', () => {
+    it('should have default maxConcurrency of 4', () => {
       const store = useJobsStore();
-      expect(store.maxConcurrency).toBe(2);
+      expect(store.maxConcurrency).toBe(4);
     });
 
     it('should have no queued jobs', () => {

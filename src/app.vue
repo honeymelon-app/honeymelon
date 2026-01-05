@@ -76,6 +76,7 @@ const {
   handleBrowse,
   handleCancelJob,
   handleUpdatePreset,
+  handleUpdateAllPresets,
   handleStartJob,
   startAll,
   cancelAll,
@@ -209,6 +210,22 @@ const hasImageQueuedJobs = computed(() =>
 );
 
 /**
+ * Computed properties for media-kind-specific preset options.
+ *
+ * These reactive properties filter the available presets based on media type,
+ * ensuring each tab only shows relevant output formats.
+ */
+const videoPresetOptions = computed(() =>
+  presetOptions.value.filter((preset) => preset.mediaKind === 'video'),
+);
+const audioPresetOptions = computed(() =>
+  presetOptions.value.filter((preset) => preset.mediaKind === 'audio'),
+);
+const imagePresetOptions = computed(() =>
+  presetOptions.value.filter((preset) => preset.mediaKind === 'image'),
+);
+
+/**
  * Media-kind-specific browse handlers.
  *
  * These functions trigger file browsing dialogs filtered by media type,
@@ -217,6 +234,15 @@ const hasImageQueuedJobs = computed(() =>
 const handleVideoBrowse = () => handleBrowse('video');
 const handleAudioBrowse = () => handleBrowse('audio');
 const handleImageBrowse = () => handleBrowse('image');
+
+/**
+ * Media-kind-specific bulk preset update handlers.
+ *
+ * These functions ensure bulk preset changes only affect jobs of the correct media type.
+ */
+const handleVideoUpdateAllPresets = (presetId: string) => handleUpdateAllPresets(presetId, 'video');
+const handleAudioUpdateAllPresets = (presetId: string) => handleUpdateAllPresets(presetId, 'audio');
+const handleImageUpdateAllPresets = (presetId: string) => handleUpdateAllPresets(presetId, 'image');
 </script>
 
 <template>
@@ -327,9 +353,10 @@ const handleImageBrowse = () => handleBrowse('image');
                   :has-completed-jobs="hasVideoCompletedJobs"
                   :has-no-jobs="hasNoVideoJobs"
                   :has-queued-jobs="hasVideoQueuedJobs"
-                  :preset-options="presetOptions"
+                  :preset-options="videoPresetOptions"
                   :on-cancel-job="handleCancelJob"
                   :on-update-preset="handleUpdatePreset"
+                  :on-update-all-presets="handleVideoUpdateAllPresets"
                   :on-start-job="handleStartJob"
                   :on-clear-completed="clearCompleted"
                   :on-cancel-all="cancelAll"
@@ -360,9 +387,10 @@ const handleImageBrowse = () => handleBrowse('image');
                   :has-completed-jobs="hasAudioCompletedJobs"
                   :has-no-jobs="hasNoAudioJobs"
                   :has-queued-jobs="hasAudioQueuedJobs"
-                  :preset-options="presetOptions"
+                  :preset-options="audioPresetOptions"
                   :on-cancel-job="handleCancelJob"
                   :on-update-preset="handleUpdatePreset"
+                  :on-update-all-presets="handleAudioUpdateAllPresets"
                   :on-start-job="handleStartJob"
                   :on-clear-completed="clearCompleted"
                   :on-cancel-all="cancelAll"
@@ -393,9 +421,10 @@ const handleImageBrowse = () => handleBrowse('image');
                   :has-completed-jobs="hasImageCompletedJobs"
                   :has-no-jobs="hasNoImageJobs"
                   :has-queued-jobs="hasImageQueuedJobs"
-                  :preset-options="presetOptions"
+                  :preset-options="imagePresetOptions"
                   :on-cancel-job="handleCancelJob"
                   :on-update-preset="handleUpdatePreset"
+                  :on-update-all-presets="handleImageUpdateAllPresets"
                   :on-start-job="handleStartJob"
                   :on-clear-completed="clearCompleted"
                   :on-cancel-all="cancelAll"

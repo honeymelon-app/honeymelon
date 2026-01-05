@@ -35,6 +35,7 @@ pub fn build_app() -> Builder<AppRuntime> {
 
     builder.setup(|app| {
         configure_menus(app)?;
+        setup_window_behavior(app)?;
         Ok(())
     })
 }
@@ -49,6 +50,14 @@ fn configure_menus(app: &App<AppRuntime>) -> tauri::Result<()> {
 
 #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
 fn configure_menus(_app: &App<AppRuntime>) -> tauri::Result<()> {
+    Ok(())
+}
+
+fn setup_window_behavior(_app: &App<AppRuntime>) -> tauri::Result<()> {
+    // Window close behavior is handled by the frontend's onCloseRequested handler
+    // in use-app-orchestration.ts, which allows showing confirmation dialogs
+    // for active jobs before hiding/closing the window.
+    // No additional Rust-side configuration is needed for Tauri v2.
     Ok(())
 }
 
@@ -161,8 +170,9 @@ fn register_menu_handlers(app: &App<AppRuntime>) {
             }
         },
         "close" => {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.hide();
+            // Emit event to frontend so it can show confirmation dialog if needed
+            if let Err(e) = app.emit("menu:close", ()) {
+                eprintln!("Failed to emit menu:close event: {}", e);
             }
         },
         "hide" => {
@@ -196,7 +206,13 @@ fn register_menu_handlers(app: &App<AppRuntime>) {
         },
         #[cfg(debug_assertions)]
         "toggle_devtools" => {
-            eprintln!("DevTools: Right-click and choose 'Inspect Element'.");
+            if let Some(window) = app.get_webview_window("main") {
+                if window.is_devtools_open() {
+                    let _ = window.close_devtools();
+                } else {
+                    let _ = window.open_devtools();
+                }
+            }
         },
         _ => {},
     });

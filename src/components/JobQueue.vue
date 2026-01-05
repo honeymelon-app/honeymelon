@@ -72,6 +72,9 @@ interface JobQueueProps {
   /** Callback for updating a job's preset */
   // eslint-disable-next-line no-unused-vars
   onUpdatePreset?: (jobId: string, presetId: string) => void;
+  /** Callback for updating all jobs' presets at once */
+  // eslint-disable-next-line no-unused-vars
+  onUpdateAllPresets?: (presetId: string) => void;
   /** Callback for starting a queued job */
   // eslint-disable-next-line no-unused-vars
   onStartJob?: (jobId: string) => void;
@@ -111,6 +114,7 @@ const allJobs = computed(() => [...props.activeJobs, ...props.completedJobs]);
     :is-batch-processing="props.isBatchProcessing"
     @cancel="props.onCancelJob"
     @update-preset="props.onUpdatePreset"
+    @update-all-presets="props.onUpdateAllPresets"
     @start="props.onStartJob"
     @clear-completed="props.onClearCompleted"
     @cancel-all="props.onCancelAll"

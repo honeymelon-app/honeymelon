@@ -16,11 +16,11 @@ const props = defineProps<{
 const tooltipText = computed(() => {
   switch (mode.value) {
     case 'light':
-      return 'Light mode (click to switch)';
+      return 'Light mode (click for dark)';
     case 'dark':
-      return 'Dark mode (click to switch)';
+      return 'Dark mode (click for system)';
     case 'system':
-      return 'System theme (click to switch)';
+      return 'System theme (click for light)';
     default:
       return 'Toggle theme';
   }

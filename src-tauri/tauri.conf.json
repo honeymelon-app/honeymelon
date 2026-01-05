@@ -37,7 +37,7 @@
         "acceptFirstMouse": true,
         "tabbingIdentifier": null,
         "dragDropEnabled": true,
-        "devtools": false
+        "devtools": true
       }
     ],
     "security": {

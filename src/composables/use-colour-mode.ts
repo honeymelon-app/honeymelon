@@ -39,10 +39,13 @@ export function useColourMode() {
   };
 
   const toggleMode = () => {
-    if (mode.value === 'system') {
-      mode.value = getSystemTheme() === 'dark' ? 'light' : 'dark';
+    // Cycle through: light -> dark -> system -> light
+    if (mode.value === 'light') {
+      mode.value = 'dark';
+    } else if (mode.value === 'dark') {
+      mode.value = 'system';
     } else {
-      mode.value = mode.value === 'light' ? 'dark' : 'light';
+      mode.value = 'light';
     }
     updateHtmlAttributes(mode.value);
     persistMode(mode.value);

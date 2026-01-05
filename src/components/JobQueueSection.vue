@@ -5,6 +5,13 @@ import { useI18n } from 'vue-i18n';
 import JobQueueItem from '@/components/JobQueueItem.vue';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { JobState, Preset, ProbeSummary } from '@/lib/types';
 
@@ -34,6 +41,7 @@ const { t } = useI18n();
 const emit = defineEmits<{
   cancel: [jobId: string];
   updatePreset: [jobId: string, presetId: string];
+  updateAllPresets: [presetId: string];
   start: [jobId: string];
   clearCompleted: [];
   cancelAll: [];
@@ -63,6 +71,12 @@ function handleCancelAll() {
 function handleStartAll() {
   emit('startAll');
 }
+
+function handleBulkPresetChange(presetId: unknown) {
+  if (typeof presetId === 'string') {
+    emit('updateAllPresets', presetId);
+  }
+}
 </script>
 
 <template>
@@ -83,7 +97,40 @@ function handleStartAll() {
           {{ t('queue.count', { count: jobs.length }) }}
         </span>
       </div>
-      <div class="flex items-center gap-1">
+      <div class="flex items-center gap-2">
+        <TooltipProvider v-if="variant !== 'completed' && availablePresets.length > 0">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-muted-foreground whitespace-nowrap">
+                  {{ t('queue.actions.bulkFormat') }}:
+                </span>
+                <Select @update:model-value="handleBulkPresetChange">
+                  <SelectTrigger class="h-7 w-[140px] text-xs" data-test="bulk-preset-selector">
+                    <SelectValue :placeholder="t('queue.actions.selectFormat')" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      v-for="preset in availablePresets"
+                      :key="preset.id"
+                      :value="preset.id"
+                      data-test="bulk-preset-option"
+                    >
+                      {{ preset.label }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{{ t('queue.actions.bulkFormatTooltip') }}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <div
+          v-if="variant !== 'completed' && availablePresets.length > 0"
+          class="w-px h-4 bg-border/60"
+        />
         <TooltipProvider v-if="showClearButton">
           <Tooltip>
             <TooltipTrigger as-child>

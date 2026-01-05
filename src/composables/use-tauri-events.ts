@@ -9,10 +9,12 @@ interface UseTauriEventsOptions {
   onMenuOpen?: () => void | Promise<void>;
   onMenuAbout?: () => void;
   onMenuQuit?: () => void | Promise<void>;
+  onMenuClose?: () => void | Promise<void>;
 }
 
 export function useTauriEvents(options: UseTauriEventsOptions = {}) {
-  const { onDrop, onDragEnter, onDragLeave, onMenuOpen, onMenuAbout, onMenuQuit } = options;
+  const { onDrop, onDragEnter, onDragLeave, onMenuOpen, onMenuAbout, onMenuQuit, onMenuClose } =
+    options;
 
   const unlistenDrop = ref<UnlistenFn | null>(null);
   const unlistenEnter = ref<UnlistenFn | null>(null);
@@ -20,6 +22,7 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
   const unlistenMenuOpen = ref<UnlistenFn | null>(null);
   const unlistenMenuAbout = ref<UnlistenFn | null>(null);
   const unlistenMenuQuit = ref<UnlistenFn | null>(null);
+  const unlistenMenuClose = ref<UnlistenFn | null>(null);
 
   function isTauriRuntime(): boolean {
     return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -99,6 +102,12 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
         await onMenuQuit();
       });
     }
+
+    if (onMenuClose) {
+      unlistenMenuClose.value = await listen('menu:close', async () => {
+        await onMenuClose();
+      });
+    }
   }
 
   function cleanupEventListeners() {
@@ -108,6 +117,7 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
     unlistenMenuOpen.value?.();
     unlistenMenuAbout.value?.();
     unlistenMenuQuit.value?.();
+    unlistenMenuClose.value?.();
   }
 
   if (getCurrentInstance()) {

@@ -7,6 +7,7 @@ interface DesktopBridgeOptions {
   onBrowseFiles?: () => void | Promise<void>;
   onOpenAbout?: () => void;
   onQuit?: () => void | Promise<void>;
+  onClose?: () => void | Promise<void>;
 }
 
 interface DesktopBridge {
@@ -34,6 +35,7 @@ export function useDesktopBridge(options: DesktopBridgeOptions): DesktopBridge {
     onMenuOpen: options.onBrowseFiles,
     onMenuAbout: options.onOpenAbout,
     onMenuQuit: options.onQuit,
+    onMenuClose: options.onClose,
   });
 
   return {

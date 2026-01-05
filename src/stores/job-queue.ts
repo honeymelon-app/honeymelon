@@ -39,7 +39,7 @@ export function useJobQueue(): JobQueueComposable {
   // Get a direct reference to the repository's map for reactivity
   // This ensures all store instances share the same reactive map
   const jobsMap = jobService.reactiveMap;
-  const maxConcurrency = ref(2);
+  const maxConcurrency = ref(4);
 
   const jobs = computed(() => Array.from(jobsMap.value.values()));
   const queuedJobs = computed(() => jobs.value.filter((job) => job.state.status === 'queued'));

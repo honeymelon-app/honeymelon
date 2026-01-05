@@ -68,6 +68,9 @@ export const messages = {
         clearQueue: 'Clear queue',
         convertAll: 'Convert all',
         convertAllTooltip: 'Start converting all queued files',
+        bulkFormat: 'Change all to',
+        selectFormat: 'Select format',
+        bulkFormatTooltip: 'Change output format for all queued files',
       },
     },
     job: {
@@ -181,6 +184,9 @@ export const messages = {
         clearQueue: 'Vider la file',
         convertAll: 'Tout convertir',
         convertAllTooltip: 'Lancer la conversion de tous les fichiers en attente',
+        bulkFormat: 'Changer tous en',
+        selectFormat: 'Sélectionner le format',
+        bulkFormatTooltip: 'Changer le format de sortie pour tous les fichiers en attente',
       },
     },
     job: {
@@ -297,6 +303,9 @@ export const messages = {
         clearQueue: 'Vaciar cola',
         convertAll: 'Convertir todo',
         convertAllTooltip: 'Iniciar la conversión de todos los archivos en cola',
+        bulkFormat: 'Cambiar todos a',
+        selectFormat: 'Seleccionar formato',
+        bulkFormatTooltip: 'Cambiar el formato de salida para todos los archivos en cola',
       },
     },
     job: {
@@ -413,6 +422,9 @@ export const messages = {
         clearQueue: 'Warteschlange leeren',
         convertAll: 'Alles konvertieren',
         convertAllTooltip: 'Alle Dateien in der Warteschlange starten',
+        bulkFormat: 'Alle ändern zu',
+        selectFormat: 'Format auswählen',
+        bulkFormatTooltip: 'Ausgabeformat für alle Dateien in der Warteschlange ändern',
       },
     },
     job: {
@@ -529,6 +541,9 @@ export const messages = {
         clearQueue: 'Очистить очередь',
         convertAll: 'Конвертировать все',
         convertAllTooltip: 'Запустить конвертацию всех файлов в очереди',
+        bulkFormat: 'Изменить все на',
+        selectFormat: 'Выбрать формат',
+        bulkFormatTooltip: 'Изменить формат вывода для всех файлов в очереди',
       },
     },
     job: {

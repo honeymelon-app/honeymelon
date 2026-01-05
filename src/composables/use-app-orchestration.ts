@@ -37,7 +37,6 @@
  * for debugging while maintaining UI stability.
  */
 
-import type * as NotificationPlugin from '@tauri-apps/plugin-notification';
 import { storeToRefs } from 'pinia';
 import { computed, getCurrentInstance, onMounted, ref, watch, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -46,10 +45,10 @@ import { useCapabilityGate } from '@/composables/use-capability-gate';
 import { useDesktopBridge } from '@/composables/use-desktop-bridge';
 import { useFileHandler } from '@/composables/use-file-handler';
 import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
+import { PRESETS } from '@/lib/presets';
+import type { MediaKind } from '@/lib/types';
 import { jobService } from '@/services/job-service';
 import { useJobsStore } from '@/stores/jobs';
-
-type NotificationModule = typeof NotificationPlugin;
 
 /**
  * Checks if running in Tauri desktop environment.
@@ -132,51 +131,39 @@ export function useAppOrchestration() {
   const orchestrator = useJobOrchestrator({ autoStartNext: false });
 
   /**
-   * Notification module for macOS notifications.
-   */
-  let notificationModulePromise: Promise<NotificationModule | null> | null = null;
-
-  /**
-   * Prepares the notification module for sending macOS notifications.
-   */
-  async function prepareNotificationModule(): Promise<NotificationModule | null> {
-    if (!isTauriRuntime()) {
-      return null;
-    }
-    if (notificationModulePromise) {
-      return notificationModulePromise;
-    }
-
-    notificationModulePromise = (async () => {
-      try {
-        const module = await import('@tauri-apps/plugin-notification');
-        let granted = await module.isPermissionGranted();
-        if (!granted) {
-          const permission = await module.requestPermission();
-          granted = permission === 'granted';
-        }
-        return granted ? module : null;
-      } catch (error) {
-        console.warn('[app] Notification module unavailable:', error);
-        return null;
-      }
-    })();
-
-    return notificationModulePromise;
-  }
-
-  /**
    * Sends a macOS notification.
+   *
+   * Uses Tauri's notification plugin which is synchronous.
    */
-  async function sendNotification(title: string, body: string): Promise<void> {
-    const module = await prepareNotificationModule();
-    if (!module) return;
-
-    try {
-      await module.sendNotification({ title, body });
-    } catch (error) {
-      console.warn('[app] Failed to send notification:', error);
+  function sendNotification(title: string, body: string): void {
+    if (!isTauriRuntime()) {
+      return;
     }
+
+    // Import and send notification synchronously
+    import('@tauri-apps/plugin-notification')
+      .then(async (module) => {
+        try {
+          // Check and request permission if needed
+          let granted = await module.isPermissionGranted();
+          if (!granted) {
+            const permission = await module.requestPermission();
+            granted = permission === 'granted';
+          }
+
+          if (granted) {
+            // sendNotification is synchronous in Tauri v2
+            module.sendNotification({ title, body });
+          } else {
+            console.warn('[app] Notification permission denied');
+          }
+        } catch (error) {
+          console.warn('[app] Failed to send notification:', error);
+        }
+      })
+      .catch((error) => {
+        console.warn('[app] Notification module unavailable:', error);
+      });
   }
 
   /**
@@ -348,6 +335,51 @@ export function useAppOrchestration() {
     } else {
       console.warn('[app] No compatible preset available for job:', jobId);
     }
+  }
+
+  /**
+   * Updates the preset for all queued jobs, optionally filtered by media kind.
+   *
+   * This allows users to bulk-change the output format for all files in the queue.
+   * Each job is validated individually to ensure preset compatibility with its file type.
+   * When a mediaKind is provided, only jobs matching that media type are updated.
+   *
+   * @param presetId - The ID of the preset to apply
+   * @param mediaKind - Optional media kind filter (video/audio/image)
+   */
+  function handleUpdateAllPresets(presetId: string, mediaKind?: MediaKind) {
+    let queuedJobsList = queuedJobs.value;
+    if (queuedJobsList.length === 0) {
+      return;
+    }
+
+    // Filter jobs by media kind if specified
+    if (mediaKind) {
+      queuedJobsList = queuedJobsList.filter((job) => {
+        const preset = PRESETS.find((p) => p.id === job.presetId);
+        return preset?.mediaKind === mediaKind;
+      });
+    }
+
+    if (queuedJobsList.length === 0) {
+      return;
+    }
+
+    let updatedCount = 0;
+    for (const job of queuedJobsList) {
+      const allowedPresets = fileHandler.presetsForPath(job.path);
+      const isCompatible = allowedPresets.some((preset) => preset.id === presetId);
+
+      if (isCompatible) {
+        jobsStore.updateJobPreset(job.id, presetId);
+        updatedCount++;
+      }
+    }
+
+    const mediaKindStr = mediaKind ? ` (${mediaKind})` : '';
+    console.log(
+      `[app] Updated ${updatedCount} of ${queuedJobsList.length} queued jobs${mediaKindStr} to preset: ${presetId}`,
+    );
   }
 
   /**
@@ -569,6 +601,52 @@ export function useAppOrchestration() {
   }
 
   /**
+   * Handles window close requests (from close button or Cmd+W).
+   *
+   * Shows confirmation dialog if jobs are active, then hides the window
+   * instead of quitting the app (standard macOS behavior).
+   */
+  async function handleWindowClose() {
+    if (!fileHandler.isTauriRuntime()) {
+      return;
+    }
+
+    const { getCurrentWindow } = await import('@tauri-apps/api/window');
+    const currentWindow = getCurrentWindow();
+
+    // Warn if jobs are running - they'll continue in background
+    if (hasActiveJobs.value || hasQueuedJobs.value) {
+      const messageKey = hasActiveJobs.value
+        ? 'app.window.closeWithJobsRunning'
+        : 'app.window.closeWithJobsQueued';
+      const count = hasActiveJobs.value ? activeJobs.value.length : queuedJobs.value.length;
+      const confirmed = window.confirm(t(messageKey, { count }));
+      if (!confirmed) {
+        return;
+      }
+
+      // Show notification that app is running in background
+      sendNotification(
+        t('app.window.hiddenWithJobs'),
+        t('app.window.hiddenWithJobsBody', { count }),
+      );
+
+      // Update dock badge with job count
+      try {
+        await currentWindow.setBadgeCount(count);
+      } catch (error) {
+        console.error('[app] Failed to set dock badge count:', error);
+      }
+    }
+
+    try {
+      await currentWindow.hide();
+    } catch (error) {
+      console.error('[app] Failed to hide window', error);
+    }
+  }
+
+  /**
    * Tauri event handlers for desktop-specific functionality.
    *
    * Sets up event listeners for drag-and-drop, menu actions, and other
@@ -579,6 +657,7 @@ export function useAppOrchestration() {
     onBrowseFiles: () => handleBrowse(),
     onOpenAbout: openAbout,
     onQuit: handleQuit,
+    onClose: handleWindowClose,
   });
   dragStateRef = isDragOver;
 
@@ -602,37 +681,7 @@ export function useAppOrchestration() {
         // The app continues running and can be reopened from the dock or menu.
         // Cmd+Q will properly quit the app.
         event.preventDefault();
-
-        // Warn if jobs are running - they'll continue in background
-        if (hasActiveJobs.value || hasQueuedJobs.value) {
-          const messageKey = hasActiveJobs.value
-            ? 'app.window.closeWithJobsRunning'
-            : 'app.window.closeWithJobsQueued';
-          const count = hasActiveJobs.value ? activeJobs.value.length : queuedJobs.value.length;
-          const confirmed = window.confirm(t(messageKey, { count }));
-          if (!confirmed) {
-            return;
-          }
-
-          // Show notification that app is running in background
-          await sendNotification(
-            t('app.window.hiddenWithJobs'),
-            t('app.window.hiddenWithJobsBody', { count }),
-          );
-
-          // Update dock badge with job count
-          try {
-            await currentWindow.setBadgeCount(count);
-          } catch (error) {
-            console.warn('[app] Failed to set dock badge count', error);
-          }
-        }
-
-        try {
-          await currentWindow.hide();
-        } catch (error) {
-          console.error('[app] Failed to hide window', error);
-        }
+        await handleWindowClose();
       });
     }
   };
@@ -664,8 +713,8 @@ export function useAppOrchestration() {
             // Clear badge when no jobs
             await currentWindow.setBadgeCount(0);
           }
-        } catch {
-          // Silently fail - not critical
+        } catch (error) {
+          console.error('[app] Failed to update dock badge:', error);
         }
       },
       { immediate: false },
@@ -699,6 +748,7 @@ export function useAppOrchestration() {
     handleCancelJob,
     handleRetryJob,
     handleUpdatePreset,
+    handleUpdateAllPresets,
     handleStartJob,
     startAll,
     cancelAll,
