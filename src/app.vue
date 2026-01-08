@@ -32,10 +32,9 @@ import { useI18n } from 'vue-i18n';
 import AboutDialog from '@/components/AboutDialog.vue';
 import AppLoadingSkeleton from '@/components/AppLoadingSkeleton.vue';
 import DestinationChooser from '@/components/DestinationChooser.vue';
-import FileUploader from '@/components/FileUploader.vue';
-import JobQueue from '@/components/JobQueue.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import LicenseActivationDialog from '@/components/LicenseActivationDialog.vue';
+import MediaTabContent from '@/components/MediaTabContent.vue';
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,11 +46,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import Window from '@/components/Window.vue';
 import { useAppOrchestration } from '@/composables/use-app-orchestration';
-import { PRESETS } from '@/lib/presets';
+import { useMediaKindFilter } from '@/composables/use-media-kind-filter';
 import type { MediaKind } from '@/lib/types';
 import { useLicenseStore } from '@/stores/license';
 
@@ -131,99 +130,14 @@ const showSkeleton = computed(
 const activeTab = ref<MediaKind>('video');
 
 /**
- * Utility functions for job filtering by media type.
+ * Media-kind-specific filters using the centralized composable.
  *
- * These functions enable the tabbed interface by filtering jobs based on their
- * associated preset's media kind. This allows users to focus on specific media
- * types while maintaining a unified job queue underneath.
+ * Each filter provides reactive views of jobs and presets filtered by media kind,
+ * eliminating the need to repeat computed properties for each media type.
  */
-
-/**
- * Determines the media kind of a job based on its preset.
- *
- * @param presetId - The ID of the preset used for the job
- * @returns The media kind (video/audio/image) or null if preset not found
- */
-function getJobMediaKind(presetId: string): MediaKind | null {
-  const preset = PRESETS.find((p) => p.id === presetId);
-  return preset?.mediaKind ?? null;
-}
-
-/**
- * Filters a job array by media kind.
- *
- * @param jobs - Array of jobs to filter
- * @param mediaKind - The media kind to filter by
- * @returns Filtered array of jobs matching the specified media kind
- */
-function filterJobsByMediaKind(jobs: typeof activeJobs.value, mediaKind: MediaKind) {
-  return jobs.filter((job) => getJobMediaKind(job.presetId) === mediaKind);
-}
-
-/**
- * Computed properties for video jobs.
- *
- * These reactive properties provide filtered views of the job queue specifically
- * for video-related operations, enabling the video tab functionality.
- */
-const videoActiveJobs = computed(() => filterJobsByMediaKind(activeJobs.value, 'video'));
-const videoCompletedJobs = computed(() => filterJobsByMediaKind(completedJobs.value, 'video'));
-const hasVideoActiveJobs = computed(() => videoActiveJobs.value.length > 0);
-const hasVideoCompletedJobs = computed(() => videoCompletedJobs.value.length > 0);
-const hasNoVideoJobs = computed(
-  () => videoActiveJobs.value.length === 0 && videoCompletedJobs.value.length === 0,
-);
-const hasVideoQueuedJobs = computed(() =>
-  videoActiveJobs.value.some((job) => job.state.status === 'queued'),
-);
-
-/**
- * Computed properties for audio jobs.
- *
- * Similar to video jobs but for audio-specific operations and the audio tab.
- */
-const audioActiveJobs = computed(() => filterJobsByMediaKind(activeJobs.value, 'audio'));
-const audioCompletedJobs = computed(() => filterJobsByMediaKind(completedJobs.value, 'audio'));
-const hasAudioActiveJobs = computed(() => audioActiveJobs.value.length > 0);
-const hasAudioCompletedJobs = computed(() => audioCompletedJobs.value.length > 0);
-const hasNoAudioJobs = computed(
-  () => audioActiveJobs.value.length === 0 && audioCompletedJobs.value.length === 0,
-);
-const hasAudioQueuedJobs = computed(() =>
-  audioActiveJobs.value.some((job) => job.state.status === 'queued'),
-);
-
-/**
- * Computed properties for image jobs.
- *
- * Similar to other media types but for image processing operations.
- */
-const imageActiveJobs = computed(() => filterJobsByMediaKind(activeJobs.value, 'image'));
-const imageCompletedJobs = computed(() => filterJobsByMediaKind(completedJobs.value, 'image'));
-const hasImageActiveJobs = computed(() => imageActiveJobs.value.length > 0);
-const hasImageCompletedJobs = computed(() => imageCompletedJobs.value.length > 0);
-const hasNoImageJobs = computed(
-  () => imageActiveJobs.value.length === 0 && imageCompletedJobs.value.length === 0,
-);
-const hasImageQueuedJobs = computed(() =>
-  imageActiveJobs.value.some((job) => job.state.status === 'queued'),
-);
-
-/**
- * Computed properties for media-kind-specific preset options.
- *
- * These reactive properties filter the available presets based on media type,
- * ensuring each tab only shows relevant output formats.
- */
-const videoPresetOptions = computed(() =>
-  presetOptions.value.filter((preset) => preset.mediaKind === 'video'),
-);
-const audioPresetOptions = computed(() =>
-  presetOptions.value.filter((preset) => preset.mediaKind === 'audio'),
-);
-const imagePresetOptions = computed(() =>
-  presetOptions.value.filter((preset) => preset.mediaKind === 'image'),
-);
+const videoFilter = useMediaKindFilter(activeJobs, completedJobs, presetOptions, 'video');
+const audioFilter = useMediaKindFilter(activeJobs, completedJobs, presetOptions, 'audio');
+const imageFilter = useMediaKindFilter(activeJobs, completedJobs, presetOptions, 'image');
 
 /**
  * Media-kind-specific browse handlers.
@@ -332,106 +246,52 @@ const handleImageUpdateAllPresets = (presetId: string) => handleUpdateAllPresets
           <KeepAlive>
             <div class="flex-1 flex flex-col min-h-0">
               <!-- Video Tab Content -->
-              <TabsContent
-                value="video"
-                class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
-                data-test="media-pane"
-                data-media-kind="video"
-              >
-                <!-- File uploader for video files -->
-                <FileUploader
-                  :is-drag-over="isDragOver"
-                  :has-active-jobs="hasVideoActiveJobs || hasVideoCompletedJobs"
-                  :media-kind="'video'"
-                  :on-browse="handleVideoBrowse"
-                />
-                <!-- Job queue displaying video conversion jobs -->
-                <JobQueue
-                  :active-jobs="videoActiveJobs"
-                  :completed-jobs="videoCompletedJobs"
-                  :has-active-jobs="hasVideoActiveJobs"
-                  :has-completed-jobs="hasVideoCompletedJobs"
-                  :has-no-jobs="hasNoVideoJobs"
-                  :has-queued-jobs="hasVideoQueuedJobs"
-                  :preset-options="videoPresetOptions"
-                  :on-cancel-job="handleCancelJob"
-                  :on-update-preset="handleUpdatePreset"
-                  :on-update-all-presets="handleVideoUpdateAllPresets"
-                  :on-start-job="handleStartJob"
-                  :on-clear-completed="clearCompleted"
-                  :on-cancel-all="cancelAll"
-                  :on-start-all="startAll"
-                  :is-batch-processing="batchAutoStart"
-                />
-              </TabsContent>
+              <MediaTabContent
+                media-kind="video"
+                :is-drag-over="isDragOver"
+                :filter="videoFilter"
+                :on-browse="handleVideoBrowse"
+                :on-cancel-job="handleCancelJob"
+                :on-update-preset="handleUpdatePreset"
+                :on-update-all-presets="handleVideoUpdateAllPresets"
+                :on-start-job="handleStartJob"
+                :on-clear-completed="clearCompleted"
+                :on-cancel-all="cancelAll"
+                :on-start-all="startAll"
+                :is-batch-processing="batchAutoStart"
+              />
 
               <!-- Audio Tab Content -->
-              <TabsContent
-                value="audio"
-                class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
-                data-test="media-pane"
-                data-media-kind="audio"
-              >
-                <!-- File uploader for audio files -->
-                <FileUploader
-                  :is-drag-over="isDragOver"
-                  :has-active-jobs="hasAudioActiveJobs || hasAudioCompletedJobs"
-                  :media-kind="'audio'"
-                  :on-browse="handleAudioBrowse"
-                />
-                <!-- Job queue displaying audio conversion jobs -->
-                <JobQueue
-                  :active-jobs="audioActiveJobs"
-                  :completed-jobs="audioCompletedJobs"
-                  :has-active-jobs="hasAudioActiveJobs"
-                  :has-completed-jobs="hasAudioCompletedJobs"
-                  :has-no-jobs="hasNoAudioJobs"
-                  :has-queued-jobs="hasAudioQueuedJobs"
-                  :preset-options="audioPresetOptions"
-                  :on-cancel-job="handleCancelJob"
-                  :on-update-preset="handleUpdatePreset"
-                  :on-update-all-presets="handleAudioUpdateAllPresets"
-                  :on-start-job="handleStartJob"
-                  :on-clear-completed="clearCompleted"
-                  :on-cancel-all="cancelAll"
-                  :on-start-all="startAll"
-                  :is-batch-processing="batchAutoStart"
-                />
-              </TabsContent>
+              <MediaTabContent
+                media-kind="audio"
+                :is-drag-over="isDragOver"
+                :filter="audioFilter"
+                :on-browse="handleAudioBrowse"
+                :on-cancel-job="handleCancelJob"
+                :on-update-preset="handleUpdatePreset"
+                :on-update-all-presets="handleAudioUpdateAllPresets"
+                :on-start-job="handleStartJob"
+                :on-clear-completed="clearCompleted"
+                :on-cancel-all="cancelAll"
+                :on-start-all="startAll"
+                :is-batch-processing="batchAutoStart"
+              />
 
               <!-- Image Tab Content -->
-              <TabsContent
-                value="image"
-                class="flex-1 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden gap-y-2"
-                data-test="media-pane"
-                data-media-kind="image"
-              >
-                <!-- File uploader for image files -->
-                <FileUploader
-                  :is-drag-over="isDragOver"
-                  :has-active-jobs="hasImageActiveJobs || hasImageCompletedJobs"
-                  :media-kind="'image'"
-                  :on-browse="handleImageBrowse"
-                />
-                <!-- Job queue displaying image conversion jobs -->
-                <JobQueue
-                  :active-jobs="imageActiveJobs"
-                  :completed-jobs="imageCompletedJobs"
-                  :has-active-jobs="hasImageActiveJobs"
-                  :has-completed-jobs="hasImageCompletedJobs"
-                  :has-no-jobs="hasNoImageJobs"
-                  :has-queued-jobs="hasImageQueuedJobs"
-                  :preset-options="imagePresetOptions"
-                  :on-cancel-job="handleCancelJob"
-                  :on-update-preset="handleUpdatePreset"
-                  :on-update-all-presets="handleImageUpdateAllPresets"
-                  :on-start-job="handleStartJob"
-                  :on-clear-completed="clearCompleted"
-                  :on-cancel-all="cancelAll"
-                  :on-start-all="startAll"
-                  :is-batch-processing="batchAutoStart"
-                />
-              </TabsContent>
+              <MediaTabContent
+                media-kind="image"
+                :is-drag-over="isDragOver"
+                :filter="imageFilter"
+                :on-browse="handleImageBrowse"
+                :on-cancel-job="handleCancelJob"
+                :on-update-preset="handleUpdatePreset"
+                :on-update-all-presets="handleImageUpdateAllPresets"
+                :on-start-job="handleStartJob"
+                :on-clear-completed="clearCompleted"
+                :on-cancel-all="cancelAll"
+                :on-start-all="startAll"
+                :is-batch-processing="batchAutoStart"
+              />
             </div>
           </KeepAlive>
         </Tabs>

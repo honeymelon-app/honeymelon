@@ -2,6 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentInstance, onMounted, onUnmounted, ref } from 'vue';
 
+import { isTauriRuntime } from '@/lib/runtime';
+
 interface UseTauriEventsOptions {
   onDrop?: (paths: string[]) => void | Promise<void>;
   onDragEnter?: () => void;
@@ -23,10 +25,6 @@ export function useTauriEvents(options: UseTauriEventsOptions = {}) {
   const unlistenMenuAbout = ref<UnlistenFn | null>(null);
   const unlistenMenuQuit = ref<UnlistenFn | null>(null);
   const unlistenMenuClose = ref<UnlistenFn | null>(null);
-
-  function isTauriRuntime(): boolean {
-    return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-  }
 
   async function setupEventListeners() {
     if (!isTauriRuntime()) return;

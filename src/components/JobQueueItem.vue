@@ -1,18 +1,5 @@
 <script setup lang="ts">
-import {
-  X,
-  Play,
-  Copy,
-  FolderOpen,
-  AlertTriangle,
-  Clock,
-  FileX,
-  Settings,
-  HardDrive,
-  Monitor,
-  Film,
-  Trash2,
-} from 'lucide-vue-next';
+import { X, Play, Copy, FolderOpen, Monitor, Film, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -29,7 +16,15 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { JobStatus } from '@/lib/job-lifecycle';
+import {
+  getStatusConfig,
+  getErrorCategoryConfig,
+  DEFAULT_STATUS_CONFIG,
+  DEFAULT_ERROR_CONFIG,
+} from '@/lib/job-status-utils';
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
+import { openSystemPreferences, revealInFinder } from '@/lib/opener';
 import type { ErrorCategory, JobState, Preset, ProbeSummary } from '@/lib/types';
 import { formatFileSize, formatDuration, pathBasename, getFileExtension } from '@/lib/utils';
 
@@ -101,34 +96,13 @@ const presetChoices = computed(() =>
   filteredPresets.value.length ? filteredPresets.value : props.availablePresets,
 );
 
-const statusLabel = computed(() => {
-  const state = props.state;
-  switch (state.status) {
-    case 'queued':
-      return t('job.status.queued');
-    case 'probing':
-      return t('job.status.probing');
-    case 'planning':
-      return t('job.status.planning');
-    case 'running':
-      return t('job.status.running');
-    case 'completed':
-      return t('job.status.completed');
-    case 'failed':
-      return t('job.status.failed');
-    case 'cancelled':
-      return t('job.status.cancelled');
-    default:
-      return t('job.status.unknown');
-  }
-});
+const statusConfig = computed(
+  () => getStatusConfig(props.state.status as JobStatus) ?? DEFAULT_STATUS_CONFIG,
+);
 
-const statusVariant = computed(() => {
-  const state = props.state;
-  if (state.status === 'completed') return 'default';
-  if (state.status === 'failed') return 'destructive';
-  return 'secondary';
-});
+const statusLabel = computed(() => t(statusConfig.value.labelKey));
+
+const statusVariant = computed(() => statusConfig.value.variant);
 
 const canChangePreset = computed(() => {
   return props.state.status === 'queued' && presetChoices.value.length > 0;
@@ -171,46 +145,24 @@ const errorCategory = computed((): ErrorCategory | undefined => {
   return undefined;
 });
 
+const errorConfig = computed(() => {
+  const category = errorCategory.value;
+  if (!category) return undefined;
+  return getErrorCategoryConfig(category) ?? DEFAULT_ERROR_CONFIG;
+});
+
 /**
  * Returns contextual help text based on error category.
  */
 const errorCategoryHelp = computed((): string | undefined => {
-  const category = errorCategory.value;
-  if (!category) return undefined;
-
-  switch (category) {
-    case 'INPUT_PROBLEM':
-      return t('job.errors.inputProblem');
-    case 'UNSUPPORTED_COMBINATION':
-      return t('job.errors.unsupportedCombination');
-    case 'RESOURCE_ISSUE':
-      return t('job.errors.resourceIssue');
-    case 'TIMEOUT':
-      return t('job.errors.timeout');
-    case 'INTERNAL_PIPELINE_ERROR':
-      return t('job.errors.internal');
-    default:
-      return undefined;
-  }
+  return errorConfig.value ? t(errorConfig.value.helpKey) : undefined;
 });
 
 /**
  * Returns an icon component based on error category.
  */
 const errorIcon = computed(() => {
-  const category = errorCategory.value;
-  switch (category) {
-    case 'INPUT_PROBLEM':
-      return FileX;
-    case 'UNSUPPORTED_COMBINATION':
-      return Settings;
-    case 'RESOURCE_ISSUE':
-      return HardDrive;
-    case 'TIMEOUT':
-      return Clock;
-    default:
-      return AlertTriangle;
-  }
+  return errorConfig.value?.icon ?? DEFAULT_ERROR_CONFIG.icon;
 });
 
 const permissionHelpText = computed(() =>
@@ -230,12 +182,9 @@ function handleStart() {
 }
 
 async function handleOpenDiskAccessHelp() {
-  try {
-    const { openUrl } = await import('@tauri-apps/plugin-opener');
-    await openUrl('x-apple.systempreferences:com.apple.preference.security?Privacy_FullDiskAccess');
-  } catch (error) {
-    console.error('[JobQueueItem] Failed to open Full Disk Access settings', error);
-  }
+  await openSystemPreferences(
+    'x-apple.systempreferences:com.apple.preference.security?Privacy_FullDiskAccess',
+  );
 }
 
 async function handleCopyPath() {
@@ -250,12 +199,7 @@ async function handleCopyPath() {
 }
 
 async function handleShowInFinder() {
-  try {
-    const { revealItemInDir } = await import('@tauri-apps/plugin-opener');
-    await revealItemInDir(props.path);
-  } catch (error) {
-    console.error('[JobQueueItem] Failed to reveal in Finder', error);
-  }
+  await revealInFinder(props.path);
 }
 </script>
 

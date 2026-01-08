@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted, getCurrentInstance } from 'vue';
 
 import { loadState, saveState } from '@/lib/store';
 
@@ -9,6 +9,8 @@ export type ColorMode = 'light' | 'dark' | 'system';
  */
 export function useColourMode() {
   const mode = ref<ColorMode>('system');
+  const systemMediaQuery = ref<ReturnType<typeof window.matchMedia> | null>(null);
+  let systemMediaQueryListener: ((event: Event) => void) | null = null;
 
   const persistMode = (value: ColorMode) => {
     saveState('color-mode', value);
@@ -28,6 +30,7 @@ export function useColourMode() {
   };
 
   const updateHtmlAttributes = (newMode: ColorMode) => {
+    if (typeof document === 'undefined') return;
     const finalMode = newMode === 'system' ? getSystemTheme() : newMode;
     document.documentElement.setAttribute('data-theme', finalMode);
     document.documentElement.classList.remove('light', 'dark');
@@ -35,7 +38,50 @@ export function useColourMode() {
   };
 
   const getSystemTheme = (): 'light' | 'dark' => {
+    if (typeof window === 'undefined') return 'light';
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  };
+
+  const detachSystemThemeListener = () => {
+    if (!systemMediaQuery.value || !systemMediaQueryListener) return;
+
+    const mq = systemMediaQuery.value as ReturnType<typeof window.matchMedia> & {
+      addListener?: (listener: (event: Event) => void) => void;
+      removeListener?: (listener: (event: Event) => void) => void;
+    };
+
+    if (typeof mq.removeEventListener === 'function') {
+      mq.removeEventListener('change', systemMediaQueryListener);
+    } else if (typeof mq.removeListener === 'function') {
+      mq.removeListener(systemMediaQueryListener);
+    }
+
+    systemMediaQueryListener = null;
+    systemMediaQuery.value = null;
+  };
+
+  const ensureSystemThemeListener = () => {
+    if (typeof window === 'undefined') return;
+    if (systemMediaQuery.value && systemMediaQueryListener) return;
+
+    systemMediaQuery.value = window.matchMedia('(prefers-color-scheme: dark)');
+    systemMediaQueryListener = () => {
+      // Only react to system theme changes when we're in system mode.
+      if (mode.value === 'system') {
+        updateHtmlAttributes('system');
+      }
+    };
+
+    const mq = systemMediaQuery.value as ReturnType<typeof window.matchMedia> & {
+      addListener?: (listener: (event: Event) => void) => void;
+      removeListener?: (listener: (event: Event) => void) => void;
+    };
+
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', systemMediaQueryListener);
+    } else if (typeof mq.addListener === 'function') {
+      mq.addListener(systemMediaQueryListener);
+    }
   };
 
   const toggleMode = () => {
@@ -47,8 +93,6 @@ export function useColourMode() {
     } else {
       mode.value = 'light';
     }
-    updateHtmlAttributes(mode.value);
-    persistMode(mode.value);
   };
 
   loadInitialMode();
@@ -63,24 +107,34 @@ export function useColourMode() {
         localStorage.setItem('color-mode', savedMode);
       }
     }
-
-    if (mode.value === 'system') {
-      // Listen for system theme changes
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const listener = () => {
-        updateHtmlAttributes('system');
-      };
-      mediaQuery.addEventListener('change', listener);
-      updateHtmlAttributes('system');
-    } else {
-      updateHtmlAttributes(mode.value);
-    }
   };
 
-  watch(mode, (newMode) => {
-    persistMode(newMode);
-    updateHtmlAttributes(newMode);
-  });
+  watch(
+    mode,
+    (newMode) => {
+      persistMode(newMode);
+      updateHtmlAttributes(newMode);
+
+      if (newMode === 'system') {
+        ensureSystemThemeListener();
+        updateHtmlAttributes('system');
+      } else {
+        detachSystemThemeListener();
+      }
+    },
+    { flush: 'sync' },
+  );
+
+  if (mode.value === 'system') {
+    ensureSystemThemeListener();
+  }
+
+  // Only register lifecycle hooks when used inside a component setup().
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      detachSystemThemeListener();
+    });
+  }
 
   return {
     mode: computed(() => mode.value),

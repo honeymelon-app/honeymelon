@@ -18,6 +18,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { openExternalUrl } from '@/lib/opener';
+import { isTauriRuntime } from '@/lib/runtime';
 import { useLicenseStore } from '@/stores/license';
 
 const emit = defineEmits<{
@@ -26,10 +28,7 @@ const emit = defineEmits<{
 
 const licenseStore = useLicenseStore();
 
-const isTauriRuntime =
-  typeof window !== 'undefined' &&
-  '__TAURI_INTERNALS__' in window &&
-  typeof getVersion === 'function';
+const canUseTauriApi = isTauriRuntime() && typeof getVersion === 'function';
 
 const version = ref<string>(import.meta.env?.PACKAGE_VERSION ?? '0.1.1');
 const buildDate = ref(new Date().toISOString().split('T')[0]);
@@ -46,7 +45,7 @@ const licenseKey = computed(() => {
 const isActivated = computed(() => !!licenseStore.current?.activatedAt);
 
 onMounted(async () => {
-  if (!isTauriRuntime) {
+  if (!canUseTauriApi) {
     return;
   }
   try {
@@ -57,23 +56,11 @@ onMounted(async () => {
 });
 
 async function openWebsite() {
-  try {
-    const { openUrl } = await import('@tauri-apps/plugin-opener');
-    await openUrl('https://honeymelon.app');
-  } catch (error) {
-    console.error('[AboutDialog] Failed to open website', error);
-    window.open('https://honeymelon.app', '_blank');
-  }
+  await openExternalUrl('https://honeymelon.app');
 }
 
 async function openLicense() {
-  try {
-    const { openUrl } = await import('@tauri-apps/plugin-opener');
-    await openUrl('https://honeymelon.app/terms');
-  } catch (error) {
-    console.error('[AboutDialog] Failed to open license', error);
-    window.open('https://honeymelon.app/terms', '_blank');
-  }
+  await openExternalUrl('https://honeymelon.app/terms');
 }
 
 async function deactivateLicense() {

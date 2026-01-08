@@ -13,6 +13,7 @@ import { createRunnerClient } from '@/composables/orchestrator/runner-client';
 import { loadCapabilities } from '@/lib/capability';
 import { LIMITS } from '@/lib/constants';
 import { ErrorHandler } from '@/lib/error-handler';
+import { isTauriRuntime } from '@/lib/runtime';
 import type { CapabilitySnapshot, Tier } from '@/lib/types';
 import { pathBasename } from '@/lib/utils';
 import { executionService } from '@/services/execution-service';
@@ -34,10 +35,6 @@ interface OrchestratorOptions {
 }
 
 type NotificationModule = typeof NotificationPlugin;
-
-function isTauriRuntime(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-}
 
 export function useJobOrchestrator(options: OrchestratorOptions = {}) {
   const requirePresetBeforeStart = options.requirePresetBeforeStart ?? true;

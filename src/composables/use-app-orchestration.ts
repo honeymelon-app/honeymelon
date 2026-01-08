@@ -46,16 +46,10 @@ import { useDesktopBridge } from '@/composables/use-desktop-bridge';
 import { useFileHandler } from '@/composables/use-file-handler';
 import { useJobOrchestrator } from '@/composables/use-job-orchestrator';
 import { PRESETS } from '@/lib/presets';
+import { isTauriRuntime } from '@/lib/runtime';
 import type { MediaKind } from '@/lib/types';
 import { jobService } from '@/services/job-service';
 import { useJobsStore } from '@/stores/jobs';
-
-/**
- * Checks if running in Tauri desktop environment.
- */
-function isTauriRuntime(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-}
 
 /**
  * Job statuses that indicate active/processing state.
@@ -377,7 +371,7 @@ export function useAppOrchestration() {
     }
 
     const mediaKindStr = mediaKind ? ` (${mediaKind})` : '';
-    console.log(
+    console.warn(
       `[app] Updated ${updatedCount} of ${queuedJobsList.length} queued jobs${mediaKindStr} to preset: ${presetId}`,
     );
   }

@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { type Ref } from 'vue';
 
 import { inferContainerFromPath, mediaKindForContainer } from '@/lib/media-formats';
+import { isTauriRuntime } from '@/lib/runtime';
 import type { Preset } from '@/lib/types';
 import { ProbeService } from '@/services/probe-service';
 import { useJobsStore } from '@/stores/jobs';
@@ -16,10 +17,6 @@ export function useFileHandler(options: UseFileHandlerOptions) {
   const { presetOptions, defaultPresetId, presetsReady } = options;
   const jobsStore = useJobsStore();
   const probeService = new ProbeService();
-
-  function isTauriRuntime(): boolean {
-    return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
-  }
 
   function isPresetAvailable(id: string): boolean {
     return presetOptions.value.some((p) => p.id === id);
