@@ -55,11 +55,11 @@
     "active": true,
     "targets": ["dmg"],
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
+      "./assets/icons/32x32.png",
+      "./assets/icons/128x128.png",
+      "./assets/icons/128x128@2x.png",
+      "./assets/icons/icon.icns",
+      "./assets/icons/icon.ico"
     ],
     "resources": ["bin/ffmpeg", "bin/ffprobe"],
     "category": "public.app-category.productivity",
@@ -76,7 +76,7 @@
       "hardenedRuntime": true,
       "infoPlist": "Info.plist",
       "dmg": {
-        "background": "dmg-background.png",
+        "background": "./assets/dmg-background.png",
         "appPosition": {
           "x": 180,
           "y": 200

@@ -1,11 +1,22 @@
 use crate::services::ServiceRegistry;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
-use tauri::{App, Builder, Emitter, Manager, Wry};
+use tauri::{App, Builder, Emitter, Manager, WindowEvent, Wry};
 
 type AppRuntime = Wry;
 
 pub fn build_app() -> Builder<AppRuntime> {
     let builder = Builder::new()
+        .on_window_event(|window, event| {
+            #[cfg(target_os = "macos")]
+            {
+                if window.label() == "main" {
+                    if let WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = window.hide();
+                    }
+                }
+            }
+        })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
@@ -160,9 +171,8 @@ fn register_menu_handlers(app: &App<AppRuntime>) {
             }
         },
         "quit" => {
-            if let Err(e) = app.emit("menu:quit", ()) {
-                eprintln!("Failed to emit menu:quit event: {}", e);
-            }
+            let _ = app.emit("menu:quit", ());
+            app.exit(0);
         },
         "open" => {
             if let Err(e) = app.emit("menu:open", ()) {
@@ -173,6 +183,11 @@ fn register_menu_handlers(app: &App<AppRuntime>) {
             // Emit event to frontend so it can show confirmation dialog if needed
             if let Err(e) = app.emit("menu:close", ()) {
                 eprintln!("Failed to emit menu:close event: {}", e);
+            }
+
+            // Fallback: if the frontend doesn't handle it, match macOS behavior and hide the window.
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.hide();
             }
         },
         "hide" => {

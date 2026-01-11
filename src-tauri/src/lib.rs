@@ -23,7 +23,26 @@ pub use runner::events::{CompletionPayload, ProgressMetrics, ProgressPayload};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = dotenvy::dotenv();
-    crate::app_shell::build_app()
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    let context = tauri::generate_context!();
+    let app = crate::app_shell::build_app()
+        .build(context)
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        #[cfg(target_os = "macos")]
+        {
+            use tauri::{Manager, RunEvent};
+
+            if let RunEvent::Reopen {
+                has_visible_windows: false,
+                ..
+            } = event
+            {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        }
+    });
 }

@@ -601,12 +601,23 @@ export function useAppOrchestration() {
    * instead of quitting the app (standard macOS behavior).
    */
   async function handleWindowClose() {
-    if (!fileHandler.isTauriRuntime()) {
+    let currentWindow;
+    try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      currentWindow = getCurrentWindow();
+    } catch (error) {
+      console.error('[app] Failed to load window API for close handling', error);
       return;
     }
 
-    const { getCurrentWindow } = await import('@tauri-apps/api/window');
-    const currentWindow = getCurrentWindow();
+    if (import.meta.env.DEV) {
+      console.info('[app] handleWindowClose', {
+        hasActiveJobs: hasActiveJobs.value,
+        hasQueuedJobs: hasQueuedJobs.value,
+        activeJobs: activeJobs.value.length,
+        queuedJobs: queuedJobs.value.length,
+      });
+    }
 
     // Warn if jobs are running - they'll continue in background
     if (hasActiveJobs.value || hasQueuedJobs.value) {
@@ -637,6 +648,15 @@ export function useAppOrchestration() {
       await currentWindow.hide();
     } catch (error) {
       console.error('[app] Failed to hide window', error);
+      if (import.meta.env.DEV) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+              ? error
+              : JSON.stringify(error);
+        console.error('[app] hide() failure details:', message);
+      }
     }
   }
 
@@ -671,11 +691,18 @@ export function useAppOrchestration() {
       const { getCurrentWindow } = await import('@tauri-apps/api/window');
       const currentWindow = getCurrentWindow();
       await currentWindow.onCloseRequested(async (event) => {
+        if (import.meta.env.DEV) {
+          console.info('[app] onCloseRequested fired');
+        }
         // On macOS, the close button should hide the window, not quit the app.
         // The app continues running and can be reopened from the dock or menu.
         // Cmd+Q will properly quit the app.
         event.preventDefault();
-        await handleWindowClose();
+        try {
+          await handleWindowClose();
+        } catch (error) {
+          console.error('[app] handleWindowClose threw during onCloseRequested', error);
+        }
       });
     }
   };
