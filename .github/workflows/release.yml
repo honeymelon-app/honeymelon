@@ -230,6 +230,7 @@ jobs:
 
           npm run tauri:build
         env:
+          CI: 'false'
           LICENSE_SIGNING_PUBLIC_KEY: ${{ secrets.LICENSE_SIGNING_PUBLIC_KEY }}
 
       - name: Stage release artifacts

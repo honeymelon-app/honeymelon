@@ -610,15 +610,6 @@ export function useAppOrchestration() {
       return;
     }
 
-    if (import.meta.env.DEV) {
-      console.info('[app] handleWindowClose', {
-        hasActiveJobs: hasActiveJobs.value,
-        hasQueuedJobs: hasQueuedJobs.value,
-        activeJobs: activeJobs.value.length,
-        queuedJobs: queuedJobs.value.length,
-      });
-    }
-
     // Warn if jobs are running - they'll continue in background
     if (hasActiveJobs.value || hasQueuedJobs.value) {
       const messageKey = hasActiveJobs.value
@@ -691,9 +682,6 @@ export function useAppOrchestration() {
       const { getCurrentWindow } = await import('@tauri-apps/api/window');
       const currentWindow = getCurrentWindow();
       await currentWindow.onCloseRequested(async (event) => {
-        if (import.meta.env.DEV) {
-          console.info('[app] onCloseRequested fired');
-        }
         // On macOS, the close button should hide the window, not quit the app.
         // The app continues running and can be reopened from the dock or menu.
         // Cmd+Q will properly quit the app.
