@@ -312,13 +312,12 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Run npm audit
+      - name: Run npm audit (production dependencies only)
         run: |
-          echo "Running npm security audit..."
-          # Only fail on high and critical vulnerabilities
-          # Moderate vulnerabilities in dev dependencies (like changelog tools) are acceptable
-          npm audit --audit-level=high
-          echo "npm audit passed - no high or critical vulnerabilities found"
+          echo "Running npm security audit for production dependencies..."
+          # Only audit production dependencies - dev deps (semantic-release, etc.) are not shipped
+          npm audit --omit=dev
+          echo "npm audit passed - no production vulnerabilities found"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
