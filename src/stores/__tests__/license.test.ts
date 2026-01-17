@@ -131,9 +131,7 @@ describe('license store', () => {
 
     it('clearError resets error state', () => {
       const store = useLicenseStore();
-      // @ts-expect-error - accessing internal ref for testing
       store.lastError = 'Some error';
-      // @ts-expect-error - accessing internal ref for testing
       store.lastErrorCode = 'some_code';
 
       store.clearError();
@@ -169,28 +167,24 @@ describe('license store', () => {
 
     it('isRecoverableError returns true for LICENSE_NOT_FOUND', () => {
       const store = useLicenseStore();
-      // @ts-expect-error - accessing internal ref for testing
       store.lastErrorCode = ActivationErrorCodes.LICENSE_NOT_FOUND;
       expect(store.isRecoverableError).toBe(true);
     });
 
     it('isRecoverableError returns true for NETWORK_ERROR', () => {
       const store = useLicenseStore();
-      // @ts-expect-error - accessing internal ref for testing
       store.lastErrorCode = ActivationErrorCodes.NETWORK_ERROR;
       expect(store.isRecoverableError).toBe(true);
     });
 
     it('isRecoverableError returns false for LICENSE_REVOKED', () => {
       const store = useLicenseStore();
-      // @ts-expect-error - accessing internal ref for testing
       store.lastErrorCode = ActivationErrorCodes.LICENSE_REVOKED;
       expect(store.isRecoverableError).toBe(false);
     });
 
     it('isRecoverableError returns false for LICENSE_ALREADY_ACTIVATED', () => {
       const store = useLicenseStore();
-      // @ts-expect-error - accessing internal ref for testing
       store.lastErrorCode = ActivationErrorCodes.LICENSE_ALREADY_ACTIVATED;
       expect(store.isRecoverableError).toBe(false);
     });
