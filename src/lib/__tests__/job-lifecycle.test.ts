@@ -51,4 +51,33 @@ describe('jobLifecycle', () => {
       /Illegal transition queued > running via unit-test/,
     );
   });
+
+  it('allows re-queue from terminal states', () => {
+    expect(canTransitionStatus('completed', 'queued')).toBe(true);
+    expect(canTransitionStatus('failed', 'queued')).toBe(true);
+    expect(canTransitionStatus('cancelled', 'queued')).toBe(true);
+  });
+
+  it('allows cancellation from active states', () => {
+    expect(canTransitionStatus('probing', 'cancelled')).toBe(true);
+    expect(canTransitionStatus('planning', 'cancelled')).toBe(true);
+    expect(canTransitionStatus('running', 'cancelled')).toBe(true);
+    expect(canTransitionStatus('queued', 'cancelled')).toBe(true);
+  });
+
+  it('prevents transitions from terminal to non-queued states', () => {
+    expect(canTransitionStatus('completed', 'running')).toBe(false);
+    expect(canTransitionStatus('failed', 'probing')).toBe(false);
+    expect(canTransitionStatus('cancelled', 'planning')).toBe(false);
+  });
+
+  it('correctly classifies all terminal statuses', () => {
+    expect(isTerminalStatus('completed')).toBe(true);
+    expect(isTerminalStatus('failed')).toBe(true);
+    expect(isTerminalStatus('cancelled')).toBe(true);
+    expect(isTerminalStatus('queued')).toBe(false);
+    expect(isTerminalStatus('probing')).toBe(false);
+    expect(isTerminalStatus('planning')).toBe(false);
+    expect(isTerminalStatus('running')).toBe(false);
+  });
 });
