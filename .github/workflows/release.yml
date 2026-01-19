@@ -319,7 +319,7 @@ jobs:
                 -H "X-Client-Key: $PLATFORM_KEY"
                 -H "X-Client-Secret: $PLATFORM_SECRET"
                 -H "Accept: application/json"
-                -F "platform=darwinx64"
+                -F "platform=darwin-aarch64"
                 -F "artifact=@$file"
               )
 
