@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - THIRD_PARTY_NOTICES.md with comprehensive dependency licensing information
 - License compliance documentation for FFmpeg LGPL process separation
 
+### Security
+
+- Updated `lodash-es` from 4.17.21 to 4.17.23 to address prototype pollution vulnerability in `_.unset` and `_.omit` functions (CVE-2020-8203)
+
 ### Documentation
 
 - Updated CONTRIBUTING.md with open-source contribution guidelines and DCO
