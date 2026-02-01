@@ -2,7 +2,7 @@
 //!
 //! This crate now wires up a thin command layer that delegates to dedicated
 //! services, keeping SOLID responsibilities intact and making future refactors
-//! (runner, licensing, etc.) simpler.
+//! simpler.
 
 mod app_shell;
 mod binary_resolver;
@@ -13,7 +13,6 @@ pub mod ffmpeg_errors;
 mod ffmpeg_probe;
 mod fs_utils;
 pub mod job_lifecycle;
-mod license;
 mod runner;
 mod services;
 

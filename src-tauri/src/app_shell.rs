@@ -37,11 +37,6 @@ pub fn build_app() -> Builder<AppRuntime> {
                 crate::commands::media::expand_media_paths,
                 crate::commands::dialogs::pick_media_files,
                 crate::commands::dialogs::choose_output_directory,
-                crate::commands::licensing::verify_license_key,
-                crate::commands::licensing::activate_license,
-                crate::commands::licensing::current_license,
-                crate::commands::licensing::remove_license,
-                crate::commands::licensing::is_license_activated,
             ]);
 
     builder.setup(|app| {

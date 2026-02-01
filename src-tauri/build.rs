@@ -40,22 +40,7 @@ fn require_sidecar(rel: &str) {
 }
 
 fn main() {
-    // Load .env (kept from your original)
-    let _ = dotenvy::dotenv();
-
-    // Forward LICENSE_SIGNING_PUBLIC_KEY to code
-    if let Ok(key) = std::env::var("LICENSE_SIGNING_PUBLIC_KEY")
-        .or_else(|_| std::env::var("LICENSE_SIGNING_PUBLIC_KEY"))
-    {
-        println!("cargo:rustc-env=LICENSE_SIGNING_PUBLIC_KEY={}", key);
-    }
-
-    // Forward PLATFORM_API_URL for online activation
-    let platform_url =
-        std::env::var("PLATFORM_API_URL").unwrap_or_else(|_| "https://honeymelon.app".to_string());
-    println!("cargo:rustc-env=PLATFORM_API_URL={}", platform_url);
-
-    // New: enforce the *new* paths
+    // Enforce the presence of required FFmpeg sidecars
     require_sidecar("bin/ffmpeg");
     require_sidecar("bin/ffprobe");
 

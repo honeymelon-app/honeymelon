@@ -25,26 +25,15 @@
  * - Coordinates between multiple child components for a cohesive user experience
  */
 
-import { storeToRefs } from 'pinia';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import AboutDialog from '@/components/AboutDialog.vue';
 import AppLoadingSkeleton from '@/components/AppLoadingSkeleton.vue';
 import DestinationChooser from '@/components/DestinationChooser.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
-import LicenseActivationDialog from '@/components/LicenseActivationDialog.vue';
 import MediaTabContent from '@/components/MediaTabContent.vue';
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
@@ -52,7 +41,6 @@ import Window from '@/components/Window.vue';
 import { useAppOrchestration } from '@/composables/use-app-orchestration';
 import { useMediaKindFilter } from '@/composables/use-media-kind-filter';
 import type { MediaKind } from '@/lib/types';
-import { useLicenseStore } from '@/stores/license';
 
 const { t } = useI18n();
 
@@ -84,42 +72,12 @@ const {
 } = app;
 
 /**
- * License store integration.
+ * Computed property to show loading skeleton during app initialization.
  *
- * Manages the application's licensing system, including license validation,
- * activation dialogs, and feature gating. The license system ensures that
- * only valid users can access the media conversion functionality.
+ * The skeleton is displayed while the application is loading capabilities
+ * and preparing presets for media conversion.
  */
-const licenseStore = useLicenseStore();
-const {
-  current: activeLicense,
-  initialized: licenseInitialized,
-  isLoading: licenseLoading,
-  needsActivation,
-} = storeToRefs(licenseStore);
-
-/**
- * Initialize license system on component mount.
- *
- * This ensures that license validation occurs early in the application lifecycle,
- * allowing the UI to adapt based on license status (e.g., showing activation dialog).
- */
-const openLicenseDialog = () => licenseStore.requestActivationDialog();
-onMounted(() => {
-  void licenseStore.init();
-});
-
-/**
- * Computed properties for license state management.
- *
- * These reactive properties determine when the application is ready to use
- * and when to show loading states or activation prompts.
- */
-const licenseReady = computed(() => Boolean(activeLicense.value));
-const licenseChecking = computed(() => !licenseInitialized.value || licenseLoading.value);
-const showSkeleton = computed(
-  () => licenseChecking.value || (licenseReady.value && !presetsReady.value),
-);
+const showSkeleton = computed(() => !presetsReady.value);
 
 /**
  * Active tab state for media type filtering.
@@ -160,144 +118,104 @@ const handleImageUpdateAllPresets = (presetId: string) => handleUpdateAllPresets
 </script>
 
 <template>
-  <!-- License Activation Dialog Component -->
-  <LicenseActivationDialog />
-
   <!-- Loading Skeleton - Shows during app initialization -->
   <AppLoadingSkeleton v-if="showSkeleton" />
 
   <!-- Main Application Interface -->
-  <template v-else>
-    <!-- License Activation Required Screen -->
-    <div v-if="needsActivation" class="flex h-screen items-center justify-center bg-background">
-      <Card class="w-full max-w-md border border-border/70 bg-background/95 shadow-lg">
-        <CardHeader>
-          <CardTitle class="flex items-center gap-2 text-lg">
-            {{ t('app.license.requiredTitle', 'Activation Required') }}
-          </CardTitle>
-          <CardDescription>
-            {{
-              t(
-                'app.license.requiredBody',
-                'Enter your Honeymelon license to unlock the media converter. The window will reopen automatically.',
-              )
-            }}
-          </CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-4 text-sm text-muted-foreground">
-          <p>
-            {{
-              t(
-                'app.license.instructions',
-                'If you just purchased a license, copy the key from your email or the customer portal.',
-              )
-            }}
-          </p>
-        </CardContent>
-        <CardFooter class="flex justify-end">
-          <Button size="sm" @click="openLicenseDialog">{{
-            t('app.license.enterKey', 'Enter License Key')
-          }}</Button>
-        </CardFooter>
-      </Card>
-    </div>
-
-    <!-- Main Application Window -->
-    <Window v-else>
-      <!-- Container with relative positioning for absolute controls -->
-      <div class="relative flex flex-col flex-1">
-        <!-- Top-right controls for global settings -->
-        <div class="absolute right-0 top-0 z-10 flex items-center gap-x-3" v-if="licenseReady">
-          <DestinationChooser />
-          <LanguageSwitcher />
-          <ThemeSwitcher />
-        </div>
-
-        <!-- Media Type Tabs - Core navigation for filtering by video/audio/image -->
-        <Tabs v-model="activeTab" default-value="video" class="flex flex-col flex-1">
-          <TabsList aria-label="Media type filter" class="w-fit">
-            <TabsTrigger
-              value="video"
-              aria-label="Video files"
-              data-test="media-tab"
-              data-media-kind="video"
-            >
-              {{ t('media.video') }}
-            </TabsTrigger>
-            <TabsTrigger
-              value="audio"
-              aria-label="Audio files"
-              data-test="media-tab"
-              data-media-kind="audio"
-            >
-              {{ t('media.audio') }}
-            </TabsTrigger>
-            <TabsTrigger
-              value="image"
-              aria-label="Image files"
-              data-test="media-tab"
-              data-media-kind="image"
-            >
-              {{ t('media.image') }}
-            </TabsTrigger>
-          </TabsList>
-
-          <!-- KeepAlive preserves component state when switching tabs -->
-          <KeepAlive>
-            <div class="flex-1 flex flex-col min-h-0">
-              <!-- Video Tab Content -->
-              <MediaTabContent
-                media-kind="video"
-                :is-drag-over="isDragOver"
-                :filter="videoFilter"
-                :on-browse="handleVideoBrowse"
-                :on-cancel-job="handleCancelJob"
-                :on-update-preset="handleUpdatePreset"
-                :on-update-all-presets="handleVideoUpdateAllPresets"
-                :on-start-job="handleStartJob"
-                :on-clear-completed="clearCompleted"
-                :on-cancel-all="cancelAll"
-                :on-start-all="startAll"
-                :is-batch-processing="batchAutoStart"
-              />
-
-              <!-- Audio Tab Content -->
-              <MediaTabContent
-                media-kind="audio"
-                :is-drag-over="isDragOver"
-                :filter="audioFilter"
-                :on-browse="handleAudioBrowse"
-                :on-cancel-job="handleCancelJob"
-                :on-update-preset="handleUpdatePreset"
-                :on-update-all-presets="handleAudioUpdateAllPresets"
-                :on-start-job="handleStartJob"
-                :on-clear-completed="clearCompleted"
-                :on-cancel-all="cancelAll"
-                :on-start-all="startAll"
-                :is-batch-processing="batchAutoStart"
-              />
-
-              <!-- Image Tab Content -->
-              <MediaTabContent
-                media-kind="image"
-                :is-drag-over="isDragOver"
-                :filter="imageFilter"
-                :on-browse="handleImageBrowse"
-                :on-cancel-job="handleCancelJob"
-                :on-update-preset="handleUpdatePreset"
-                :on-update-all-presets="handleImageUpdateAllPresets"
-                :on-start-job="handleStartJob"
-                :on-clear-completed="clearCompleted"
-                :on-cancel-all="cancelAll"
-                :on-start-all="startAll"
-                :is-batch-processing="batchAutoStart"
-              />
-            </div>
-          </KeepAlive>
-        </Tabs>
+  <Window v-else>
+    <!-- Container with relative positioning for absolute controls -->
+    <div class="relative flex flex-col flex-1">
+      <!-- Top-right controls for global settings -->
+      <div class="absolute right-0 top-0 z-10 flex items-center gap-x-3">
+        <DestinationChooser />
+        <LanguageSwitcher />
+        <ThemeSwitcher />
       </div>
-    </Window>
-  </template>
+
+      <!-- Media Type Tabs - Core navigation for filtering by video/audio/image -->
+      <Tabs v-model="activeTab" default-value="video" class="flex flex-col flex-1">
+        <TabsList aria-label="Media type filter" class="w-fit">
+          <TabsTrigger
+            value="video"
+            aria-label="Video files"
+            data-test="media-tab"
+            data-media-kind="video"
+          >
+            {{ t('media.video') }}
+          </TabsTrigger>
+          <TabsTrigger
+            value="audio"
+            aria-label="Audio files"
+            data-test="media-tab"
+            data-media-kind="audio"
+          >
+            {{ t('media.audio') }}
+          </TabsTrigger>
+          <TabsTrigger
+            value="image"
+            aria-label="Image files"
+            data-test="media-tab"
+            data-media-kind="image"
+          >
+            {{ t('media.image') }}
+          </TabsTrigger>
+        </TabsList>
+
+        <!-- KeepAlive preserves component state when switching tabs -->
+        <KeepAlive>
+          <div class="flex-1 flex flex-col min-h-0">
+            <!-- Video Tab Content -->
+            <MediaTabContent
+              media-kind="video"
+              :is-drag-over="isDragOver"
+              :filter="videoFilter"
+              :on-browse="handleVideoBrowse"
+              :on-cancel-job="handleCancelJob"
+              :on-update-preset="handleUpdatePreset"
+              :on-update-all-presets="handleVideoUpdateAllPresets"
+              :on-start-job="handleStartJob"
+              :on-clear-completed="clearCompleted"
+              :on-cancel-all="cancelAll"
+              :on-start-all="startAll"
+              :is-batch-processing="batchAutoStart"
+            />
+
+            <!-- Audio Tab Content -->
+            <MediaTabContent
+              media-kind="audio"
+              :is-drag-over="isDragOver"
+              :filter="audioFilter"
+              :on-browse="handleAudioBrowse"
+              :on-cancel-job="handleCancelJob"
+              :on-update-preset="handleUpdatePreset"
+              :on-update-all-presets="handleAudioUpdateAllPresets"
+              :on-start-job="handleStartJob"
+              :on-clear-completed="clearCompleted"
+              :on-cancel-all="cancelAll"
+              :on-start-all="startAll"
+              :is-batch-processing="batchAutoStart"
+            />
+
+            <!-- Image Tab Content -->
+            <MediaTabContent
+              media-kind="image"
+              :is-drag-over="isDragOver"
+              :filter="imageFilter"
+              :on-browse="handleImageBrowse"
+              :on-cancel-job="handleCancelJob"
+              :on-update-preset="handleUpdatePreset"
+              :on-update-all-presets="handleImageUpdateAllPresets"
+              :on-start-job="handleStartJob"
+              :on-clear-completed="clearCompleted"
+              :on-cancel-all="cancelAll"
+              :on-start-all="startAll"
+              :is-batch-processing="batchAutoStart"
+            />
+          </div>
+        </KeepAlive>
+      </Tabs>
+    </div>
+  </Window>
 
   <!-- About Dialog - Modal overlay for application information -->
   <Dialog v-model:open="isAboutOpen" modal>

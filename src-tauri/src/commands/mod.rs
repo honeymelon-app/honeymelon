@@ -3,7 +3,6 @@
 
 pub mod dialogs;
 pub mod jobs;
-pub mod licensing;
 pub mod media;
 
 #[cfg(test)]

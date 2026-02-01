@@ -1,48 +1,18 @@
 <script setup lang="ts">
 import { getVersion } from '@tauri-apps/api/app';
-import { AlertTriangle, ExternalLink, Key, Trash2 } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { ExternalLink } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
 
 import appIcon from '@/assets/app-icon.png';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { openExternalUrl } from '@/lib/opener';
 import { isTauriRuntime } from '@/lib/runtime';
-import { useLicenseStore } from '@/stores/license';
-
-const emit = defineEmits<{
-  close: [];
-}>();
-
-const licenseStore = useLicenseStore();
 
 const canUseTauriApi = isTauriRuntime() && typeof getVersion === 'function';
 
 const version = ref<string>(import.meta.env?.PACKAGE_VERSION ?? '2.0.0');
 const buildDate = ref(new Date().toISOString().split('T')[0]);
-const showDeactivateDialog = ref(false);
-const isDeactivating = ref(false);
-
-const hasLicense = computed(() => !!licenseStore.current);
-const licenseKey = computed(() => {
-  if (!licenseStore.current?.key) return null;
-  const key = licenseStore.current.key;
-  // Show only last 8 characters for privacy
-  return key.length > 12 ? `•••${key.slice(-8)}` : key;
-});
-const isActivated = computed(() => !!licenseStore.current?.activatedAt);
 
 onMounted(async () => {
   if (!canUseTauriApi) {
@@ -61,20 +31,6 @@ async function openWebsite() {
 
 async function openLicense() {
   await openExternalUrl('https://www.gnu.org/licenses/gpl-3.0.html');
-}
-
-async function deactivateLicense() {
-  isDeactivating.value = true;
-  try {
-    await licenseStore.remove();
-    showDeactivateDialog.value = false;
-    // Close the parent About dialog after license removal
-    emit('close');
-  } catch (error) {
-    console.error('[AboutDialog] Failed to deactivate license', error);
-  } finally {
-    isDeactivating.value = false;
-  }
 }
 </script>
 
@@ -103,64 +59,6 @@ async function deactivateLicense() {
         Honeymelon is free and open-source software licensed under the GNU GPLv3. You are free to
         use, study, share, and modify it.
       </p>
-    </div>
-
-    <!-- License Section -->
-    <div v-if="hasLicense" class="space-y-3">
-      <Separator />
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <Key class="h-4 w-4 text-muted-foreground" />
-          <span class="text-sm font-medium">License</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <Badge
-            v-if="isActivated"
-            variant="default"
-            class="text-xs bg-transparent border border-green-700 text-green-700"
-          >
-            Activated
-          </Badge>
-          <Badge v-else variant="secondary" class="text-xs"> Not Activated </Badge>
-        </div>
-      </div>
-      <div
-        class="flex items-center justify-between rounded-lg border border-border/70 bg-muted/40 px-3 py-2"
-      >
-        <code class="text-xs font-medium text-foreground">{{ licenseKey }}</code>
-        <AlertDialog v-model:open="showDeactivateDialog">
-          <AlertDialogTrigger as-child>
-            <Button variant="ghost" size="sm" class="h-7 text-destructive hover:text-destructive">
-              <Trash2 class="mr-1 h-3 w-3" />
-              Remove
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle class="flex items-center gap-2">
-                <AlertTriangle class="h-5 w-5 text-destructive" />
-                Remove License?
-              </AlertDialogTitle>
-              <AlertDialogDescription class="space-y-3">
-                <p>
-                  Are you sure you want to remove your license from this device? This will
-                  deactivate Honeymelon on this Mac.
-                </p>
-                <p class="text-sm font-medium text-destructive">
-                  Note: Each license can only be activated once. If you remove this license, you
-                  will not be able to re-activate it on another device.
-                </p>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel :disabled="isDeactivating">Cancel</AlertDialogCancel>
-              <AlertDialogAction :disabled="isDeactivating" @click.prevent="deactivateLicense">
-                {{ isDeactivating ? 'Removing...' : 'Remove License' }}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
     </div>
 
     <dl

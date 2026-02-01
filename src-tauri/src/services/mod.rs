@@ -7,14 +7,12 @@
 mod capabilities;
 mod dialogs;
 mod jobs;
-mod licensing;
 mod media;
 mod paths;
 
 pub use capabilities::{CapabilityService, CapabilityServiceApi};
 pub use dialogs::{DialogService, DialogServiceApi, MediaFilter};
 pub use jobs::{JobService, JobServiceApi};
-pub use licensing::{LicenseService, LicenseServiceApi};
 pub use media::{MediaProbeService, MediaProbeServiceApi};
 pub use paths::{PathService, PathServiceApi};
 
@@ -29,7 +27,6 @@ pub struct ServiceRegistry {
     pub jobs: Arc<dyn JobServiceApi>,
     pub paths: Arc<dyn PathServiceApi>,
     pub dialogs: Arc<dyn DialogServiceApi>,
-    pub licensing: Arc<dyn LicenseServiceApi>,
 }
 
 impl Default for ServiceRegistry {
@@ -40,7 +37,6 @@ impl Default for ServiceRegistry {
             jobs: Arc::new(JobService::default()),
             paths: Arc::new(PathService),
             dialogs: Arc::new(DialogService),
-            licensing: Arc::new(LicenseService),
         }
     }
 }
