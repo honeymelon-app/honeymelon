@@ -110,7 +110,9 @@ This project includes code and dependencies from third-party sources. Please see
 
 ## License Compliance
 
-Honeymelon is proprietary software. See [LICENSE](../LICENSE) for terms. FFmpeg is licensed under LGPL v2.1+ and runs out-of-process (process-separated, no linking).
+Honeymelon is free and open-source software licensed under GPL-3.0-or-later. See [LICENSE](../LICENSE) for full terms. FFmpeg is licensed under LGPL v2.1+ and runs out-of-process (process-separated, no linking).
+
+For information about contributing and licensing of contributions, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ---
 

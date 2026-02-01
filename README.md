@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="#license"><img src="https://img.shields.io/badge/License-Proprietary-red.svg" alt="License: Proprietary"></a>
+  <a href="#license"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg" alt="License: GPL-3.0-or-later"></a>
   <a href="https://www.apple.com/macos"><img src="https://img.shields.io/badge/macOS-13.0+-blue.svg" alt="macOS 13+"></a>
   <a href="https://www.apple.com/mac/"><img src="https://img.shields.io/badge/Apple%20Silicon-Native-brightgreen.svg" alt="Apple Silicon Native"></a>
 </p>
@@ -48,7 +48,7 @@
   - [Continuous Integration](#continuous-integration)
   - [Release Process](#release-process)
 - [Legal \& Licensing](#legal--licensing)
-  - [Proprietary Software](#proprietary-software)
+  - [Open Source Software](#open-source-software)
   - [FFmpeg Licensing](#ffmpeg-licensing)
   - [Patent Considerations](#patent-considerations)
   - [Third-Party Software](#third-party-software)
@@ -439,11 +439,26 @@ src-tauri/
 
 ## Legal & Licensing
 
-### Proprietary Software
+### Open Source Software
 
-**Honeymelon is proprietary software**. All rights are reserved by the copyright holder. The source code, binaries, and documentation are confidential and may not be used, copied, modified, or distributed without explicit written permission from Jerome Thayananthajothy.
+**Honeymelon is free and open-source software** licensed under the **GNU General Public License version 3.0 or later (GPL-3.0-or-later)**.
 
-For commercial licensing inquiries, please contact <tjthavarshan@gmail.com>.
+This means you are free to:
+
+- **Use** Honeymelon for any purpose
+- **Study** how it works and modify it
+- **Share** copies with others
+- **Distribute** modified versions
+
+Under the conditions that:
+
+- You provide the source code when distributing
+- You license your modifications under GPL-3.0-or-later
+- You preserve copyright and license notices
+
+For the complete license text, see [LICENSE](LICENSE).
+
+For commercial support or custom licensing inquiries, contact <tjthavarshan@gmail.com>.
 
 ### FFmpeg Licensing
 
@@ -458,15 +473,15 @@ For commercial licensing inquiries, please contact <tjthavarshan@gmail.com>.
   - Command-line arguments
   - Standard input/output/error streams
   - File system (input files, output files)
-- This approach satisfies LGPL requirements **without affecting Honeymelon's proprietary license**
+- This approach satisfies LGPL requirements and is compatible with GPL-3.0-or-later
 
-**Implications for Honeymelon**:
+**Implications**:
 
-- Honeymelon remains proprietary and confidential
-- FFmpeg's LGPL license does not affect Honeymelon's proprietary status due to process separation
+- FFmpeg's LGPL license is compatible with Honeymelon's GPL-3.0-or-later license
+- Process separation ensures compliance without restrictions
 - Must include FFmpeg license file with distribution
 - Must provide information on obtaining FFmpeg source code
-- Cannot modify FFmpeg without offering source (Honeymelon doesn't modify FFmpeg)
+- Honeymelon does not modify FFmpeg
 
 See [LICENSES/FFMPEG-LGPL.txt](LICENSES/FFMPEG-LGPL.txt) for complete license text.
 
@@ -501,7 +516,7 @@ All third-party dependencies are documented with proper attribution:
 
 **License Documentation**:
 
-- [THIRD_PARTY_NOTICES.md](docs/legal/THIRD_PARTY_NOTICES.md): Complete list of dependencies and licenses
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): Complete list of dependencies and licenses
 - [LICENSES/](LICENSES/): Individual license files for major dependencies
 
 **Key Dependencies** (all used in compliance with their respective licenses):
@@ -515,14 +530,17 @@ All third-party dependencies are documented with proper attribution:
 
 ### Distribution Requirements
 
-Distribution of Honeymelon requires explicit written permission from the copyright holder. When authorized distribution occurs, the following must be included:
+When distributing Honeymelon under GPL-3.0-or-later, the following must be included:
 
-1. **LICENSE** file (Proprietary license for Honeymelon)
+1. **LICENSE** file (GNU GPLv3 license)
 2. **LICENSES/FFMPEG-LGPL.txt** (FFmpeg LGPL license)
 3. **THIRD_PARTY_NOTICES.md** (all dependency attributions)
-4. Link to FFmpeg source code: <https://ffmpeg.org/download.html>
+4. **Source code** or clear instructions for obtaining it
+5. Link to FFmpeg source code: <https://ffmpeg.org/download.html>
 
-For licensing inquiries, contact: <tjthavarshan@gmail.com>
+Source code is available at: <https://github.com/honeymelon-app/honeymelon>
+
+For commercial support or licensing inquiries, contact: <tjthavarshan@gmail.com>
 
 ---
 
@@ -574,7 +592,7 @@ For licensing inquiries, contact: <tjthavarshan@gmail.com>
 
 ## Contributing
 
-Contributions welcome! See [CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for:
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 - Code of conduct
 - Development setup
@@ -588,7 +606,7 @@ Contributions welcome! See [CONTRIBUTING.md](docs/development/CONTRIBUTING.md) f
 - **Medium**: New presets, UI/UX refinements, testing infrastructure
 - **Future**: Subtitle burn-in, multi-track selection, video trimming
 
-See [AGENTS.md](docs/development/AGENTS.md) for commit conventions.
+See [AGENTS.md](AGENTS.md) for commit conventions.
 
 ---
 
@@ -607,10 +625,10 @@ Built with gratitude for:
 
 ## License
 
-**Honeymelon**: Proprietary. Copyright © 2025 Jerome Thayananthajothy. See [LICENSE](LICENSE).
+**Honeymelon**: Licensed under GNU General Public License v3.0 or later (GPL-3.0-or-later). Copyright © 2025 Jerome Thayananthajothy. See [LICENSE](LICENSE).
 
 **FFmpeg**: LGPL v2.1+. Process-separated (no linking). See [LICENSES/FFMPEG-LGPL.txt](LICENSES/FFMPEG-LGPL.txt).
 
-**Dependencies**: See [THIRD_PARTY_NOTICES.md](docs/legal/THIRD_PARTY_NOTICES.md) for full attributions.
+**Dependencies**: See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for full attributions.
 
 **Licensing inquiries**: <tjthavarshan@gmail.com>

@@ -30,7 +30,7 @@ const licenseStore = useLicenseStore();
 
 const canUseTauriApi = isTauriRuntime() && typeof getVersion === 'function';
 
-const version = ref<string>(import.meta.env?.PACKAGE_VERSION ?? '1.0.0');
+const version = ref<string>(import.meta.env?.PACKAGE_VERSION ?? '2.0.0');
 const buildDate = ref(new Date().toISOString().split('T')[0]);
 const showDeactivateDialog = ref(false);
 const isDeactivating = ref(false);
@@ -60,7 +60,7 @@ async function openWebsite() {
 }
 
 async function openLicense() {
-  await openExternalUrl('https://honeymelon.app/terms');
+  await openExternalUrl('https://www.gnu.org/licenses/gpl-3.0.html');
 }
 
 async function deactivateLicense() {
@@ -98,6 +98,10 @@ async function deactivateLicense() {
       <p class="text-xs leading-relaxed">
         FFmpeg runs out-of-process under the LGPL. No personal media leaves your Mac; conversions
         run locally using the bundled binaries.
+      </p>
+      <p class="text-xs leading-relaxed">
+        Honeymelon is free and open-source software licensed under the GNU GPLv3. You are free to
+        use, study, share, and modify it.
       </p>
     </div>
 
@@ -172,7 +176,7 @@ async function deactivateLicense() {
       </div>
       <div class="space-y-0.5">
         <dt class="text-xs uppercase tracking-wide text-muted-foreground">License</dt>
-        <dd class="font-medium text-foreground">Proprietary · LGPL dependencies</dd>
+        <dd class="font-medium text-foreground">GPL-3.0-or-later · LGPL dependencies</dd>
       </div>
       <div class="space-y-0.5">
         <dt class="text-xs uppercase tracking-wide text-muted-foreground">Support</dt>
@@ -182,12 +186,12 @@ async function deactivateLicense() {
 
     <div class="flex items-center justify-between gap-3 border-t border-border/80 pt-4">
       <div class="text-xs text-muted-foreground">
-        <p>© 2025 Honeymelon.</p>
-        <p>All rights reserved.</p>
+        <p>© 2025 Jerome Thayananthajothy.</p>
+        <p>Licensed under GPLv3.</p>
       </div>
       <div class="flex gap-2">
         <Button variant="outline" size="sm" class="cursor-pointer" @click="openLicense">
-          Terms
+          License
         </Button>
         <Button size="sm" class="cursor-pointer" @click="openWebsite">
           <ExternalLink class="mr-2 h-4 w-4" aria-hidden="true" /> Website

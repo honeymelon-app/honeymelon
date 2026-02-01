@@ -5,6 +5,30 @@ All notable changes to Honeymelon will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-01
+
+### Changed
+
+- **BREAKING**: Transitioned from proprietary license to GNU General Public License v3.0 or later (GPL-3.0-or-later)
+- Updated all license references throughout the codebase (package.json, Cargo.toml, README, AboutDialog)
+- Repository is now fully open-source under GPLv3
+- Changed repository visibility from private to public
+- Removed proprietary license restrictions; software now freely distributable and modifiable under GPL terms
+
+### Added
+
+- Developer Certificate of Origin (DCO) requirement for all contributions
+- NOTICE file documenting trademarks and attribution requirements
+- THIRD_PARTY_NOTICES.md with comprehensive dependency licensing information
+- License compliance documentation for FFmpeg LGPL process separation
+
+### Documentation
+
+- Updated CONTRIBUTING.md with open-source contribution guidelines and DCO
+- Updated SECURITY.md to reflect open-source context
+- Updated README.md Legal & Licensing section for GPL-3.0-or-later
+- Added trademark usage guidelines in NOTICE file
+
 ## [1.0.0] - 2026-01-18
 
 ### Added

@@ -2,16 +2,53 @@
 
 Thank you for your interest in contributing to Honeymelon!
 
-## IMPORTANT: Proprietary Software Notice
+## Open Source License
 
-**Honeymelon is proprietary software.** By contributing to this project, you agree that:
+**Honeymelon is free and open-source software** licensed under the GNU General Public License version 3.0 or later (GPL-3.0-or-later). By contributing to this project, you agree that:
 
-1. All contributions will become the property of Jerome Thayananthajothy
-2. Your contributions will be subject to Honeymelon's proprietary license
-3. You grant Jerome Thayananthajothy perpetual, irrevocable, worldwide rights to use, modify, and distribute your contributions
-4. You waive all rights to your contributions except for attribution
+1. Your contributions will be licensed under GPL-3.0-or-later
+2. You have the right to submit your contributions under this license
+3. Your contributions are your original work or you have permission to submit them
+4. You agree to the Developer Certificate of Origin (DCO) shown below
 
-**Contributor License Agreement**: By submitting a pull request, you certify that you have the right to grant these terms and that your contribution is your original work.
+**Developer Certificate of Origin (DCO)**:
+
+```text
+Developer Certificate of Origin
+Version 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+```
+
+**To accept the DCO**: Add a `Signed-off-by` line to your commit messages using `git commit -s`:
+
+```bash
+git commit -s -m "feat: add new preset for WebP conversion"
+```
+
+This will append: `Signed-off-by: Your Name <your.email@example.com>`
 
 ---
 
@@ -634,7 +671,7 @@ If you have questions about contributing:
 
 ## License
 
-By contributing to Honeymelon, you agree that your contributions will be licensed under Honeymelon's Proprietary License and become the property of Jerome Thayananthajothy.
+By contributing to Honeymelon, you agree that your contributions will be licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later), consistent with the project's license. You certify that your contributions comply with the Developer Certificate of Origin (DCO) as stated at the beginning of this document.
 
 ---
 
