@@ -8,6 +8,14 @@ This directory contains build and setup scripts for Honeymelon.
 
 Downloads and sets up FFmpeg and FFprobe binaries for bundling into the Honeymelon app.
 
+**⚠️ Important:** This script is for development convenience only. For production use or end-user installations, we recommend:
+
+1. **Homebrew** (recommended): `brew install ffmpeg`
+2. **Official builds**: <https://evermeet.cx/ffmpeg/>
+3. **Build from source**: <https://github.com/FFmpeg/FFmpeg>
+
+See [FFMPEG_SOURCES.md](../docs/FFMPEG_SOURCES.md) for detailed information about FFmpeg installation, licensing, and security considerations.
+
 **Usage:**
 
 ```bash
@@ -16,26 +24,40 @@ npm run download-ffmpeg
 
 # Direct execution
 node scripts/download-ffmpeg.js
+
+# Skip checksum verification (not recommended)
+SKIP_CHECKSUM_VERIFICATION=1 npm run download-ffmpeg
+
+# With custom checksums
+export FFMPEG_SHA256=<your-hash>
+export FFPROBE_SHA256=<your-hash>
+npm run download-ffmpeg
 ```
 
 **What it does:**
 
-- Downloads FFmpeg and FFprobe for Apple Silicon (arm64) from evermeet.cx
-- Extracts binaries using 7z (auto-installs via Homebrew if needed)
-- Places them in `src-tauri/bin/`
-- Verifies architecture and code signature
-- Checks for existing binaries and prompts before overwriting
+- Downloads FFmpeg and FFprobe for Apple Silicon (arm64)
+- Verifies SHA256 checksums for integrity (when configured)
+- Extracts binaries and places them in `src-tauri/bin/`
+- Verifies architecture and applies ad-hoc code signing
+- Checks for existing binaries and replaces them
 
 **Requirements:**
 
-- macOS with Homebrew
-- 7z (auto-installed if not present)
+- macOS Apple Silicon (arm64)
+- curl (built-in)
+- unzip (built-in or auto-installed via Homebrew)
 - Internet connection
 
-**Source:**
-The binaries are downloaded from [evermeet.cx](https://evermeet.cx/ffmpeg/), which provides pre-built FFmpeg binaries for macOS.
+**Security & Licensing:**
 
-**Note:** This script is automatically run during `npm install` via the postinstall hook. Manual execution is only needed if you want to re-download or update the binaries.
+- FFmpeg is licensed under LGPL v2.1 or later
+- Used as a separate process (not linked)
+- Source code: <https://github.com/FFmpeg/FFmpeg>
+- Downloads use HTTPS with checksum verification
+- See [LICENSES/FFMPEG-LGPL.txt](../LICENSES/FFMPEG-LGPL.txt) for full license text
+
+**Note:** This script is automatically run during `npm install` via the postinstall hook (with graceful failure). Manual execution is only needed if you want to re-download or update the binaries.
 
 ### `update-version.js`
 

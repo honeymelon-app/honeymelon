@@ -1,0 +1,499 @@
+name: Release Build
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: '20'
+  RUST_TARGET: aarch64-apple-darwin
+
+jobs:
+  semantic-versioning:
+    name: Semantic Versioning
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    outputs:
+      new-release-published: ${{ steps.semantic.outputs.new_release_published }}
+      new-release-version: ${{ steps.semantic.outputs.new_release_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Run semantic-release
+        id: semantic
+        run: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  pre-release-checks:
+    name: Pre-Release Validation
+    runs-on: macos-14
+    needs: [semantic-versioning]
+    if: always() && (github.event_name == 'release' || (needs.semantic-versioning.outputs.new-release-published == 'true'))
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: ${{ env.RUST_TARGET }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - name: Refresh FFmpeg sidecars
+        run: npm run download-ffmpeg
+      - name: Verify FFmpeg binaries
+        run: |
+          echo "Verifying FFmpeg binaries for pre-release..."
+          ls -lh src-tauri/bin/ || { echo "::error::FFmpeg bin directory not found"; exit 1; }
+          src-tauri/bin/ffmpeg -version | head -n 1 || { echo "::error::ffmpeg binary not working"; exit 1; }
+          src-tauri/bin/ffprobe -version | head -n 1 || { echo "::error::ffprobe binary not working"; exit 1; }
+          echo "[OK] FFmpeg binaries verified"
+      - name: Generate test media files
+        run: |
+          echo "Generating test media files for pipeline tests..."
+          npm run generate-test-media
+          echo "[OK] Test media generated"
+      - name: Lint JavaScript/TypeScript
+        run: npm run lint:js
+      - name: Lint Markdown docs
+        run: npm run lint:md
+      - name: Check JS/TS formatting
+        run: npm run format:check:js
+      - name: Check Markdown formatting
+        run: npm run format:check:md
+      - name: Type-check TypeScript sources
+        run: npm run type-check
+      - name: Build frontend bundle
+        run: npm run build
+      - name: Run unit tests with coverage
+        run: npm run test:unit:coverage -- --reporter=default
+      - name: Enforce coverage thresholds
+        run: |
+          if [ -f "coverage/coverage-summary.json" ]; then
+            node -e '
+              const coverage = require("./coverage/coverage-summary.json");
+              const total = coverage.total;
+              const threshold = 80;
+              const metrics = ["lines", "functions", "branches", "statements"];
+              let failed = false;
+              for (const metric of metrics) {
+                const pct = total[metric]?.pct ?? 0;
+                console.log(`${metric}: ${pct}%`);
+                if (pct < threshold) {
+                  console.error(`${metric} coverage ${pct}% is below threshold ${threshold}%`);
+                  failed = true;
+                }
+              }
+              if (failed) {
+                console.error("Coverage check failed");
+                process.exit(1);
+              } else {
+                console.log("All coverage thresholds met");
+              }
+            '
+          else
+            echo "No coverage report found, skipping threshold check"
+          fi
+      - run: cd src-tauri && cargo fmt --all -- --check
+      - run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
+      - run: cd src-tauri && cargo test --all-features --lib
+      - name: Run Rust integration tests
+        run: cd src-tauri && cargo test --all-features --tests -- --nocapture
+      - name: Run FFmpeg pipeline regression tests (pre-release)
+        run: |
+          echo "Running FFmpeg pipeline regression tests before release..."
+          cd src-tauri && cargo test --test ffmpeg_pipeline -- --nocapture
+          echo "[OK] Pipeline regression tests passed"
+
+  build-and-upload:
+    name: Build and Upload Artifacts
+    runs-on: macos-14
+    needs: [semantic-versioning, pre-release-checks]
+    if: always() && (github.event_name == 'release' || (needs.semantic-versioning.outputs.new-release-published == 'true'))
+    env:
+      HAS_DEV_ID: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ env.RUST_TARGET }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Import Apple Developer certificate
+        if: env.HAS_DEV_ID == 'true'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APPLE_CERTIFICATE:-}" ] || [ -z "${APPLE_CERTIFICATE_PASSWORD:-}" ] || [ -z "${KEYCHAIN_PASSWORD:-}" ]; then
+            echo "::error::APPLE_CERTIFICATE / APPLE_CERTIFICATE_PASSWORD / KEYCHAIN_PASSWORD not configured"
+            exit 1
+          fi
+
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+
+          security import certificate.p12 \
+            -k build.keychain \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+          echo "[OK] Developer ID certificate imported into CI keychain"
+          security find-identity -v -p codesigning build.keychain || true
+
+      - run: npm ci
+
+      - name: Setup FFmpeg binaries
+        run: |
+          npm run download-ffmpeg
+          ls -lh src-tauri/bin/
+          file src-tauri/bin/ffmpeg src-tauri/bin/ffprobe
+          src-tauri/bin/ffmpeg -version | head -1 || { echo "::error::ffmpeg not working"; exit 1; }
+          src-tauri/bin/ffprobe -version | head -1 || { echo "::error::ffprobe not working"; exit 1; }
+          echo "[OK] FFmpeg binaries ready for build"
+
+      - name: Sign FFmpeg binaries (ad-hoc)
+        if: env.HAS_DEV_ID == 'false'
+        run: |
+          codesign --force -s - src-tauri/bin/ffmpeg || true
+          codesign --force -s - src-tauri/bin/ffprobe || true
+
+      - name: Sign FFmpeg binaries (Developer ID)
+        if: env.HAS_DEV_ID == 'true'
+        run: |
+          for bin in ffmpeg ffprobe; do
+            codesign --sign "${{ secrets.APPLE_SIGNING_IDENTITY }}" \
+                     --force --options runtime \
+                     --entitlements src-tauri/entitlements.plist \
+                     --timestamp --verbose \
+                     "src-tauri/bin/$bin"
+            codesign --verify --deep --strict --verbose=2 "src-tauri/bin/$bin"
+          done
+
+      - name: Build application
+        run: |
+          set -euo pipefail
+          : "${LICENSE_SIGNING_PUBLIC_KEY:?"Missing LICENSE_SIGNING_PUBLIC_KEY"}"
+
+          if [ -n "${{ secrets.APPLE_ID }}" ] && [ -n "${{ secrets.APPLE_PASSWORD }}" ] && \
+             [ -n "${{ secrets.APPLE_TEAM_ID }}" ] && [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ] && \
+             [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ] && [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" ]; then
+            export APPLE_ID="${{ secrets.APPLE_ID }}"
+            export APPLE_PASSWORD="${{ secrets.APPLE_PASSWORD }}"
+            export APPLE_TEAM_ID="${{ secrets.APPLE_TEAM_ID }}"
+            export APPLE_SIGNING_IDENTITY="${{ secrets.APPLE_SIGNING_IDENTITY }}"
+            export TAURI_SIGNING_PRIVATE_KEY="${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
+            export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}"
+          else
+            export TAURI_SKIP_SIGNING=1 TAURI_SKIP_NOTARIZE=1
+          fi
+
+          npm run tauri:build
+        env:
+          CI: 'false'
+          LICENSE_SIGNING_PUBLIC_KEY: ${{ secrets.LICENSE_SIGNING_PUBLIC_KEY }}
+
+      - name: Stage release artifacts
+        id: prepare_artifacts
+        shell: bash
+        run: |
+          BUNDLE_DIR="$(find src-tauri/target -type d -path '*/release/bundle' -print -quit || echo src-tauri/target/release/bundle)"
+          STAGING_DIR="$BUNDLE_DIR/release-artifacts"
+          mkdir -p "$STAGING_DIR"
+
+          [ -d "$BUNDLE_DIR" ] && {
+            [ -d "$BUNDLE_DIR/dmg" ] && cp "$BUNDLE_DIR/dmg"/*.dmg "$STAGING_DIR/" 2>/dev/null || true
+            [ -d "$BUNDLE_DIR/macos" ] && (cd "$BUNDLE_DIR/macos" && zip -r ../release-artifacts/Honeymelon-macOS-aarch64.app.zip Honeymelon.app) || true
+            # Use ls instead of bash-only compgen for portability
+            ls "$BUNDLE_DIR"/*.zip >/dev/null 2>&1 && cp "$BUNDLE_DIR"/*.zip "$STAGING_DIR/" 2>/dev/null || true
+          }
+
+          if [ -n "$(ls -A "$STAGING_DIR" 2>/dev/null)" ]; then
+            ls -lh "$STAGING_DIR"
+          else
+            echo "Warning: No artifacts found"
+          fi
+
+      - name: Extract metadata
+        id: metadata
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+
+          if ${{ github.event.release.prerelease }}; then
+            CHANNEL="beta"
+          elif [[ "$TAG" =~ -alpha ]]; then
+            CHANNEL="alpha"
+          elif [[ "$TAG" =~ -rc ]]; then
+            CHANNEL="rc"
+          else
+            CHANNEL="stable"
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "commit_hash=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts to platform
+        id: upload_artifacts
+        env:
+          UPLOAD_URL: ${{ secrets.ARTIFACT_UPLOAD_URL }}
+          PLATFORM_KEY: ${{ secrets.PLATFORM_KEY }}
+          PLATFORM_SECRET: ${{ secrets.PLATFORM_SECRET }}
+          CF_COOKIE: ${{ secrets.CF_COOKIE }}
+        run: |
+          set -euo pipefail
+
+          # Validate required secrets
+          missing_secrets=""
+          [ -z "${UPLOAD_URL:-}" ] && missing_secrets="${missing_secrets} ARTIFACT_UPLOAD_URL"
+          [ -z "${PLATFORM_KEY:-}" ] && missing_secrets="${missing_secrets} PLATFORM_KEY"
+          [ -z "${PLATFORM_SECRET:-}" ] && missing_secrets="${missing_secrets} PLATFORM_SECRET"
+
+          if [ -n "$missing_secrets" ]; then
+            echo "::warning::Missing secrets:${missing_secrets}"
+            echo 'artifacts=[]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Function to upload a single file with retry logic
+          upload_file() {
+            local file="$1"
+            local filename=$(basename "$file")
+            local max_retries=3
+            local retry_delay=5
+
+            echo "Uploading: $filename"
+
+            for attempt in $(seq 1 $max_retries); do
+              echo "  Attempt $attempt of $max_retries..."
+
+              # Build curl command with optional CF cookie
+              local curl_args=(
+                -sS --fail-with-body
+                --connect-timeout 30
+                --max-time 300
+                -X POST "$UPLOAD_URL"
+                -H "X-Client-Key: $PLATFORM_KEY"
+                -H "X-Client-Secret: $PLATFORM_SECRET"
+                -H "Accept: application/json"
+                -F "platform=darwin-aarch64"
+                -F "artifact=@$file"
+              )
+
+              [ -n "${CF_COOKIE:-}" ] && curl_args+=(-H "Cookie: $CF_COOKIE")
+
+              local http_code
+              http_code=$(curl "${curl_args[@]}" -w "%{http_code}" -o /tmp/upload_response.json 2>/tmp/curl_error.txt) || true
+
+              # Check response
+              if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+                if jq -e '.data' /tmp/upload_response.json > /tmp/artifact_data.json 2>/dev/null; then
+                  echo "  ✓ Upload successful (HTTP $http_code)"
+                  cat /tmp/artifact_data.json
+                  return 0
+                else
+                  echo "  ✗ Invalid JSON response"
+                  cat /tmp/upload_response.json 2>/dev/null || true
+                fi
+              else
+                echo "  ✗ HTTP $http_code"
+                cat /tmp/upload_response.json 2>/dev/null || cat /tmp/curl_error.txt 2>/dev/null || true
+              fi
+
+              if [ $attempt -lt $max_retries ]; then
+                echo "  Retrying in ${retry_delay}s..."
+                sleep $retry_delay
+                retry_delay=$((retry_delay * 2))
+              fi
+            done
+
+            echo "  ✗ Failed after $max_retries attempts"
+            echo "null"
+            return 1
+          }
+
+          # Find and upload artifacts
+          ARTIFACTS_JSON="[]"
+          upload_count=0
+          fail_count=0
+
+          while IFS= read -r -d '' file; do
+            if upload_file "$file"; then
+              artifact_data=$(cat /tmp/artifact_data.json)
+              ARTIFACTS_JSON=$(echo "$ARTIFACTS_JSON" | jq --argjson item "$artifact_data" '. + [$item]')
+              upload_count=$((upload_count + 1))
+            else
+              fail_count=$((fail_count + 1))
+            fi
+          done < <(find src-tauri/target -path '*/release/bundle/release-artifacts/*' -type f -print0 2>/dev/null || true)
+
+          echo "Uploaded: $upload_count, Failed: $fail_count"
+
+          # Store artifacts JSON directly (no base64)
+          # Use heredoc for multiline JSON
+          {
+            echo 'artifacts<<ARTIFACTS_EOF'
+            echo "$ARTIFACTS_JSON"
+            echo 'ARTIFACTS_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Notify platform webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          PLATFORM_KEY: ${{ secrets.PLATFORM_KEY }}
+          PLATFORM_SECRET: ${{ secrets.PLATFORM_SECRET }}
+        run: |
+          set -euo pipefail
+
+          # Validate required secrets
+          if [ -z "${WEBHOOK_URL:-}" ] || [ -z "${PLATFORM_KEY:-}" ] || [ -z "${PLATFORM_SECRET:-}" ]; then
+            echo "::error::Missing webhook secrets (WEBHOOK_URL, PLATFORM_KEY, or PLATFORM_SECRET)"
+            exit 1
+          fi
+
+          # Parse artifacts from previous step
+          ARTIFACTS_JSON='${{ steps.upload_artifacts.outputs.artifacts }}'
+          if ! echo "$ARTIFACTS_JSON" | jq -e . > /dev/null 2>&1; then
+            echo "::warning::Invalid artifacts JSON, using empty array"
+            ARTIFACTS_JSON='[]'
+          fi
+
+          # Get release notes from event payload
+          RELEASE_NOTES=""
+          if [ -f "$GITHUB_EVENT_PATH" ]; then
+            RELEASE_NOTES=$(jq -r '.release.body // ""' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+          fi
+
+          # Build payload
+          PAYLOAD=$(jq -n \
+            --arg version "${{ steps.metadata.outputs.version }}" \
+            --arg tag "${{ github.event.release.tag_name }}" \
+            --arg commit_hash "${{ steps.metadata.outputs.commit_hash }}" \
+            --arg channel "${{ steps.metadata.outputs.channel }}" \
+            --arg notes "$RELEASE_NOTES" \
+            --arg published_at "${{ github.event.release.published_at }}" \
+            --argjson major "${{ steps.metadata.outputs.major }}" \
+            --argjson artifacts "$ARTIFACTS_JSON" \
+            '{
+              version: $version,
+              tag: $tag,
+              commit_hash: $commit_hash,
+              channel: $channel,
+              notes: $notes,
+              published_at: $published_at,
+              major: $major,
+              artifacts: $artifacts
+            }')
+
+          echo "Webhook payload:"
+          echo "$PAYLOAD" | jq -C .
+
+          # Send webhook with retry logic
+          max_retries=3
+          retry_delay=5
+
+          for attempt in $(seq 1 $max_retries); do
+            echo "Sending webhook (attempt $attempt of $max_retries)..."
+
+            http_code=$(curl -sS --fail-with-body \
+              --connect-timeout 30 \
+              --max-time 60 \
+              -X POST "$WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -H "Accept: application/json" \
+              -H "X-Client-Key: $PLATFORM_KEY" \
+              -H "X-Client-Secret: $PLATFORM_SECRET" \
+              -d "$PAYLOAD" \
+              -w "%{http_code}" \
+              -o /tmp/webhook_response.json 2>/tmp/webhook_error.txt) || true
+
+            if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+              echo "✓ Webhook sent successfully (HTTP $http_code)"
+              cat /tmp/webhook_response.json 2>/dev/null || true
+              exit 0
+            fi
+
+            echo "✗ Webhook failed (HTTP $http_code)"
+            echo "Response:"
+            cat /tmp/webhook_response.json 2>/dev/null || cat /tmp/webhook_error.txt 2>/dev/null || echo "(no response body)"
+
+            if [ $attempt -lt $max_retries ]; then
+              echo "Retrying in ${retry_delay}s..."
+              sleep $retry_delay
+              retry_delay=$((retry_delay * 2))
+            fi
+          done
+
+          echo "::error::Webhook failed after $max_retries attempts"
+          exit 1
+
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: honeymelon-macos-aarch64
+          path: src-tauri/target/**/release/bundle/release-artifacts/*
+          retention-days: 30
+
+  create-checksums:
+    needs: [build-and-upload]
+    runs-on: ubuntu-latest
+    if: always() && (github.event_name == 'release' || success())
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: honeymelon-macos-aarch64
+          path: artifacts
+      - run: |
+          cd artifacts
+          [ -z "$(find . -type f)" ] && { echo "No files"; exit 1; }
+          find . -type f -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: artifacts/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

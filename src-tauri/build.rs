@@ -1,3 +1,20 @@
+// Copyright (C) 2025-2026 Jerome Thayananthajothy
+//
+// This file is part of Honeymelon.
+//
+// Honeymelon is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/\>.
+
 use std::{env, fs, os::unix::fs::PermissionsExt, path::Path, process::Command};
 
 fn ensure_exec(path: &Path) -> std::io::Result<()> {
@@ -40,22 +57,7 @@ fn require_sidecar(rel: &str) {
 }
 
 fn main() {
-    // Load .env (kept from your original)
-    let _ = dotenvy::dotenv();
-
-    // Forward LICENSE_SIGNING_PUBLIC_KEY to code
-    if let Ok(key) = std::env::var("LICENSE_SIGNING_PUBLIC_KEY")
-        .or_else(|_| std::env::var("LICENSE_SIGNING_PUBLIC_KEY"))
-    {
-        println!("cargo:rustc-env=LICENSE_SIGNING_PUBLIC_KEY={}", key);
-    }
-
-    // Forward PLATFORM_API_URL for online activation
-    let platform_url =
-        std::env::var("PLATFORM_API_URL").unwrap_or_else(|_| "https://honeymelon.app".to_string());
-    println!("cargo:rustc-env=PLATFORM_API_URL={}", platform_url);
-
-    // New: enforce the *new* paths
+    // Enforce the presence of required FFmpeg sidecars
     require_sidecar("bin/ffmpeg");
     require_sidecar("bin/ffprobe");
 

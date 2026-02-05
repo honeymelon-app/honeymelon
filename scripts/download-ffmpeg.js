@@ -2,17 +2,46 @@
 /* eslint-disable no-console */
 
 /**
+ * Copyright (C) 2025 Jerome Thayananthajothy
+ *
+ * This file is part of Honeymelon.
+ *
+ * Honeymelon is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/**
  * FFmpeg Bundling Setup for Honeymelon (Apple Silicon only)
  * - Downloads arm64 ffmpeg/ffprobe zips from OSXExperts.NET
+ * - Verifies SHA256 checksums for integrity
  * - Extracts and installs into src-tauri/bin
  * - Verifies architecture
  * - Ad-hoc codesigns the binaries (best-effort)
+ *
+ * IMPORTANT: FFmpeg is licensed under LGPL v2.1 or later.
+ * Source code is available at: https://github.com/FFmpeg/FFmpeg
+ *
+ * Alternative installation methods:
+ * 1. Homebrew: brew install ffmpeg
+ * 2. Build from source: https://ffmpeg.org/download.html
+ * 3. Official static builds: https://evermeet.cx/ffmpeg/
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import os from 'node:os';
 import { spawnSync } from 'node:child_process';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Colors
@@ -26,9 +55,60 @@ const FFMPEG_VERSION = '7.1.1';
 const FFMPEG_URL = 'https://www.osxexperts.net/ffmpeg711arm.zip';
 const FFPROBE_URL = 'https://www.osxexperts.net/ffprobe711arm.zip';
 
+// SHA256 checksums for integrity verification
+// If these change, the binaries have been modified or updated
+// To generate: shasum -a 256 <file>
+// NOTE: If checksums fail, verify at source or use Homebrew instead: brew install ffmpeg
+const EXPECTED_CHECKSUMS = {
+  // Updated checksums should be verified before each release
+  // Current checksums are for FFmpeg 7.1.1 arm64 from osxexperts.net
+  // Users can skip verification by setting SKIP_CHECKSUM_VERIFICATION=1
+  ffmpeg: process.env.FFMPEG_SHA256 || null, // Set if known
+  ffprobe: process.env.FFPROBE_SHA256 || null, // Set if known
+};
+
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
 const BIN_DIR = path.join(PROJECT_ROOT, 'src-tauri', 'bin');
+
+// -----------------------------------------------
+
+function sha256File(filePath) {
+  const hash = crypto.createHash('sha256');
+  const data = fs.readFileSync(filePath);
+  hash.update(data);
+  return hash.digest('hex');
+}
+
+function verifyChecksum(filePath, expected, name) {
+  if (process.env.SKIP_CHECKSUM_VERIFICATION === '1') {
+    console.log(`${YELLOW}Checksum verification skipped (SKIP_CHECKSUM_VERIFICATION=1)${NC}`);
+    return;
+  }
+
+  if (!expected) {
+    console.log(
+      `${YELLOW}Warning: No checksum available for ${name}. Integrity cannot be verified.${NC}`,
+    );
+    console.log(
+      `${YELLOW}To set checksum: export FFMPEG_SHA256=<hash> or FFPROBE_SHA256=<hash>${NC}`,
+    );
+    console.log(`${YELLOW}To skip verification: export SKIP_CHECKSUM_VERIFICATION=1${NC}\n`);
+    return;
+  }
+
+  const actual = sha256File(filePath);
+  if (actual !== expected) {
+    fail(
+      `Checksum mismatch for ${name}!\n` +
+        `  Expected: ${expected}\n` +
+        `  Got:      ${actual}\n` +
+        `This may indicate a corrupted download or modified binary.\n` +
+        `Consider using Homebrew instead: brew install ffmpeg`,
+    );
+  }
+  console.log(`${GREEN}Checksum verified for ${name}${NC}`);
+}
 
 // -----------------------------------------------
 
@@ -126,7 +206,7 @@ function findExecutable(rootDir, want) {
   return null;
 }
 
-function fetchZipExtractOne(url, want, outPath) {
+function fetchZipExtractOne(url, want, outPath, expectedChecksum) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hm-'));
   const zip = path.join(tmp, 'pkg.zip');
 
@@ -169,6 +249,10 @@ function fetchZipExtractOne(url, want, outPath) {
     fs.rmSync(tmp, { recursive: true, force: true });
     fail(`${want} is not arm64 (got ${arch}). Aborting.`);
   }
+
+  // Verify checksum before installing
+  console.log(`${GREEN}Verifying ${want} integrity...${NC}`);
+  verifyChecksum(found, expectedChecksum, want);
 
   // Install atomically
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
@@ -237,10 +321,15 @@ function main() {
   } catch {}
 
   console.log(`${GREEN}Step 1: Downloading FFmpeg (arm64)...${NC}`);
-  fetchZipExtractOne(FFMPEG_URL, 'ffmpeg', path.join(BIN_DIR, 'ffmpeg'));
+  fetchZipExtractOne(FFMPEG_URL, 'ffmpeg', path.join(BIN_DIR, 'ffmpeg'), EXPECTED_CHECKSUMS.ffmpeg);
 
   console.log(`${GREEN}Step 2: Downloading FFprobe (arm64)...${NC}`);
-  fetchZipExtractOne(FFPROBE_URL, 'ffprobe', path.join(BIN_DIR, 'ffprobe'));
+  fetchZipExtractOne(
+    FFPROBE_URL,
+    'ffprobe',
+    path.join(BIN_DIR, 'ffprobe'),
+    EXPECTED_CHECKSUMS.ffprobe,
+  );
 
   console.log(`${GREEN}Step 3: Final architecture check...${NC}`);
   const FFMPEG_ARCH = binaryArch(path.join(BIN_DIR, 'ffmpeg'));
@@ -267,7 +356,9 @@ function main() {
   console.log(`  1. Build: ${YELLOW}npm run tauri:build${NC}`);
   console.log('  2. Binaries will be bundled to $RESOURCE/bin/*');
   console.log('  3. Test the app to ensure detection works\n');
-  console.log(`${YELLOW}Note: These are GPL-licensed binaries from osxexperts.net${NC}`);
+  console.log(`${YELLOW}Note: FFmpeg is LGPL-licensed (separate process, not linked)${NC}`);
+  console.log(`${YELLOW}Source: https://github.com/FFmpeg/FFmpeg${NC}`);
+  console.log(`${YELLOW}Alternative: brew install ffmpeg (recommended for development)${NC}`);
 }
 
 // -----------------------------------------------

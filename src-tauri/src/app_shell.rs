@@ -1,3 +1,20 @@
+// Copyright (C) 2025-2026 Jerome Thayananthajothy
+//
+// This file is part of Honeymelon.
+//
+// Honeymelon is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/\>.
+
 use crate::services::ServiceRegistry;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::{App, Builder, Emitter, Manager, WindowEvent, Wry};
@@ -37,11 +54,6 @@ pub fn build_app() -> Builder<AppRuntime> {
                 crate::commands::media::expand_media_paths,
                 crate::commands::dialogs::pick_media_files,
                 crate::commands::dialogs::choose_output_directory,
-                crate::commands::licensing::verify_license_key,
-                crate::commands::licensing::activate_license,
-                crate::commands::licensing::current_license,
-                crate::commands::licensing::remove_license,
-                crate::commands::licensing::is_license_activated,
             ]);
 
     builder.setup(|app| {

@@ -5,6 +5,59 @@ All notable changes to Honeymelon will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-05
+
+### Changed
+
+- **BREAKING**: Transitioned from proprietary license to GNU General Public License v3.0 or later (GPL-3.0-or-later)
+- **BREAKING**: Removed all proprietary licensing and activation code from codebase
+- Updated all license references throughout the codebase (package.json, Cargo.toml, README, AboutDialog)
+- Repository is now fully open-source under GPLv3
+- Changed repository visibility from private to public
+- Removed proprietary license restrictions; software now freely distributable and modifiable under GPL terms
+
+### Added
+
+- GPL v3 copyright headers to all main source files (TypeScript, Vue, Rust)
+- Developer Certificate of Origin (DCO) requirement for all contributions
+- NOTICE file documenting trademarks and attribution requirements
+- THIRD_PARTY_NOTICES.md with comprehensive dependency licensing information
+- License compliance documentation for FFmpeg LGPL process separation
+- SHA256 checksum verification for FFmpeg binary downloads
+- `docs/FFMPEG_SOURCES.md` - Comprehensive FFmpeg installation and sourcing guide
+- `GPL_V3_READINESS.md` - Complete open source readiness checklist
+- `OPEN_SOURCE_VERIFICATION.md` - Final verification report
+- PRs Welcome badge to README
+
+### Removed
+
+- License key validation system
+- License activation dialogs and UI components
+- License activation strings from all locales (EN, FR, ES, DE, RU)
+- `isBypassLicensing()` function (replaced with `isDevelopmentMode()`)
+- All references to proprietary licensing in documentation and comments
+- **Documentation cleanup**:
+  - `docs/legal/eula.md` - Proprietary End-User License Agreement
+  - `docs/legal/commercial-license.md` - Commercial licensing terms
+  - `docs/guide/licensing.md` - License activation guide with Ed25519 verification instructions
+  - All EULA references from `docs/ROADMAP.md`, `docs/development/enhancement-plan.md`, `docs/changelog.md`
+  - Proprietary license references from `docs/architecture/ffmpeg.md` and `docs/development/contributing.md`
+
+### Security
+
+- Updated `lodash-es` from 4.17.21 to 4.17.23 to address prototype pollution vulnerability in `_.unset` and `_.omit` functions (CVE-2020-8203)
+- Enhanced FFmpeg binary download security with checksum verification
+- Added TruffleHog secret scanning to CI/CD pipeline
+
+### Documentation
+
+- Updated CONTRIBUTING.md with open-source contribution guidelines and DCO
+- Updated SECURITY.md to reflect open-source context
+- Updated README.md Legal & Licensing section for GPL-3.0-or-later
+- Added trademark usage guidelines in NOTICE file
+- Enhanced scripts/README.md with licensing and security information
+- Fixed outdated MIT reference in LICENSES/FFMPEG-LGPL.txt
+
 ## [1.0.0] - 2026-01-18
 
 ### Added
@@ -19,7 +72,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 670 frontend tests and 121 backend tests passing
   - Zero production security vulnerabilities
   - Full CI/CD pipeline with pre-release validation
-  - Ed25519 cryptographic license verification
   - Hardened macOS runtime with minimal entitlements
 
 ## [0.1.3] - 2026-01-12
@@ -52,7 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Keyboard shortcuts (Cmd+C, Cmd+V, Cmd+A, etc.) now work in all dialogs including license activation
+- Keyboard shortcuts (Cmd+C, Cmd+V, Cmd+A, etc.) now work in all dialogs including license activation **[Removed in v2.0.0]**
 - Edit menu now uses native predefined items that properly integrate with webview
 - Event emissions now log errors instead of silently failing
 - Window focus failures are now logged for debugging
@@ -77,18 +129,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Enforced major-version licensing: licenses now validate the running app’s major version (with lifetime licenses represented as `255` for all majors)
-- Reinstall-friendly activation: stable device ID per machine + idempotent re-activation on the same device
+- Enforced major-version licensing: licenses now validate the running app's major version (with lifetime licenses represented as `255` for all majors) **[Removed in v2.0.0]**
+- Reinstall-friendly activation: stable device ID per machine + idempotent re-activation on the same device **[Removed in v2.0.0]**
 
 ### Fixed
 
-- Prevented “burning” one-time activation on ineligible licenses by validating locally before calling the activation API
+- Prevented "burning" one-time activation on ineligible licenses by validating locally before calling the activation API **[Removed in v2.0.0]**
 
 ## [0.0.6] - 2025-12-24
 
 ### Fixed
 
-- Improved license activation error handling: response parsing now falls back to `message` field when `error` is absent, and provides clearer parse failure messages
+- Improved license activation error handling: response parsing now falls back to `message` field when `error` is absent, and provides clearer parse failure messages **[Removed in v2.0.0]**
 
 ## [0.0.5] - 2025-12-06
 
@@ -202,11 +254,11 @@ This is the initial public release. See [Unreleased] section for complete featur
 
 ### Changed
 
-- Rust backend now loads `.env` at build time and forwards `LICENSE_SIGNING_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
+- Rust backend now loads `.env` at build time and forwards `LICENSE_SIGNING_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`). **[Removed in v2.0.0]**
 - Added `dotenvy` to Rust build dependencies.
-- Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification.
+- Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification. **[Removed in v2.0.0]**
 - Replaced all dynamic imports of Tauri API modules with static imports in frontend files to resolve Vite warnings:
-  - `src/stores/license.ts`
+  - `src/stores/license.ts` **[Removed in v2.0.0]**
   - `src/composables/use-file-handler.ts`
   - `src/composables/use-job-orchestrator.ts`
   - `src/lib/file-discovery.ts`
@@ -225,7 +277,7 @@ This is the initial public release. See [Unreleased] section for complete featur
 - AGENTS.md for commit/PR guidelines
 - THIRD_PARTY_NOTICES.md for dependencies
 - LICENSE_COMPLIANCE.md for LGPL compliance details
-- COMMERCIAL_LICENSE.md for alternative licensing
+- COMMERCIAL_LICENSE.md for alternative licensing **[Removed in v2.0.0]**
 - README now highlights the Apple Silicon-focused packaging, bundled arm64 FFmpeg sidecars, and adds a release checklist step to verify their architecture.
 
 ### Known Limitations

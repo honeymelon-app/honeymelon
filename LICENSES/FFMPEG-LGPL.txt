@@ -3,13 +3,13 @@ FFmpeg License Information
 
 FFmpeg is licensed under the GNU Lesser General Public License (LGPL) version 2.1 or later.
 
-IMPORTANT NOTES FOR COMMERCIAL DISTRIBUTION:
-=============================================
+IMPORTANT NOTES FOR DISTRIBUTION:
+==================================
 
 1. Honeymelon uses FFmpeg as an EXTERNAL, SEPARATE PROGRAM (out-of-process execution)
 2. There is NO static or dynamic linking to FFmpeg libraries
 3. FFmpeg binaries are distributed separately and executed as standalone processes
-4. This means Honeymelon can be sold commercially under its own license (MIT)
+4. Honeymelon is licensed under GPL-3.0-or-later and complies with LGPL requirements
 
 LGPL COMPLIANCE:
 ================

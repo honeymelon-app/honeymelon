@@ -1,0 +1,65 @@
+# NOTICE
+
+## Honeymelon
+
+Copyright © 2025-2026 Jerome Thayananthajothy
+
+This software is licensed under the GNU General Public License version 3.0 or later (GPL-3.0-or-later).
+
+You may obtain a copy of the GPL-3.0 license at: <https://www.gnu.org/licenses/gpl-3.0.html>
+
+---
+
+## Trademarks
+
+"Honeymelon" and the Honeymelon logo are trademarks of Jerome Thayananthajothy.
+
+While the Honeymelon source code is licensed under GPL-3.0-or-later, the trademarks are not licensed under the GPL. Use of the Honeymelon name and logo is subject to the following guidelines:
+
+### Permitted Uses
+
+- **Unmodified Distribution**: You may use the Honeymelon name and logo when distributing unmodified binaries or source code of Honeymelon.
+- **Attribution**: You may use the Honeymelon name when discussing, documenting, or referencing the project.
+- **Community Projects**: You may use "for Honeymelon" or "compatible with Honeymelon" when describing plugins, extensions, or complementary tools.
+
+### Restricted Uses
+
+- **Modified Versions**: If you distribute a modified version of Honeymelon, you must clearly indicate that it is a modified version and not official. You should use a different name and logo to avoid confusion.
+- **Commercial Use**: Use of the Honeymelon name or logo in a way that suggests official endorsement, partnership, or sponsorship requires prior written permission.
+- **Domain Names**: Registration of domain names containing "Honeymelon" for commercial purposes is not permitted without authorization.
+
+### Guidelines
+
+When distributing modified versions:
+
+1. Change the application name to something clearly different (e.g., "MyConverter based on Honeymelon")
+2. Replace or remove the Honeymelon logo
+3. Include a notice stating: "This is a modified version of Honeymelon and is not officially endorsed by the Honeymelon project"
+4. Maintain all required GPL license notices and attributions
+
+For trademark usage questions or permission requests, contact: <tjthavarshan@gmail.com>
+
+---
+
+## Attribution
+
+Honeymelon incorporates open-source software components. Full attribution and license information for all dependencies can be found in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Key acknowledgments:
+
+- **FFmpeg** - Licensed under LGPL v2.1 or later
+- **Tauri** - Licensed under MIT/Apache-2.0
+- **Vue.js** - Licensed under MIT
+- **Rust and its ecosystem** - Primarily MIT/Apache-2.0 dual licensed
+
+This software includes contributions from many open-source developers. We are grateful for their work.
+
+---
+
+## Contact
+
+For questions about this notice, licensing, or trademark usage:
+
+- **Email**: <tjthavarshan@gmail.com>
+- **GitHub**: <https://github.com/honeymelon-app/honeymelon>
+- **Issues**: <https://github.com/honeymelon-app/honeymelon/issues>

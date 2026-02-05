@@ -3,14 +3,6 @@ import { Locale } from '@/lib/locale';
 export const messages = {
   [Locale.EN]: {
     app: {
-      license: {
-        requiredTitle: 'Activation Required',
-        requiredBody:
-          'Enter your Honeymelon license to unlock the media converter. The window will reopen automatically.',
-        instructions:
-          'If you just purchased a license, copy the key from your email or the customer portal.',
-        enterKey: 'Enter License Key',
-      },
       window: {
         closeWithJobsRunning:
           '{count} job(s) running. The app will continue running in the background. Close window anyway?',
@@ -119,14 +111,6 @@ export const messages = {
   },
   [Locale.FR]: {
     app: {
-      license: {
-        requiredTitle: 'Activation requise',
-        requiredBody:
-          'Entrez votre licence Honeymelon pour débloquer le convertisseur multimédia. La fenêtre se rouvrira automatiquement.',
-        instructions:
-          "Si vous venez d'acheter une licence, copiez la clé depuis votre e-mail ou le portail client.",
-        enterKey: 'Entrer la clé de licence',
-      },
       window: {
         closeWithJobsRunning:
           "{count} tâche(s) en cours. L'application continuera à fonctionner en arrière-plan. Fermer la fenêtre quand même?",
@@ -238,14 +222,6 @@ export const messages = {
   },
   [Locale.ES]: {
     app: {
-      license: {
-        requiredTitle: 'Activación requerida',
-        requiredBody:
-          'Ingresa tu licencia de Honeymelon para desbloquear el convertidor de medios. La ventana se reabrirá automáticamente.',
-        instructions:
-          'Si acabas de comprar una licencia, copia la clave desde tu correo electrónico o el portal del cliente.',
-        enterKey: 'Ingresar clave de licencia',
-      },
       window: {
         closeWithJobsRunning:
           '{count} tarea(s) en ejecución. La aplicación continuará ejecutándose en segundo plano. ¿Cerrar ventana de todos modos?',
@@ -357,14 +333,6 @@ export const messages = {
   },
   [Locale.DE]: {
     app: {
-      license: {
-        requiredTitle: 'Aktivierung erforderlich',
-        requiredBody:
-          'Geben Sie Ihre Honeymelon-Lizenz ein, um den Medienkonverter freizuschalten. Das Fenster wird automatisch wieder geöffnet.',
-        instructions:
-          'Wenn Sie gerade eine Lizenz erworben haben, kopieren Sie den Schlüssel aus Ihrer E-Mail oder dem Kundenportal.',
-        enterKey: 'Lizenzschlüssel eingeben',
-      },
       window: {
         closeWithJobsRunning:
           '{count} Aufgabe(n) läuft/laufen. Die App wird im Hintergrund weiterlaufen. Fenster trotzdem schließen?',
@@ -476,14 +444,6 @@ export const messages = {
   },
   [Locale.RU]: {
     app: {
-      license: {
-        requiredTitle: 'Требуется активация',
-        requiredBody:
-          'Введите лицензию Honeymelon, чтобы разблокировать медиаконвертер. Окно откроется автоматически.',
-        instructions:
-          'Если вы только что приобрели лицензию, скопируйте ключ из электронной почты или личного кабинета.',
-        enterKey: 'Ввести лицензионный ключ',
-      },
       window: {
         closeWithJobsRunning:
           'Выполняется {count} задач(и). Приложение продолжит работу в фоновом режиме. Закрыть окно в любом случае?',

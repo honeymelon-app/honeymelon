@@ -1,4 +1,23 @@
 /**
+ * Copyright (C) 2025-2026 Jerome Thayananthajothy
+ *
+ * This file is part of Honeymelon.
+ *
+ * Honeymelon is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/**
  * Main entry point for the Honeymelon Vue 3 application.
  *
  * This file initializes and configures the Vue application instance, setting up essential
@@ -18,11 +37,11 @@
  * the entire application's lifecycle.
  */
 
-import './assets/css/global.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
+import './assets/css/global.css';
 
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
