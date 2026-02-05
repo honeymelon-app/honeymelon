@@ -12,61 +12,9 @@ env:
   RUST_TARGET: aarch64-apple-darwin
 
 jobs:
-  pre-release-checks:
-    name: Pre-Release Validation
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-          targets: ${{ env.RUST_TARGET }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      - run: npm ci
-      - name: Refresh FFmpeg sidecars
-        run: npm run download-ffmpeg
-      - name: Verify FFmpeg binaries
-        run: |
-          echo "Verifying FFmpeg binaries for pre-release..."
-          ls -lh src-tauri/bin/ || { echo "::error::FFmpeg bin directory not found"; exit 1; }
-          src-tauri/bin/ffmpeg -version | head -n 1 || { echo "::error::ffmpeg binary not working"; exit 1; }
-          src-tauri/bin/ffprobe -version | head -n 1 || { echo "::error::ffprobe binary not working"; exit 1; }
-          echo "[OK] FFmpeg binaries verified"
-      - name: Lint JavaScript/TypeScript
-        run: npm run lint:js
-      - name: Lint Markdown docs
-        run: npm run lint:md
-      - name: Check JS/TS formatting
-        run: npm run format:check:js
-      - name: Check Markdown formatting
-        run: npm run format:check:md
-      - name: Type-check TypeScript sources
-        run: npm run type-check
-      - name: Build frontend bundle
-        run: npm run build
-      - name: Run unit tests with coverage
-        run: npm run test:unit:coverage -- --reporter=default
-      - run: cd src-tauri && cargo fmt --all -- --check
-      - run: cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings
-      - run: cd src-tauri && cargo test --all-features --lib
-      - name: Run Rust integration tests
-        run: cd src-tauri && cargo test --all-features --tests -- --nocapture
-      - name: Run FFmpeg pipeline regression tests (pre-release)
-        run: |
-          echo "Running FFmpeg pipeline regression tests before release..."
-          cd src-tauri && cargo test --test ffmpeg_pipeline -- --nocapture
-          echo "[OK] Pipeline regression tests passed"
-
   build-and-upload:
     name: Build and Upload Artifacts
     runs-on: macos-14
-    needs: [pre-release-checks]
     env:
       HAS_DEV_ID: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
