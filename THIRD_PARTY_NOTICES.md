@@ -85,7 +85,6 @@ All Rust crates are compatible with GPLv3. Key dependencies include:
 
 ### Cryptography & Security
 
-- **ed25519-dalek** - BSD-3-Clause - <https://github.com/dalek-cryptography/ed25519-dalek>
 - **base64** - Apache-2.0 OR MIT - <https://github.com/marshallpierce/rust-base64>
 
 ### HTTP & Networking

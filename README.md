@@ -9,6 +9,7 @@
   <a href="#license"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg" alt="License: GPL-3.0-or-later"></a>
   <a href="https://www.apple.com/macos"><img src="https://img.shields.io/badge/macOS-13.0+-blue.svg" alt="macOS 13+"></a>
   <a href="https://www.apple.com/mac/"><img src="https://img.shields.io/badge/Apple%20Silicon-Native-brightgreen.svg" alt="Apple Silicon Native"></a>
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
 </p>
 
 ---
@@ -458,8 +459,6 @@ Under the conditions that:
 
 For the complete license text, see [LICENSE](LICENSE).
 
-For commercial support or custom licensing inquiries, contact <tjthavarshan@gmail.com>.
-
 ### FFmpeg Licensing
 
 **License**: LGPL v2.1 or later
@@ -484,6 +483,22 @@ For commercial support or custom licensing inquiries, contact <tjthavarshan@gmai
 - Honeymelon does not modify FFmpeg
 
 See [LICENSES/FFMPEG-LGPL.txt](LICENSES/FFMPEG-LGPL.txt) for complete license text.
+
+**FFmpeg Installation & Sources**:
+
+For trusted FFmpeg installation methods and binary verification:
+
+1. **Homebrew** (recommended): `brew install ffmpeg`
+2. **Official builds**: <https://evermeet.cx/ffmpeg/>
+3. **Build from source**: <https://github.com/FFmpeg/FFmpeg>
+
+See [docs/FFMPEG_SOURCES.md](docs/FFMPEG_SOURCES.md) for detailed information about:
+
+- Recommended installation methods
+- Binary verification and checksums
+- Building from source
+- Security considerations
+- Distribution requirements
 
 ### Patent Considerations
 
@@ -539,8 +554,6 @@ When distributing Honeymelon under GPL-3.0-or-later, the following must be inclu
 5. Link to FFmpeg source code: <https://ffmpeg.org/download.html>
 
 Source code is available at: <https://github.com/honeymelon-app/honeymelon>
-
-For commercial support or licensing inquiries, contact: <tjthavarshan@gmail.com>
 
 ---
 

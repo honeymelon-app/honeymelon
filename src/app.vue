@@ -1,14 +1,32 @@
 <script setup lang="ts">
 /**
+ * Copyright (C) 2025 Jerome Thayananthajothy
+ *
+ * This file is part of Honeymelon.
+ *
+ * Honeymelon is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/**
  * Root application component for Honeymelon.
  *
  * This is the main Vue component that serves as the entry point for the entire application UI.
- * It orchestrates the high-level application state, including license management, media type
- * filtering, file uploading, and job queue management. The component implements a tabbed interface
- * that allows users to work with different media types (video, audio, image) separately.
+ * It orchestrates the high-level application state, including media type filtering, file uploading,
+ * and job queue management. The component implements a tabbed interface that allows users to work
+ * with different media types (video, audio, image) separately.
  *
  * Key responsibilities:
- * - License activation and validation flow
  * - Media type-based tab navigation and filtering
  * - Integration with file upload and job orchestration systems
  * - Loading state management during app initialization
@@ -21,7 +39,7 @@
  * Architecture:
  * - Uses computed properties for reactive filtering of jobs by media type
  * - Implements event handlers for file input, browsing, and job management
- * - Manages dialog states for license activation and about information
+ * - Manages dialog states for about information and settings
  * - Coordinates between multiple child components for a cohesive user experience
  */
 
@@ -223,7 +241,7 @@ const handleImageUpdateAllPresets = (presetId: string) => handleUpdateAllPresets
       <VisuallyHidden>
         <DialogTitle>About Honeymelon</DialogTitle>
         <DialogDescription>
-          Application information, version details, and license status.
+          Application information, version details, and open source license.
         </DialogDescription>
       </VisuallyHidden>
       <AboutDialog @close="isAboutOpen = false" />

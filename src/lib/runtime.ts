@@ -24,10 +24,10 @@ export function isE2ESimulation(): boolean {
 }
 
 /**
- * Checks if license bypass is enabled (dev mode).
+ * Checks if development mode is enabled.
  *
- * @returns true if the VITE_BYPASS_LICENSING env var is set to 'true'
+ * @returns true if running in development mode
  */
-export function isBypassLicensing(): boolean {
-  return import.meta.env.VITE_BYPASS_LICENSING === 'true';
+export function isDevelopmentMode(): boolean {
+  return import.meta.env.DEV === true;
 }
