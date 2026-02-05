@@ -62,7 +62,7 @@ We support security updates for:
 
 | Version | Status | End of Life |
 | ------- | ------ | ----------- |
-| 0.1.x   | Active | TBD         |
+| 2.0.x   | Active | TBD         |
 
 Once the security policy is more established, this table will be updated to reflect long-term support timelines.
 

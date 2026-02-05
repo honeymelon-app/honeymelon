@@ -63,9 +63,9 @@
     ],
     "resources": ["bin/ffmpeg", "bin/ffprobe"],
     "category": "public.app-category.productivity",
-    "copyright": "Copyright © 2025 Jerome Thayananthajothy. Licensed under GPL-3.0-or-later.",
+    "copyright": "Copyright © 2025-2026 Jerome Thayananthajothy. Licensed under GPL-3.0-or-later.",
     "shortDescription": "Media converter with remux-first FFmpeg workflow for Apple Silicon",
-    "longDescription": "Professional media converter for macOS Apple Silicon with intelligent remux-first FFmpeg workflow. Supports H.264, HEVC, VP9, AV1, and more. Optimized for M1, M2, M3, and M4 chips.",
+    "longDescription": "Free and open-source media converter for macOS Apple Silicon with intelligent remux-first FFmpeg workflow. Supports H.264, HEVC, VP9, AV1, and more. Optimized for M1, M2, M3, and M4 chips.",
     "macOS": {
       "minimumSystemVersion": "13.0",
       "frameworks": [],

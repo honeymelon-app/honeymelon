@@ -1,4 +1,4 @@
-<h1 align="center">Honeymelon</h1>
+# Honeymelon 🍈 | App
 
 <p align="center">
   A professional media converter built for macOS Apple Silicon.<br />

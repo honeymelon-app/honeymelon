@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2025 Jerome Thayananthajothy
+ * Copyright (C) 2025-2026 Jerome Thayananthajothy
  *
  * This file is part of Honeymelon.
  *

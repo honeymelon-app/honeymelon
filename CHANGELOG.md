@@ -104,7 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Keyboard shortcuts (Cmd+C, Cmd+V, Cmd+A, etc.) now work in all dialogs including license activation
+- Keyboard shortcuts (Cmd+C, Cmd+V, Cmd+A, etc.) now work in all dialogs including license activation **[Removed in v2.0.0]**
 - Edit menu now uses native predefined items that properly integrate with webview
 - Event emissions now log errors instead of silently failing
 - Window focus failures are now logged for debugging
@@ -129,18 +129,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Enforced major-version licensing: licenses now validate the running app’s major version (with lifetime licenses represented as `255` for all majors)
-- Reinstall-friendly activation: stable device ID per machine + idempotent re-activation on the same device
+- Enforced major-version licensing: licenses now validate the running app's major version (with lifetime licenses represented as `255` for all majors) **[Removed in v2.0.0]**
+- Reinstall-friendly activation: stable device ID per machine + idempotent re-activation on the same device **[Removed in v2.0.0]**
 
 ### Fixed
 
-- Prevented “burning” one-time activation on ineligible licenses by validating locally before calling the activation API
+- Prevented "burning" one-time activation on ineligible licenses by validating locally before calling the activation API **[Removed in v2.0.0]**
 
 ## [0.0.6] - 2025-12-24
 
 ### Fixed
 
-- Improved license activation error handling: response parsing now falls back to `message` field when `error` is absent, and provides clearer parse failure messages
+- Improved license activation error handling: response parsing now falls back to `message` field when `error` is absent, and provides clearer parse failure messages **[Removed in v2.0.0]**
 
 ## [0.0.5] - 2025-12-06
 
@@ -254,11 +254,11 @@ This is the initial public release. See [Unreleased] section for complete featur
 
 ### Changed
 
-- Rust backend now loads `.env` at build time and forwards `LICENSE_SIGNING_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`).
+- Rust backend now loads `.env` at build time and forwards `LICENSE_SIGNING_PUBLIC_KEY` to the compiler for license verification (via `build.rs` and `dotenvy`). **[Removed in v2.0.0]**
 - Added `dotenvy` to Rust build dependencies.
-- Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification.
+- Improved license key verification: key available at both build and runtime; temporary test for key loading added and removed after verification. **[Removed in v2.0.0]**
 - Replaced all dynamic imports of Tauri API modules with static imports in frontend files to resolve Vite warnings:
-  - `src/stores/license.ts`
+  - `src/stores/license.ts` **[Removed in v2.0.0]**
   - `src/composables/use-file-handler.ts`
   - `src/composables/use-job-orchestrator.ts`
   - `src/lib/file-discovery.ts`
@@ -277,7 +277,7 @@ This is the initial public release. See [Unreleased] section for complete featur
 - AGENTS.md for commit/PR guidelines
 - THIRD_PARTY_NOTICES.md for dependencies
 - LICENSE_COMPLIANCE.md for LGPL compliance details
-- COMMERCIAL_LICENSE.md for alternative licensing
+- COMMERCIAL_LICENSE.md for alternative licensing **[Removed in v2.0.0]**
 - README now highlights the Apple Silicon-focused packaging, bundled arm64 FFmpeg sidecars, and adds a release checklist step to verify their architecture.
 
 ### Known Limitations
