@@ -57,6 +57,33 @@ describe('generated presets', () => {
       });
     });
 
+    it('includes HEVC preset for MP4 container', () => {
+      const hevcMp4 = PRESETS.find((preset) => preset.id === 'video-to-mp4-hevc');
+      expect(hevcMp4).toBeDefined();
+      expect(hevcMp4?.mediaKind).toBe('video');
+      expect(hevcMp4?.container).toBe('mp4');
+      expect(hevcMp4?.video.codec).toBe('hevc');
+      expect(hevcMp4?.audio.codec).toBe('aac');
+    });
+
+    it('includes HEVC preset for MOV container', () => {
+      const hevcMov = PRESETS.find((preset) => preset.id === 'video-to-mov-hevc');
+      expect(hevcMov).toBeDefined();
+      expect(hevcMov?.mediaKind).toBe('video');
+      expect(hevcMov?.container).toBe('mov');
+      expect(hevcMov?.video.codec).toBe('hevc');
+      expect(hevcMov?.audio.codec).toBe('aac');
+    });
+
+    it('includes ProRes preset for MOV container', () => {
+      const prores = PRESETS.find((preset) => preset.id === 'video-to-mov-prores');
+      expect(prores).toBeDefined();
+      expect(prores?.mediaKind).toBe('video');
+      expect(prores?.container).toBe('mov');
+      expect(prores?.video.codec).toBe('prores');
+      expect(prores?.audio.codec).toBe('pcm_s16le');
+    });
+
     it('configures GIF outputs with GIF video codec and no audio', () => {
       const gifTargets = PRESETS.filter((preset) => preset.container === 'gif');
       expect(gifTargets.length).toBeGreaterThan(0);
