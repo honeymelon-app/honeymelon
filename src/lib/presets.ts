@@ -337,6 +337,69 @@ function buildVideoPresets(): Preset[] {
     presets.push(preset);
   }
 
+  // Add HEVC (H.265) preset for MP4
+  presets.push({
+    id: 'video-to-mp4-hevc',
+    label: 'MP4 (HEVC/H.265 + AAC)',
+    mediaKind: 'video',
+    sourceContainers: [...VIDEO_CONTAINERS.filter((c) => c !== 'mp4')],
+    container: 'mp4',
+    description: 'Convert video to MP4 with HEVC/H.265 codec for better compression.',
+    video: {
+      codec: 'hevc',
+    },
+    audio: {
+      codec: 'aac',
+    },
+    subs: {
+      mode: 'convert',
+      notes: 'Text subtitles convert to mov_text.',
+    },
+    outputExtension: 'mp4',
+  });
+
+  // Add HEVC (H.265) preset for MOV
+  presets.push({
+    id: 'video-to-mov-hevc',
+    label: 'MOV (HEVC/H.265 + AAC)',
+    mediaKind: 'video',
+    sourceContainers: [...VIDEO_CONTAINERS.filter((c) => c !== 'mov')],
+    container: 'mov',
+    description: 'Convert video to MOV with HEVC/H.265 codec for better compression.',
+    video: {
+      codec: 'hevc',
+    },
+    audio: {
+      codec: 'aac',
+    },
+    subs: {
+      mode: 'drop',
+      notes: 'Subtitles must be burned in for MOV.',
+    },
+    outputExtension: 'mov',
+  });
+
+  // Add ProRes preset for MOV
+  presets.push({
+    id: 'video-to-mov-prores',
+    label: 'MOV (ProRes + PCM)',
+    mediaKind: 'video',
+    sourceContainers: [...VIDEO_CONTAINERS.filter((c) => c !== 'mov')],
+    container: 'mov',
+    description: 'Convert video to MOV with ProRes codec for professional editing workflows.',
+    video: {
+      codec: 'prores',
+    },
+    audio: {
+      codec: 'pcm_s16le',
+    },
+    subs: {
+      mode: 'drop',
+      notes: 'Subtitles must be burned in for MOV.',
+    },
+    outputExtension: 'mov',
+  });
+
   return presets;
 }
 
